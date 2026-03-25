@@ -1185,6 +1185,7 @@ function registrarEntrada(){
 }
 
 /* ── ELIMINAR ARTÍCULO ── */
+function eliminarArticulo(idx){
   var nombre=inventario[idx].nombre;
   if(!confirm('¿Eliminar "'+nombre+'"? Esta acción no se puede deshacer.')) return;
   postAPI({action:'deleteArticulo',nombre:nombre},function(err,d){
