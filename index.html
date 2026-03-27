@@ -533,7 +533,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 <div class="toast" id="toast"></div>
 
 <script>
-var API='https://script.google.com/macros/s/AKfycbwUJEIzc89CZnFBXScp_DaIhpvp9gm_SQ2LC2_QJZw4C7vQmEnE-lzgPRnf15ThuQif/exec';
+var API='https://script.google.com/macros/s/AKfycbyuErGakILBY5GUb9rgcVbCB34OKw4qQSDZ2r9JQUQzM5qYhVWAAb-05f3f72GoZiub/exec';
 var inventario=[],historial=[],carrito=[],pedidoItems=[];
 var today=new Date().toISOString().split('T')[0];
 document.getElementById('sal-fecha').value=today;
@@ -857,35 +857,41 @@ function sincronizarPartidas(obraObj){
 function verObra(idx){
   obraSeleccionada=OBRAS[idx];
   var o=obraSeleccionada;
-  // Sincronizar partidas desde historial automáticamente
-  sincronizarPartidas(o);
   document.getElementById('obra-detalle-icon').textContent=o.icon;
   document.getElementById('obra-detalle-nombre').textContent=o.corto+' — '+o.nombre+(o.estado==='cerrada'?' [CERRADA]':o.estado==='pausada'?' [PAUSADA]':'');
   document.getElementById('obra-detalle-lugar').textContent=o.lugar+(o.inicio?' | Inicio: '+o.inicio:'')+(o.fin?' | Fin previsto: '+o.fin:'');
-  var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';});
-  var pct=0,tot=0,sum=0;
-  if(o.partidas&&o.partidas.length){
-    tot=o.partidas.reduce(function(a,p){return a+p.contratado;},0);
-    sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
-    pct=tot>0?Math.round(sum/tot*100):0;
-  }
-  document.getElementById('obra-kpis').innerHTML=
-    (o.presupuesto>0?'<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+Number(o.presupuesto).toLocaleString('es')+'€</div></div>':'')+
-    '<div class="stat"><div class="stat-label">Salidas</div><div class="stat-val">'+salidas.length+'</div></div>'+
-    (o.partidas&&o.partidas.length?
-      '<div class="stat"><div class="stat-label">Ejecutado</div><div class="stat-val '+(pct>100?'danger':'success')+'">'+pct+'%</div></div>'+
-      '<div class="stat"><div class="stat-label">Suministrado</div><div class="stat-val">'+sum.toLocaleString('es')+' ud</div></div>'+
-      '<div class="stat"><div class="stat-label">Contratado</div><div class="stat-val">'+tot.toLocaleString('es')+' ud</div></div>':'');
-  if(o.partidas&&o.partidas.length){
-    document.getElementById('obra-progreso-wrap').style.display='block';
-    document.getElementById('obra-progreso-pct').textContent=pct+'%';
-    document.getElementById('obra-progreso-bar').style.width=Math.min(pct,100)+'%';
-    document.getElementById('obra-progreso-bar').style.background=pct>100?'var(--danger)':'var(--accent)';
-  } else document.getElementById('obra-progreso-wrap').style.display='none';
   document.getElementById('per-fecha').value=today;
-  obraSubTab('partidas',document.getElementById('otab-partidas'));
   document.getElementById('obra-detalle').style.display='block';
   document.getElementById('obra-detalle').scrollIntoView({behavior:'smooth'});
+  // Cargar historial actualizado y luego sincronizar partidas
+  callAPI('getHistorial',function(err,data){
+    if(!err&&Array.isArray(data)){
+      historial=data.reverse();
+      sincronizarPartidas(o);
+    }
+    // Mostrar partidas y KPIs
+    var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';});
+    var pct=0,tot=0,sum=0;
+    if(o.partidas&&o.partidas.length){
+      tot=o.partidas.reduce(function(a,p){return a+p.contratado;},0);
+      sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
+      pct=tot>0?Math.round(sum/tot*100):0;
+    }
+    document.getElementById('obra-kpis').innerHTML=
+      (o.presupuesto>0?'<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+Number(o.presupuesto).toLocaleString('es')+'€</div></div>':'')+
+      '<div class="stat"><div class="stat-label">Salidas</div><div class="stat-val">'+salidas.length+'</div></div>'+
+      (o.partidas&&o.partidas.length?
+        '<div class="stat"><div class="stat-label">Ejecutado</div><div class="stat-val '+(pct>100?'danger':'success')+'">'+pct+'%</div></div>'+
+        '<div class="stat"><div class="stat-label">Suministrado</div><div class="stat-val">'+sum.toLocaleString('es')+' ud</div></div>'+
+        '<div class="stat"><div class="stat-label">Contratado</div><div class="stat-val">'+tot.toLocaleString('es')+' ud</div></div>':'');
+    if(o.partidas&&o.partidas.length){
+      document.getElementById('obra-progreso-wrap').style.display='block';
+      document.getElementById('obra-progreso-pct').textContent=pct+'%';
+      document.getElementById('obra-progreso-bar').style.width=Math.min(pct,100)+'%';
+      document.getElementById('obra-progreso-bar').style.background=pct>100?'var(--danger)':'var(--accent)';
+    } else document.getElementById('obra-progreso-wrap').style.display='none';
+    obraSubTab('partidas',document.getElementById('otab-partidas'));
+  });
 }
 
 function obraSubTab(id,el){
