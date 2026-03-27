@@ -530,6 +530,56 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- MODAL PEDIDO DESDE PARTIDA -->
+<div id="modal-pedido-partida" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border-radius:12px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">🛒 Pedir material</div>
+    <div id="modal-pedido-material" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo de pedido</label>
+        <select id="mp-tipo">
+          <option value="almacen">📦 Al almacén (suma stock)</option>
+          <option value="obra">🏗️ Directo a obra</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Unidades a pedir</label>
+        <input type="number" id="mp-qty" placeholder="0" min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label>Proveedor</label>
+        <select id="mp-prov">
+          <option value="">Sin especificar</option>
+          <option>VISORNETS</option>
+          <option>LEON DE ORO</option>
+          <option>UNETRAMESAS</option>
+          <option>MULTIGARBEN</option>
+          <option>TORRES Y SAEZ</option>
+          <option>WURTH INDEXFIX</option>
+          <option>MARCELINO</option>
+          <option>INDE-K</option>
+          <option>CV TOOLS</option>
+          <option>AMAZON / BRICODEPOT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha prevista entrega</label>
+        <input type="date" id="mp-fecha">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observaciones</label>
+        <input type="text" id="mp-obs" placeholder="Opcional...">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="cerrarModalPedidoPartida()">Cancelar</button>
+      <button class="btn" style="background:var(--success);color:#fff" id="mp-btn-salida" onclick="confirmarSalidaPartida()">⬆️ Salida directa almacén</button>
+      <button class="btn primary" id="mp-btn" onclick="confirmarPedidoPartida()">🛒 Registrar pedido</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -958,7 +1008,8 @@ function renderPartidas(){
           '<td style="text-align:right;padding:5px 6px">'+
             (esAlquiler?'<input type="number" value="'+(l.precioAlquiler||0)+'" min="0" step="0.01" placeholder="€/día" style="width:80px;text-align:right;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px" onchange="actualizarPrecioAlquiler('+pidx+',this.value)">':'—')+
           '</td>'+
-          '<td style="padding:5px 6px">'+
+          '<td style="padding:5px 6px;display:flex;gap:4px">'+
+            '<button class="btn primary" style="font-size:10px;padding:3px 6px" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
             '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarPartida('+pidx+')">✕</button>'+
           '</td>'+
         '</tr>';
@@ -966,6 +1017,87 @@ function renderPartidas(){
       '<button class="btn primary" style="font-size:11px;margin-top:8px" onclick="guardarPartidas()">💾 Guardar cambios</button>'+
     '</div>';
   }).join('');
+}
+
+/* ── PEDIDO DESDE PARTIDA ── */
+var _mpIdx=-1;
+
+function abrirModalPedidoPartida(pidx){
+  if(!obraSeleccionada||!obraSeleccionada.partidas[pidx]) return;
+  _mpIdx=pidx;
+  var p=obraSeleccionada.partidas[pidx];
+  var pend=p.contratado-(p.suministrado||0);
+  document.getElementById('modal-pedido-material').textContent=p.material+' — Pendiente: '+pend+' ud';
+  document.getElementById('mp-qty').value=pend>0?pend:'';
+  document.getElementById('mp-fecha').value=today;
+  document.getElementById('mp-obs').value='';
+  document.getElementById('mp-prov').value='';
+  document.getElementById('mp-tipo').value='almacen';
+  var modal=document.getElementById('modal-pedido-partida');
+  modal.style.display='flex';
+}
+
+function cerrarModalPedidoPartida(){
+  document.getElementById('modal-pedido-partida').style.display='none';
+  _mpIdx=-1;
+}
+
+function confirmarPedidoPartida(){
+  if(_mpIdx<0||!obraSeleccionada) return;
+  var p=obraSeleccionada.partidas[_mpIdx];
+  var qty=parseFloat(document.getElementById('mp-qty').value)||0;
+  var tipo=document.getElementById('mp-tipo').value;
+  var prov=document.getElementById('mp-prov').value;
+  var fecha=document.getElementById('mp-fecha').value;
+  var obs=document.getElementById('mp-obs').value;
+  if(qty<=0){toast('Introduce las unidades a pedir',true);return;}
+  var btn=document.getElementById('mp-btn');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var items=[{nombre:p.material,qty:qty}];
+  postAPI({
+    action:'addHistorial',tipo:'pedido',fecha:fecha,
+    obra:obraSeleccionada.nombre,prov:prov,obs:obs,
+    ref:'Pedido desde partida — '+tipo,
+    items:items
+  },function(err,data){
+    btn.disabled=false;btn.textContent='🛒 Registrar pedido';
+    if(err||!data||!data.ok){toast('Error al registrar pedido',true);return;}
+    historial.unshift({tipo:'pedido',fecha:fecha,obra:obraSeleccionada.nombre,prov:prov,obs:obs,ref:'Pedido desde partida',items:items,anulada:false,entregado:false});
+    cerrarModalPedidoPartida();
+    toast('Pedido registrado — se descontará de partidas al marcarlo como entregado');
+  });
+}
+
+function confirmarSalidaPartida(){
+  if(_mpIdx<0||!obraSeleccionada) return;
+  var p=obraSeleccionada.partidas[_mpIdx];
+  var qty=parseFloat(document.getElementById('mp-qty').value)||0;
+  var fecha=document.getElementById('mp-fecha').value;
+  var obs=document.getElementById('mp-obs').value;
+  if(qty<=0){toast('Introduce las unidades',true);return;}
+  // Verificar stock
+  var inv=inventario.find(function(i){return i.nombre===p.material||i.nombre.toLowerCase().indexOf(p.material.toLowerCase())>=0||p.material.toLowerCase().indexOf(i.nombre.toLowerCase())>=0;});
+  if(inv&&inv.stock<qty){
+    if(!confirm('Stock insuficiente ('+inv.stock+' ud disponibles). ¿Registrar igualmente?')) return;
+  }
+  var btn=document.getElementById('mp-btn-salida');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var items=[{nombre:p.material,qty:qty}];
+  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Salida desde partida',obs:obs,items:items},function(err,data){
+    if(err||!data||!data.ok){toast('Error al registrar salida',true);btn.disabled=false;btn.textContent='⬆️ Salida directa almacén';return;}
+    // Descontar stock
+    postAPI({action:'updateStock',items:items},function(){
+      if(inv) inv.stock=Math.max(0,inv.stock-qty);
+      // Sincronizar partidas
+      historial.unshift({tipo:'salida',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Salida desde partida',obs:obs,items:items,anulada:false});
+      sincronizarPartidas(obraSeleccionada);
+      btn.disabled=false;btn.textContent='⬆️ Salida directa almacén';
+      cerrarModalPedidoPartida();
+      renderInv();
+      renderPartidas();
+      toast('Salida registrada — stock y partidas actualizados');
+    });
+  });
 }
 
 function toggleTipoPartida(idx){
@@ -1186,14 +1318,23 @@ function marcarEntregado(idx){
   if(!h||h.tipo!=='pedido') return;
   h.entregado=true;
   h.fechaEntrega=today;
-  // Actualizar en Sheets
   postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
     if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
+    // Si el pedido era al almacén → suma stock en inventario
+    if(h.tipoDestino==='almacen'||(h.ref&&h.ref.indexOf('almacen')>=0)){
+      postAPI({action:'restoreStock',items:h.items},function(){
+        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+          var inv=inventario.find(function(i){return i.nombre===item.nombre;});
+          if(inv) inv.stock=(inv.stock||0)+(item.qty||0);
+        });
+        renderInv();
+      });
+    }
     // Sincronizar partidas de la obra
     var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
     if(obraObj) sincronizarPartidas(obraObj);
     renderHist();
-    toast('Pedido marcado como entregado — partidas actualizadas');
+    toast('Pedido marcado como entregado — partidas y stock actualizados');
   });
 }
 
