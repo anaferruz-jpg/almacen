@@ -533,7 +533,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 <div class="toast" id="toast"></div>
 
 <script>
-var API='https://script.google.com/macros/s/AKfycbz2dBVrbV8CuIFR1pKqQAN99WkIXQQ6NHRKNRCZBDfNvCl6-o9ZFaZlllHXR_JJhQ/exec';
+var API='https://script.google.com/macros/s/AKfycbwUJEIzc89CZnFBXScp_DaIhpvp9gm_SQ2LC2_QJZw4C7vQmEnE-lzgPRnf15ThuQif/exec';
 var inventario=[],historial=[],carrito=[],pedidoItems=[];
 var today=new Date().toISOString().split('T')[0];
 document.getElementById('sal-fecha').value=today;
@@ -828,9 +828,37 @@ function buildObrasGrid(){
   actualizarSelectsObras();
 }
 
+function sincronizarPartidas(obraObj){
+  if(!obraObj||!obraObj.partidas||!obraObj.partidas.length) return;
+  // Reset suministrado
+  obraObj.partidas.forEach(function(p){p.suministrado=0;});
+  // Recalcular desde historial: salidas + pedidos entregados
+  historial.forEach(function(h){
+    if(h.obra!==obraObj.nombre) return;
+    if(h.anulada===true||h.anulada==='true') return;
+    var esSalida=h.tipo==='salida';
+    var esPedidoEntregado=h.tipo==='pedido'&&h.entregado===true;
+    if(!esSalida&&!esPedidoEntregado) return;
+    var items=Array.isArray(h.items)?h.items:[];
+    items.forEach(function(item){
+      obraObj.partidas.forEach(function(p){
+        var nm=item.nombre.toLowerCase();
+        var pm=p.material.toLowerCase();
+        if(nm===pm||nm.indexOf(pm)>=0||pm.indexOf(nm)>=0){
+          p.suministrado=(p.suministrado||0)+(item.qty||0);
+        }
+      });
+    });
+  });
+  // Guardar en Sheets
+  postAPI({action:'saveObra',nombreOriginal:obraObj.nombre,nombre:obraObj.nombre,lugar:obraObj.lugar||'—',presupuesto:obraObj.presupuesto||0,inicio:obraObj.inicio||'',fin:obraObj.fin||'',estado:obraObj.estado||'activa',partidas:obraObj.partidas,personal:obraObj.personal||[],pctAlquiler:obraObj.pctAlquiler||0,diasAlquiler:obraObj.diasAlquiler||0},function(){});
+}
+
 function verObra(idx){
   obraSeleccionada=OBRAS[idx];
   var o=obraSeleccionada;
+  // Sincronizar partidas desde historial automáticamente
+  sincronizarPartidas(o);
   document.getElementById('obra-detalle-icon').textContent=o.icon;
   document.getElementById('obra-detalle-nombre').textContent=o.corto+' — '+o.nombre+(o.estado==='cerrada'?' [CERRADA]':o.estado==='pausada'?' [PAUSADA]':'');
   document.getElementById('obra-detalle-lugar').textContent=o.lugar+(o.inicio?' | Inicio: '+o.inicio:'')+(o.fin?' | Fin previsto: '+o.fin:'');
@@ -854,7 +882,6 @@ function verObra(idx){
     document.getElementById('obra-progreso-bar').style.width=Math.min(pct,100)+'%';
     document.getElementById('obra-progreso-bar').style.background=pct>100?'var(--danger)':'var(--accent)';
   } else document.getElementById('obra-progreso-wrap').style.display='none';
-  // Init personal date
   document.getElementById('per-fecha').value=today;
   obraSubTab('partidas',document.getElementById('otab-partidas'));
   document.getElementById('obra-detalle').style.display='block';
@@ -1146,6 +1173,22 @@ function renderCostes(){
         }).join('')+
         '</tbody></table>'+
       '</div>':'<div class="empty">Sin salidas de material registradas</div>');
+}
+
+function marcarEntregado(idx){
+  var h=historial[idx];
+  if(!h||h.tipo!=='pedido') return;
+  h.entregado=true;
+  h.fechaEntrega=today;
+  // Actualizar en Sheets
+  postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
+    if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
+    // Sincronizar partidas de la obra
+    var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
+    if(obraObj) sincronizarPartidas(obraObj);
+    renderHist();
+    toast('Pedido marcado como entregado — partidas actualizadas');
+  });
 }
 
 function eliminarPedido(idx){
@@ -1515,21 +1558,11 @@ function registrarSalida(){
       carrito.forEach(function(c){
         var it=inventario.find(function(i){return i.nombre===c.nombre;});
         if(it) it.stock=Math.max(0,it.stock-c.qty);
-        // Descontar de partidas de la obra
-        var obraObj=OBRAS.find(function(o){return o.nombre===obra;});
-        if(obraObj&&obraObj.partidas){
-          obraObj.partidas.forEach(function(p){
-            if(p.material.toLowerCase()===c.nombre.toLowerCase()||
-               c.nombre.toLowerCase().indexOf(p.material.toLowerCase())>=0||
-               p.material.toLowerCase().indexOf(c.nombre.toLowerCase())>=0){
-              p.suministrado=(p.suministrado||0)+c.qty;
-            }
-          });
-          // Guardar partidas actualizadas en Sheets
-          postAPI({action:'saveObra',nombreOriginal:obraObj.nombre,nombre:obraObj.nombre,lugar:obraObj.lugar||'—',presupuesto:obraObj.presupuesto||0,inicio:obraObj.inicio||'',fin:obraObj.fin||'',estado:obraObj.estado||'activa',partidas:obraObj.partidas,personal:obraObj.personal||[]},function(){});
-        }
       });
       historial.unshift({tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito.slice(),anulada:false});
+      // Sincronizar partidas de la obra desde historial completo
+      var obraObj=OBRAS.find(function(o){return o.nombre===obra;});
+      if(obraObj) sincronizarPartidas(obraObj);
       carrito=[];renderCarrito();renderInv();buildObrasGrid();
       document.getElementById('sal-obra').value='';document.getElementById('sal-resp').value='';
       btn.disabled=false;btn.textContent='Registrar salida';
@@ -1621,7 +1654,12 @@ function renderHist(){
       '</div>'+
       '<div>'+items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)"><span>'+i.nombre+'</span><span style="font-weight:500">'+i.qty+' ud</span></div>';}).join('')+'</div>'+
       (!an&&h.tipo==='salida'?'<div style="margin-top:8px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button></div>':'')+
-      (!an&&h.tipo==='pedido'?'<div style="margin-top:8px;display:flex;justify-content:flex-end;gap:6px"><button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar pedido</button></div>':'')+
+      (!an&&h.tipo==='pedido'?
+        '<div style="margin-top:8px;display:flex;justify-content:flex-end;gap:6px;align-items:center">'+
+          (h.entregado?'<span class="badge ok" style="font-size:10px">✅ Entregado '+( h.fechaEntrega||''  )+'</span>':
+            '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="marcarEntregado('+realIdx+')">✅ Marcar como entregado</button>')+
+          '<button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+        '</div>':'')+
       (h.obs?'<p style="font-size:12px;color:var(--text2);margin-top:8px">'+h.obs+'</p>':'')+
     '</div>';
   }).join('');
