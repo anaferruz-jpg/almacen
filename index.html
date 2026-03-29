@@ -6,107 +6,139 @@
 <title>Control Almacén y Obras</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f5f0eb;color:#2b1a0e;min-height:100vh;padding:1rem}
+body{font-family:system-ui,sans-serif;background:#f5f0eb;color:#2b1a0e;min-height:100vh;padding:0.5rem}
 :root{--accent:#c4621a;--accent-light:#fdeede;--danger:#c0392b;--danger-light:#fce8e6;--success:#5a8a2e;--success-light:#eaf3de;--warn:#c4621a;--warn-light:#fdeede;--bg:#fff;--bg2:#f5f0eb;--border:#e0d0c0;--text:#2b1a0e;--text2:#7a5c3e}
-.app{max-width:1100px;margin:0 auto;padding:1rem 0;min-height:600px}
-.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;background:#5c2d0e;border-radius:12px;padding:14px 20px}
-.top-bar h1{font-size:18px;font-weight:600;color:#fff;flex:1;min-width:200px}
-.sync-badge{font-size:11px;padding:3px 10px;border-radius:4px;font-weight:500}
+.app{max-width:1100px;margin:0 auto;padding:0.5rem 0;min-height:600px}
+.top-bar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;background:#5c2d0e;border-radius:12px;padding:10px 14px}
+.top-bar h1{font-size:16px;font-weight:600;color:#fff;flex:1;min-width:160px}
+.sync-badge{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
 .sync-badge.ok{background:rgba(90,138,46,.3);color:#c8f0a0}
 .sync-badge.loading{background:rgba(255,255,255,.2);color:#fff}
 .sync-badge.error{background:rgba(192,57,43,.4);color:#ffcccc}
-.tabs{display:flex;gap:4px;background:rgba(255,255,255,.15);border-radius:8px;padding:4px;flex-wrap:wrap}
-.tab{padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.75);transition:all .15s}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.15);border-radius:8px;padding:3px;flex-wrap:wrap}
+.tab{padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,.75);transition:all .15s;white-space:nowrap}
 .tab.active{background:#c4621a;color:#fff;font-weight:600}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem}
-.stat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
-.stat-label{font-size:12px;color:var(--text2);margin-bottom:4px}
-.stat-val{font-size:22px;font-weight:600;color:var(--text)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem}
+.stat{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-label{font-size:11px;color:var(--text2);margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:600;color:var(--text)}
 .stat-val.danger{color:var(--danger)}
 .stat-val.success{color:var(--success)}
-.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
 .toolbar input,.toolbar select{padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
-.toolbar input{flex:1;min-width:180px}
-.btn{padding:7px 14px;font-size:13px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);color:var(--text);white-space:nowrap;transition:background .1s}
+.toolbar input{flex:1;min-width:160px}
+.btn{padding:7px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);color:var(--text);white-space:nowrap;transition:background .1s}
 .btn:hover{background:var(--accent-light)}
 .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn.primary:hover{background:#a04d12}
 .btn.danger{background:var(--danger-light);color:var(--danger);border-color:var(--danger)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 table{width:100%;border-collapse:collapse;font-size:13px}
-thead th{text-align:left;padding:8px 10px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);background:var(--bg)}
+thead th{text-align:left;padding:8px 8px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);background:var(--bg)}
 tbody tr{border-bottom:0.5px solid var(--border);transition:background .1s}
 tbody tr:hover{background:#f9f9f9}
-td{padding:8px 10px;color:var(--text);vertical-align:middle}
+td{padding:7px 8px;color:var(--text);vertical-align:middle}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
 .badge.ok{background:var(--success-light);color:var(--success)}
 .badge.falta{background:var(--danger-light);color:var(--danger)}
 .badge.warn{background:var(--warn-light);color:var(--warn)}
 .badge.anulada{background:#f0f0f0;color:#888;text-decoration:line-through}
-.tbl-wrap{max-height:420px;overflow-y:auto;border:0.5px solid var(--border);border-radius:12px}
+.tbl-wrap{max-height:440px;overflow-y:auto;border:0.5px solid var(--border);border-radius:12px}
 .panel{display:none}
 .panel.active{display:block}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
 .form-group{display:flex;flex-direction:column;gap:4px}
 .form-group label{font-size:12px;color:var(--text2)}
 .form-group input,.form-group select,.form-group textarea{padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
-.card{background:var(--bg);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
-.card-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:10px}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:12px;padding:0.9rem 1.1rem;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px}
 .qty-ctrl{display:flex;align-items:center;gap:4px}
-.qty-ctrl button{width:28px;height:28px;border:0.5px solid #ccc;border-radius:6px;cursor:pointer;background:#ebebeb;color:var(--text);font-size:16px;line-height:1;flex-shrink:0}
-.qty-ctrl input{width:70px;text-align:center;padding:4px 6px;font-size:14px;font-weight:600;border:0.5px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
-.pedido-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);flex-wrap:wrap}
+.qty-ctrl button{width:30px;height:30px;border:0.5px solid #ccc;border-radius:6px;cursor:pointer;background:#ebebeb;color:var(--text);font-size:18px;line-height:1;flex-shrink:0}
+.qty-ctrl input{width:65px;text-align:center;padding:4px 6px;font-size:14px;font-weight:600;border:0.5px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
+.pedido-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border);flex-wrap:wrap}
 .pedido-row:last-child{border:none}
 .pedido-nombre{flex:1;font-size:13px;color:var(--text);min-width:120px}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(10px);transition:all .2s;z-index:999;pointer-events:none}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(10px);transition:all .2s;z-index:9999;pointer-events:none;max-width:90vw}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.error{background:var(--danger)}
-.section-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:10px;margin-top:1.5rem}
+.section-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:10px;margin-top:1.2rem}
 .section-title:first-child{margin-top:0}
 .empty{padding:2rem;text-align:center;color:var(--text2);font-size:13px}
 .tag-obra{display:inline-block;padding:2px 8px;background:var(--accent-light);color:var(--accent);border-radius:4px;font-size:11px;font-weight:500;margin:2px}
-.search-results{border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px}
-.search-item{padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
+.search-results{border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.search-item{padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
 .search-item:last-child{border:none}
 .search-item:hover{background:#f5f5f5}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid #ddd;border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* OBRAS GRID */
-.obras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem}
-.obra-btn-card{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:1.2rem 1rem;cursor:pointer;text-align:center;transition:all .15s}
-.obra-btn-card:hover{border-color:var(--accent);background:var(--accent-light)}
-.obra-btn-card.selected{border-color:var(--accent);background:var(--accent-light)}
-.obra-icon{font-size:28px;margin-bottom:8px}
-.obra-nombre{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
-.obra-lugar{font-size:11px;color:var(--text2);margin-top:3px}
-.obra-count{margin-top:6px}
+.obras-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.2rem}
+.obra-btn-card{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:1rem 0.9rem;cursor:pointer;text-align:center;transition:all .15s}
+.obra-btn-card:hover,.obra-btn-card.selected{border-color:var(--accent);background:var(--accent-light)}
+.obra-icon{font-size:26px;margin-bottom:6px}
+.obra-nombre{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.obra-lugar{font-size:11px;color:var(--text2);margin-top:2px}
 .obra-pct{font-size:11px;font-weight:600;color:var(--accent);margin-top:4px}
-.prog-bar-wrap{background:#e0e0e0;border-radius:4px;height:6px;margin-top:6px;overflow:hidden}
+.prog-bar-wrap{background:#e0e0e0;border-radius:4px;height:5px;margin-top:4px;overflow:hidden}
 .prog-bar{height:100%;background:var(--accent);border-radius:4px;transition:width .4s}
 .obra-cerrada{opacity:.6;border-style:dashed}
 
-/* CONFIRM MODAL */
+/* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.open{display:flex}
-.modal-box{background:var(--bg);border-radius:16px 16px 0 0;padding:1.5rem 1.25rem;width:100%;max-width:600px}
+.modal-box{background:var(--bg);border-radius:16px 16px 0 0;padding:1.5rem 1.25rem;width:100%;max-width:600px;max-height:85vh;overflow-y:auto}
 .modal-title{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--text)}
 .modal-sub{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5}
-.modal-items{background:#f8f8f8;border-radius:8px;padding:10px 12px;margin-bottom:14px;max-height:180px;overflow-y:auto}
+.modal-items{background:#f8f8f8;border-radius:8px;padding:10px 12px;margin-bottom:14px;max-height:160px;overflow-y:auto}
 .modal-item-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border);color:var(--text)}
 .modal-item-row:last-child{border:none}
+
+/* SALIDA SIMPLIFICADA MÓVIL */
+.sal-obra-select{width:100%;padding:12px 14px;font-size:15px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);margin-bottom:8px}
+.sal-search-big{width:100%;padding:12px 14px;font-size:15px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text)}
+.search-item-big{padding:12px 14px;cursor:pointer;font-size:14px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
+.search-item-big:hover{background:var(--accent-light)}
+.carrito-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border);flex-wrap:nowrap}
+.carrito-nombre{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qty-big button{width:36px;height:36px;font-size:20px;border:0.5px solid #ccc;border-radius:8px;cursor:pointer;background:#ebebeb;flex-shrink:0}
+.qty-big input{width:60px;text-align:center;padding:6px;font-size:15px;font-weight:700;border:0.5px solid var(--border);border-radius:6px}
+.btn-salida-big{width:100%;padding:14px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;margin-top:10px}
+.btn-salida-big:disabled{opacity:.4}
+
+/* PARTIDAS */
+.partida-card{background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:0.8rem 1rem;margin-bottom:8px}
+.partida-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.partida-mat-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);gap:8px;flex-wrap:wrap}
+.partida-mat-row:last-child{border:none}
+.partida-mat-nombre{flex:1;font-size:12px;min-width:120px}
+.partida-input{width:75px;text-align:right;padding:4px 6px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:6px;color:var(--accent);background:var(--accent-light)}
+
+/* MODAL ENTREGA MANUAL */
+.modal-full{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-full.open{display:flex}
+.modal-full-box{background:var(--bg);border-radius:16px;padding:1.5rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr}
+  .tabs .tab{padding:5px 8px;font-size:11px}
+  .top-bar h1{font-size:14px}
+  .obras-grid{grid-template-columns:repeat(2,1fr)}
+  table{font-size:12px}
+  td,thead th{padding:6px 5px}
+}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
 <div class="top-bar">
-  <h1>🏗️ Control Almacén y Obras</h1>
+  <h1>🏗️ Control Almacén</h1>
   <span class="sync-badge loading" id="sync-badge"><span class="spinner"></span>Conectando...</span>
-  <button class="btn" onclick="recargarTodo()" style="font-size:12px;padding:5px 10px">↻ Actualizar</button>
+  <button class="btn" onclick="recargarTodo()" style="font-size:11px;padding:5px 8px;color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3)">↻</button>
   <div class="tabs">
     <button class="tab active" onclick="showTab('obras',this)">🏗️ Obras</button>
-    <button class="tab" onclick="showTab('inventario',this)">📦 Inventario</button>
+    <button class="tab" onclick="showTab('inventario',this)">📦 Stock</button>
     <button class="tab" onclick="showTab('salida',this)">⬆️ Salida</button>
     <button class="tab" onclick="showTab('pedidos',this)">🛒 Pedidos</button>
     <button class="tab" onclick="showTab('historial',this)">📜 Historial</button>
@@ -114,12 +146,12 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
-<!-- OBRAS -->
+<!-- ══════════════ OBRAS ══════════════ -->
 <div id="tab-obras" class="panel active">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
     <p class="section-title" style="margin:0">Obras activas</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" onclick="dlObrasCSV()">⬇️ CSV obras</button>
+      <button class="btn" onclick="dlObrasCSV()">⬇️ CSV</button>
       <button class="btn primary" onclick="toggleFormNuevaObra()">➕ Nueva obra</button>
     </div>
   </div>
@@ -199,21 +231,21 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <!-- DETALLE OBRA -->
   <div id="obra-detalle" style="display:none">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
-      <span id="obra-detalle-icon" style="font-size:28px"></span>
+      <span id="obra-detalle-icon" style="font-size:26px"></span>
       <div style="flex:1">
-        <div id="obra-detalle-nombre" style="font-size:16px;font-weight:600;color:var(--text)"></div>
+        <div id="obra-detalle-nombre" style="font-size:15px;font-weight:600;color:var(--text)"></div>
         <div id="obra-detalle-lugar" style="font-size:12px;color:var(--text2);margin-top:2px"></div>
       </div>
-      <button class="btn" onclick="editarObraActual()">✏️ Editar obra</button>
-      <button class="btn primary" onclick="irSalidaObra()">⬆️ Registrar salida</button>
-      <button class="btn" onclick="cerrarDetalleObra()">✕ Cerrar</button>
+      <button class="btn" onclick="editarObraActual()" style="font-size:12px">✏️ Editar</button>
+      <button class="btn primary" onclick="irSalidaObra()" style="font-size:12px">⬆️ Salida</button>
+      <button class="btn" onclick="cerrarDetalleObra()" style="font-size:12px">✕</button>
     </div>
     <div class="stats" id="obra-kpis"></div>
     <div id="obra-progreso-wrap" style="display:none;margin-bottom:1rem">
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px">
         <span>Progreso material suministrado</span><span id="obra-progreso-pct">0%</span>
       </div>
-      <div style="background:#e0e0e0;border-radius:6px;height:10px;overflow:hidden">
+      <div style="background:#e0e0e0;border-radius:6px;height:8px;overflow:hidden">
         <div id="obra-progreso-bar" style="height:100%;background:var(--accent);border-radius:6px;transition:width .4s;width:0%"></div>
       </div>
     </div>
@@ -226,8 +258,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
     <div id="osub-partidas"><div id="obra-partidas-content"></div></div>
     <div id="osub-historial" style="display:none"><div id="obra-historial-content"></div></div>
     <div id="osub-personal" style="display:none">
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-title">👷 Registrar asistencia de personal</div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-title">👷 Registrar asistencia</div>
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre del operario *</label>
@@ -236,7 +268,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
           <div class="form-group">
             <label>Categoría</label>
             <select id="per-categoria">
-              <option value="oficial">Oficial — <span id="per-coste-oficial"></span></option>
+              <option value="oficial">Oficial</option>
               <option value="peon">Peón</option>
               <option value="encargado">Encargado</option>
             </select>
@@ -250,7 +282,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
             <input type="number" id="per-horas" placeholder="8" min="0" step="0.5">
           </div>
           <div class="form-group">
-            <label>Coste/hora (€) — opcional</label>
+            <label>Coste/hora (€)</label>
             <input type="number" id="per-coste" placeholder="Ej: 18.00" min="0" step="0.01">
           </div>
           <div class="form-group">
@@ -259,11 +291,11 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <button class="btn" onclick="dlPersonalCSV()">⬇️ CSV personal</button>
-          <button class="btn primary" onclick="registrarPersonal()">✅ Registrar asistencia</button>
+          <button class="btn" onclick="dlPersonalCSV()">⬇️ CSV</button>
+          <button class="btn primary" onclick="registrarPersonal()">✅ Registrar</button>
         </div>
       </div>
-      <div id="personal-lista"><div class="empty">Sin registros de personal para esta obra</div></div>
+      <div id="personal-lista"><div class="empty">Sin registros de personal</div></div>
     </div>
     <div id="osub-costes" style="display:none">
       <div id="costes-content"></div>
@@ -271,7 +303,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
-<!-- INVENTARIO -->
+<!-- ══════════════ INVENTARIO ══════════════ -->
 <div id="tab-inventario" class="panel">
   <div class="stats" id="stats-inv"></div>
   <div class="toolbar">
@@ -283,13 +315,11 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <option value="sinuso">Sin necesidad</option>
     </select>
     <button class="btn" onclick="exportCSV()">⬇️ CSV</button>
-    <button class="btn primary" onclick="toggleFormNuevoArt()">➕ Nuevo artículo</button>
+    <button class="btn primary" onclick="toggleFormNuevoArt()">➕ Nuevo</button>
   </div>
-
-  <!-- Formulario inline nuevo artículo -->
-  <div id="form-nuevo-art" style="display:none;margin-bottom:12px">
+  <div id="form-nuevo-art" style="display:none;margin-bottom:10px">
     <div class="card" style="border:1.5px solid var(--accent)">
-      <div class="card-title" style="color:var(--accent)">➕ Añadir artículo al inventario</div>
+      <div class="card-title" style="color:var(--accent)">➕ Añadir artículo</div>
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1">
           <label>Nombre del artículo *</label>
@@ -314,110 +344,117 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
         <button class="btn" onclick="toggleFormNuevoArt()">Cancelar</button>
-        <button class="btn primary" id="btn-ninv" onclick="guardarNuevoArt()">✅ Añadir al inventario</button>
+        <button class="btn primary" id="btn-ninv" onclick="guardarNuevoArt()">✅ Añadir</button>
       </div>
     </div>
   </div>
-
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>Material</th><th>Stock</th><th>Necesario</th><th>Diferencia</th><th>Estado</th><th>PVP</th><th>Compra</th>
+      <th>Material</th><th>Stock</th><th>Necesario</th><th>Diferencia</th><th>Estado</th><th>PVP</th><th>Compra</th><th></th>
     </tr></thead>
-    <tbody id="tbody-inv"><tr><td colspan="7" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+    <tbody id="tbody-inv"><tr><td colspan="8" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
   </div>
 </div>
 
-<!-- SALIDA -->
+<!-- ══════════════ SALIDA (SIMPLIFICADA) ══════════════ -->
 <div id="tab-salida" class="panel">
-  <p class="section-title">Sacar material del almacén</p>
-  <div class="card">
-    <div class="form-grid">
-      <div class="form-group"><label>Obra destino *</label>
-        <select id="sal-obra">
+  <p class="section-title" style="margin-top:0">Sacar material del almacén</p>
+
+  <!-- Cabecera compacta -->
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Obra destino *</label>
+        <select id="sal-obra" class="sal-obra-select" style="margin-bottom:0">
           <option value="">Seleccionar obra...</option>
-          <option>ARCADI PLA ST ADRIA</option><option>GRUP MAS ST JOAN DESPI</option>
-          <option>LUIS PARES LLORET</option><option>VOPI 4 CUNIT</option>
-          <option>CORP ABRERA</option>
         </select>
       </div>
-      <div class="form-group"><label>Fecha</label><input type="date" id="sal-fecha"></div>
-      <div class="form-group" style="grid-column:1/-1"><label>Responsable / Operario</label>
-        <input type="text" id="sal-resp" placeholder="Nombre del responsable"></div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="sal-fecha" style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group">
+        <label>Responsable</label>
+        <input type="text" id="sal-resp" placeholder="Nombre..." style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
     </div>
   </div>
-  <p class="section-title">Materiales a sacar</p>
-  <div class="toolbar"><input type="text" id="buscar-sal" placeholder="Buscar material para añadir..." oninput="renderSearchSal()"></div>
+
+  <!-- Búsqueda grande táctil -->
+  <div class="form-group" style="margin-bottom:8px">
+    <label style="font-size:13px;font-weight:600;color:var(--text2)">Buscar material</label>
+    <input type="text" id="buscar-sal" placeholder="🔍 Escribe para buscar..." oninput="renderSearchSal()" class="sal-search-big">
+  </div>
   <div id="search-sal-results"></div>
-  <div class="card">
-    <div class="card-title">Materiales seleccionados</div>
-    <div id="carrito-items"><p style="font-size:13px;color:var(--text2)">Ningún material añadido aún</p></div>
-    <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-      <button class="btn" onclick="limpiarCarrito()">Limpiar</button>
-      <button class="btn primary" id="btn-salida" onclick="registrarSalida()">✅ Registrar salida</button>
+
+  <!-- Carrito -->
+  <div class="card" id="carrito-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="card-title" style="margin:0">Materiales seleccionados</div>
+      <button class="btn" onclick="limpiarCarrito()" style="font-size:11px;padding:4px 8px">Limpiar</button>
     </div>
+    <div id="carrito-items"><p style="font-size:13px;color:var(--text2)">Ningún material añadido aún</p></div>
+    <button class="btn-salida-big" id="btn-salida" onclick="registrarSalida()">✅ Registrar salida</button>
   </div>
 </div>
 
-<!-- PEDIDOS -->
+<!-- ══════════════ PEDIDOS ══════════════ -->
 <div id="tab-pedidos" class="panel">
-  <!-- Subtabs -->
-  <div style="display:flex;gap:4px;background:rgba(92,45,14,.1);border-radius:8px;padding:4px;margin-bottom:14px;flex-wrap:wrap">
+  <div style="display:flex;gap:4px;background:rgba(92,45,14,.1);border-radius:8px;padding:4px;margin-bottom:12px;flex-wrap:wrap">
     <button class="tab active" id="ptab-obra" onclick="pedidoSubTab('obra',this)">🏗️ Pedido a obra</button>
     <button class="tab" id="ptab-almacen" onclick="pedidoSubTab('almacen',this)">📦 Entrada almacén</button>
   </div>
 
   <!-- PEDIDO A OBRA -->
   <div id="psub-obra">
-  <p class="section-title" style="margin-top:0">Pedido directo a obra (aceptada)</p>
-  <div class="card">
-    <div class="form-grid">
-      <div class="form-group"><label>Obra</label>
-        <select id="ped-obra">
-          <option value="">Seleccionar obra...</option>
-          <option>ARCADI PLA ST ADRIA</option><option>GRUP MAS ST JOAN DESPI</option>
-          <option>LUIS PARES LLORET</option><option>VOPI 4 CUNIT</option>
-          <option>CORP ABRERA</option>
-        </select>
+    <p class="section-title" style="margin-top:0">Pedido directo a obra</p>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Obra</label>
+          <select id="ped-obra"><option value="">Seleccionar obra...</option></select>
+        </div>
+        <div class="form-group">
+          <label>Proveedor</label>
+          <select id="ped-prov">
+            <option value="">Seleccionar proveedor...</option>
+            <option>VISORNETS (90 dias, portes pagados 600EUR)</option>
+            <option>LEON DE ORO (90 dias)</option>
+            <option>UNETRAMESAS DTO 40-45%</option>
+            <option>MULTIGARBEN (30 dias domiciliado)</option>
+            <option>TORRES Y SAEZ (60 dias)</option>
+            <option>WURTH INDEXFIX (30 dias, 300EUR)</option>
+            <option>MARCELINO</option><option>INDE-K</option>
+            <option>CV TOOLS (portes 12EUR)</option>
+            <option>AMAZON / BRICODEPOT</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fecha pedido</label><input type="date" id="ped-fecha"></div>
+        <div class="form-group"><label>Referencia / Nota</label><input type="text" id="ped-ref" placeholder="No pedido o referencia"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Observaciones</label>
+          <textarea id="ped-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px"></textarea></div>
       </div>
-      <div class="form-group"><label>Proveedor</label>
-        <select id="ped-prov">
-          <option value="">Seleccionar proveedor...</option>
-          <option>VISORNETS (90 dias, portes pagados 600EUR)</option>
-          <option>LEON DE ORO (90 dias)</option>
-          <option>UNETRAMESAS DTO 40-45%</option>
-          <option>MULTIGARBEN (30 dias domiciliado)</option>
-          <option>TORRES Y SAEZ (60 dias)</option>
-          <option>WURTH INDEXFIX (30 dias, 300EUR)</option>
-          <option>MARCELINO</option><option>INDE-K</option>
-          <option>CV TOOLS (portes 12EUR)</option>
-          <option>AMAZON / BRICODEPOT</option>
-        </select>
+    </div>
+    <p class="section-title">Materiales del pedido</p>
+    <div class="toolbar"><input type="text" id="buscar-ped" placeholder="Buscar material..." oninput="renderSearchPed()"></div>
+    <div id="search-ped-results"></div>
+    <div class="card">
+      <div class="card-title">Líneas del pedido</div>
+      <div id="pedido-items"><p style="font-size:13px;color:var(--text2)">Ningún material añadido aún</p></div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="limpiarPedido()">Limpiar</button>
+        <button class="btn primary" id="btn-pedido" onclick="registrarPedido()">Registrar pedido</button>
       </div>
-      <div class="form-group"><label>Fecha pedido</label><input type="date" id="ped-fecha"></div>
-      <div class="form-group"><label>Referencia / Nota</label><input type="text" id="ped-ref" placeholder="No pedido o referencia"></div>
-      <div class="form-group" style="grid-column:1/-1"><label>Observaciones</label>
-        <textarea id="ped-obs" rows="2" style="resize:vertical"></textarea></div>
     </div>
   </div>
-  <p class="section-title">Materiales del pedido</p>
-  <div class="toolbar"><input type="text" id="buscar-ped" placeholder="Buscar material para añadir..." oninput="renderSearchPed()"></div>
-  <div id="search-ped-results"></div>
-  <div class="card">
-    <div class="card-title">Lineas del pedido</div>
-    <div id="pedido-items"><p style="font-size:13px;color:var(--text2)">Ningun material añadido aun</p></div>
-    <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-      <button class="btn" onclick="limpiarPedido()">Limpiar</button>
-      <button class="btn primary" id="btn-pedido" onclick="registrarPedido()">Registrar pedido</button>
-    </div>
-  </div>
-  </div><!-- fin psub-obra -->
 
   <!-- ENTRADA ALMACÉN -->
   <div id="psub-almacen" style="display:none">
     <p class="section-title" style="margin-top:0">Entrada de material al almacén</p>
     <div class="card">
       <div class="form-grid">
-        <div class="form-group"><label>Proveedor</label>
+        <div class="form-group">
+          <label>Proveedor</label>
           <select id="ent-prov">
             <option value="">Seleccionar proveedor...</option>
             <option>VISORNETS (90 dias, portes pagados 600EUR)</option>
@@ -434,11 +471,11 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <div class="form-group"><label>Fecha entrada</label><input type="date" id="ent-fecha"></div>
         <div class="form-group"><label>Referencia / Albarán</label><input type="text" id="ent-ref" placeholder="Nº albarán..."></div>
         <div class="form-group" style="grid-column:1/-1"><label>Observaciones</label>
-          <textarea id="ent-obs" rows="2" style="resize:vertical"></textarea></div>
+          <textarea id="ent-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px"></textarea></div>
       </div>
     </div>
     <p class="section-title">Material recibido</p>
-    <div class="toolbar"><input type="text" id="buscar-ent" placeholder="Buscar material para añadir..." oninput="renderSearchEnt()"></div>
+    <div class="toolbar"><input type="text" id="buscar-ent" placeholder="Buscar material..." oninput="renderSearchEnt()"></div>
     <div id="search-ent-results"></div>
     <div class="card">
       <div class="card-title">Material a añadir al stock</div>
@@ -451,59 +488,25 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
-<!-- HISTORIAL -->
+<!-- ══════════════ HISTORIAL ══════════════ -->
 <div id="tab-historial" class="panel">
   <div class="toolbar">
     <select id="hist-tipo" onchange="renderHist()">
       <option value="todos">Todas las operaciones</option>
-      <option value="salida">Salidas almacen</option>
+      <option value="salida">Salidas almacén</option>
       <option value="pedido">Pedidos obra</option>
+      <option value="entrada">Entradas almacén</option>
     </select>
     <select id="hist-obra" onchange="renderHist()">
       <option value="">Todas las obras</option>
-      <option>ARCADI PLA ST ADRIA</option><option>GRUP MAS ST JOAN DESPI</option>
-      <option>LUIS PARES LLORET</option><option>VOPI 4 CUNIT</option><option>CORP ABRERA</option>
     </select>
+    <input type="text" id="hist-buscar" placeholder="Buscar..." oninput="renderHist()" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:120px">
     <button class="btn" onclick="cargarHistorial()">Actualizar</button>
   </div>
   <div id="hist-content"><div class="empty"><span class="spinner"></span>Cargando...</div></div>
 </div>
-</div>
 
-<!-- NUEVO ARTÍCULO -->
-<div id="tab-nuevo" class="panel">
-  <p class="section-title" style="margin-top:0">Añadir artículo nuevo al inventario</p>
-  <div class="card">
-    <div class="form-grid">
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Nombre del artículo *</label>
-        <input type="text" id="new-nombre" placeholder="Ej: GUARDACUERPO 2M EN13374...">
-      </div>
-      <div class="form-group">
-        <label>Stock inicial (unidades)</label>
-        <input type="number" id="new-stock" placeholder="0" min="0">
-      </div>
-      <div class="form-group">
-        <label>Unidades necesarias obras</label>
-        <input type="number" id="new-nec" placeholder="0" min="0">
-      </div>
-      <div class="form-group">
-        <label>PVP (€/ud)</label>
-        <input type="number" id="new-pvp" placeholder="0.00" min="0" step="0.01">
-      </div>
-      <div class="form-group">
-        <label>Precio de compra (€/ud)</label>
-        <input type="number" id="new-pcompra" placeholder="0.00" min="0" step="0.01">
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
-      <button class="btn" onclick="limpiarNuevo()">Limpiar</button>
-      <button class="btn primary" id="btn-nuevo" onclick="guardarNuevo()">✅ Añadir al inventario</button>
-    </div>
-  </div>
-</div>
-
-<!-- PRECIOS -->
+<!-- ══════════════ PRECIOS ══════════════ -->
 <div id="tab-precios" class="panel">
   <p class="section-title" style="margin-top:0">Modificar precios de materiales</p>
   <div class="toolbar">
@@ -517,7 +520,9 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
-</div>
+</div><!-- fin .app -->
+
+<!-- ══ MODAL ANULAR ══ -->
 <div class="modal-overlay" id="modal-anular">
   <div class="modal-box">
     <div class="modal-title">⚠️ Anular esta salida</div>
@@ -530,41 +535,35 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
-<!-- MODAL PEDIDO DESDE PARTIDA -->
-<div id="modal-pedido-partida" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--bg);border-radius:12px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">🛒 Pedir material</div>
-    <div id="modal-pedido-material" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px"></div>
+<!-- ══ MODAL PEDIDO DESDE PARTIDA ══ -->
+<div class="modal-full" id="modal-pedido-partida">
+  <div class="modal-full-box">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">🛒 Gestionar partida</div>
+    <div id="modal-pedido-material" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px;line-height:1.4"></div>
     <div class="form-grid">
-      <div class="form-group">
-        <label>Tipo de pedido</label>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>¿Qué quieres hacer?</label>
         <select id="mp-tipo">
-          <option value="almacen">📦 Al almacén (suma stock)</option>
-          <option value="obra">🏗️ Directo a obra</option>
+          <option value="almacen">📦 Pedir al almacén (suma stock cuando llega)</option>
+          <option value="obra">🏗️ Pedir directo a obra</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Unidades a pedir</label>
+        <label>Unidades</label>
         <input type="number" id="mp-qty" placeholder="0" min="1" step="1">
       </div>
       <div class="form-group">
         <label>Proveedor</label>
         <select id="mp-prov">
           <option value="">Sin especificar</option>
-          <option>VISORNETS</option>
-          <option>LEON DE ORO</option>
-          <option>UNETRAMESAS</option>
-          <option>MULTIGARBEN</option>
-          <option>TORRES Y SAEZ</option>
-          <option>WURTH INDEXFIX</option>
-          <option>MARCELINO</option>
-          <option>INDE-K</option>
-          <option>CV TOOLS</option>
+          <option>VISORNETS</option><option>LEON DE ORO</option><option>UNETRAMESAS</option>
+          <option>MULTIGARBEN</option><option>TORRES Y SAEZ</option><option>WURTH INDEXFIX</option>
+          <option>MARCELINO</option><option>INDE-K</option><option>CV TOOLS</option>
           <option>AMAZON / BRICODEPOT</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Fecha prevista entrega</label>
+        <label>Fecha</label>
         <input type="date" id="mp-fecha">
       </div>
       <div class="form-group" style="grid-column:1/-1">
@@ -572,10 +571,39 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <input type="text" id="mp-obs" placeholder="Opcional...">
       </div>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap">
       <button class="btn" onclick="cerrarModalPedidoPartida()">Cancelar</button>
-      <button class="btn" style="background:var(--success);color:#fff" id="mp-btn-salida" onclick="confirmarSalidaPartida()">⬆️ Salida directa almacén</button>
+      <button class="btn" style="background:var(--success);color:#fff;border-color:var(--success)" id="mp-btn-salida" onclick="confirmarSalidaPartida()">⬆️ Salida directa</button>
       <button class="btn primary" id="mp-btn" onclick="confirmarPedidoPartida()">🛒 Registrar pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ENTREGA MANUAL EN PARTIDA ══ -->
+<div class="modal-full" id="modal-entrega-manual">
+  <div class="modal-full-box">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">📥 Introducir entrega anterior</div>
+    <div id="mem-material" style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:14px"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Unidades entregadas *</label>
+        <input type="number" id="mem-qty" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Fecha de entrega</label>
+        <input type="date" id="mem-fecha">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observaciones (ej: "Entrega enero 2025")</label>
+        <input type="text" id="mem-obs" placeholder="Mes o período al que corresponde...">
+      </div>
+    </div>
+    <div style="background:var(--accent-light);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-bottom:14px">
+      ⚠️ Esta entrega se sumará al total suministrado de esta partida. <b>No descuenta stock del almacén.</b>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="cerrarModalEntregaManual()">Cancelar</button>
+      <button class="btn primary" id="mem-btn" onclick="confirmarEntregaManual()">✅ Registrar entrega</button>
     </div>
   </div>
 </div>
@@ -584,73 +612,58 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 
 <script>
 var API='https://script.google.com/macros/s/AKfycbyuErGakILBY5GUb9rgcVbCB34OKw4qQSDZ2r9JQUQzM5qYhVWAAb-05f3f72GoZiub/exec';
-var inventario=[],historial=[],carrito=[],pedidoItems=[];
+var inventario=[],historial=[],carrito=[],pedidoItems=[],entradaItems=[];
 var today=new Date().toISOString().split('T')[0];
-document.getElementById('sal-fecha').value=today;
-document.getElementById('ped-fecha').value=today;
 var anularIdx=-1;
-
 var OBRAS=[];
 var obraSeleccionada=null;
 
+document.getElementById('sal-fecha').value=today;
+document.getElementById('ped-fecha').value=today;
+
+/* ── UTILS ── */
 function setSyncBadge(st,msg){var b=document.getElementById('sync-badge');b.className='sync-badge '+st;b.innerHTML=(st==='loading'?'<span class="spinner"></span>':'')+msg;}
 function callAPI(a,cb){fetch(API+'?action='+a).then(function(r){return r.json();}).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});}
 function postAPI(d,cb){fetch(API,{method:'POST',body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(x){cb(null,x);}).catch(function(e){cb(e,null);});}
+function toast(msg,isError){var t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(isError?' error':'')+' show';setTimeout(function(){t.className='toast'+(isError?' error':'');},2800);}
 
+/* ── CARGA INICIAL ── */
 function recargarTodo(){
   setSyncBadge('loading','Sincronizando...');
   callAPI('getInventario',function(err,data){
-    if(err||!Array.isArray(data)){setSyncBadge('error','Error de conexion');toast('No se pudo conectar con Google Sheets',true);return;}
+    if(err||!Array.isArray(data)){setSyncBadge('error','Error de conexión');toast('No se pudo conectar',true);return;}
     inventario=data;setSyncBadge('ok','Sincronizado');renderInv();
   });
   callAPI('getHistorial',function(err,data){
     if(!err&&Array.isArray(data)){historial=data.reverse();renderHist();}
   });
   callAPI('getObras',function(err,data){
+    var iconos={'ARCADI PLA ST ADRIA':'🏢','GRUP MAS ST JOAN DESPI':'🏗️','LUIS PARES LLORET':'🏖️','VOPI 4 CUNIT':'🏠','CORP ABRERA':'🏭'};
+    var obrasFijas=[
+      {nombre:'ARCADI PLA ST ADRIA',lugar:'St Adrià de Besòs',icon:'🏢',estado:'activa',partidas:[],personal:[]},
+      {nombre:'GRUP MAS ST JOAN DESPI',lugar:'St Joan Despí',icon:'🏗️',estado:'activa',partidas:[],personal:[]},
+      {nombre:'LUIS PARES LLORET',lugar:'Lloret de Mar',icon:'🏖️',estado:'activa',partidas:[],personal:[]},
+      {nombre:'VOPI 4 CUNIT',lugar:'Cunit',icon:'🏠',estado:'activa',partidas:[],personal:[]},
+      {nombre:'CORP ABRERA',lugar:'Abrera',icon:'🏭',estado:'activa',partidas:[],personal:[]}
+    ];
     if(!err&&Array.isArray(data)){
-      // Merge obras de Sheets con iconos
-      var iconos={'ARCADI PLA ST ADRIA':'🏢','GRUP MAS ST JOAN DESPI':'🏗️','LUIS PARES LLORET':'🏖️','VOPI 4 CUNIT':'🏠','CORP ABRERA':'🏭'};
-      OBRAS=data.map(function(o){
-        o.icon=iconos[o.nombre]||'🏗️';
-        o.corto=o.nombre.substring(0,22);
-        if(!o.partidas) o.partidas=[];
-        if(!o.personal) o.personal=[];
-        return o;
-      });
-      // Añadir obras fijas si no están en Sheets
-      var obrasFijas=[
-        {nombre:'ARCADI PLA ST ADRIA',corto:'Arcadi Pla',lugar:'St Adrià de Besòs',icon:'🏢',estado:'activa',partidas:[],personal:[]},
-        {nombre:'GRUP MAS ST JOAN DESPI',corto:'Grup Mas',lugar:'St Joan Despí',icon:'🏗️',estado:'activa',partidas:[],personal:[]},
-        {nombre:'LUIS PARES LLORET',corto:'Luis Pares',lugar:'Lloret de Mar',icon:'🏖️',estado:'activa',partidas:[],personal:[]},
-        {nombre:'VOPI 4 CUNIT',corto:'Vopi 4',lugar:'Cunit',icon:'🏠',estado:'activa',partidas:[],personal:[]},
-        {nombre:'CORP ABRERA',corto:'Corp Abrera',lugar:'Abrera',icon:'🏭',estado:'activa',partidas:[],personal:[]}
-      ];
-      obrasFijas.forEach(function(of){
-        if(!OBRAS.find(function(o){return o.nombre===of.nombre;})) OBRAS.push(of);
-      });
+      OBRAS=data.map(function(o){o.icon=iconos[o.nombre]||'🏗️';o.corto=o.nombre.substring(0,22);if(!o.partidas)o.partidas=[];if(!o.personal)o.personal=[];return o;});
+      obrasFijas.forEach(function(of){if(!OBRAS.find(function(o){return o.nombre===of.nombre;})){of.corto=of.nombre.substring(0,22);OBRAS.push(of);}});
     } else {
-      // Si falla, usar obras fijas
-      OBRAS=[
-        {nombre:'ARCADI PLA ST ADRIA',corto:'Arcadi Pla',lugar:'St Adrià de Besòs',icon:'🏢',estado:'activa',partidas:[],personal:[]},
-        {nombre:'GRUP MAS ST JOAN DESPI',corto:'Grup Mas',lugar:'St Joan Despí',icon:'🏗️',estado:'activa',partidas:[],personal:[]},
-        {nombre:'LUIS PARES LLORET',corto:'Luis Pares',lugar:'Lloret de Mar',icon:'🏖️',estado:'activa',partidas:[],personal:[]},
-        {nombre:'VOPI 4 CUNIT',corto:'Vopi 4',lugar:'Cunit',icon:'🏠',estado:'activa',partidas:[],personal:[]},
-        {nombre:'CORP ABRERA',corto:'Corp Abrera',lugar:'Abrera',icon:'🏭',estado:'activa',partidas:[],personal:[]}
-      ];
+      OBRAS=obrasFijas.map(function(o){o.corto=o.nombre.substring(0,22);return o;});
     }
-    buildObrasGrid();
-    actualizarSelectsObras();
+    buildObrasGrid();actualizarSelectsObras();
   });
 }
 
 function showTab(id,el){
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.top-bar .tab').forEach(function(t){t.classList.remove('active');});
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
-  if(id==='historial') cargarHistorial();
-  if(id==='obras') buildObrasGrid();
-  if(id==='precios') renderPrecios();
+  if(id==='historial')cargarHistorial();
+  if(id==='obras')buildObrasGrid();
+  if(id==='precios')renderPrecios();
 }
 
 function cargarHistorial(){
@@ -663,22 +676,15 @@ function actualizarSelectsObras(){
   var opts=OBRAS.map(function(o){return '<option value="'+o.nombre+'">'+o.nombre+'</option>';}).join('');
   var base='<option value="">Seleccionar obra...</option>'+opts;
   ['sal-obra','ped-obra'].forEach(function(id){
-    var sel=document.getElementById(id);
-    if(!sel) return;
-    var val=sel.value;
-    sel.innerHTML=base;
-    sel.value=val;
+    var sel=document.getElementById(id);if(!sel)return;
+    var val=sel.value;sel.innerHTML=base;sel.value=val;
   });
   var histSel=document.getElementById('hist-obra');
-  if(histSel){
-    var hval=histSel.value;
-    histSel.innerHTML='<option value="">Todas las obras</option>'+opts;
-    histSel.value=hval;
-  }
+  if(histSel){var hval=histSel.value;histSel.innerHTML='<option value="">Todas las obras</option>'+opts;histSel.value=hval;}
 }
 
-/* ── OBRAS ── */
-var _foIdx=-1; // -1=nueva obra, >=0=editar
+/* ── OBRAS GRID ── */
+var _foIdx=-1;
 var _foPartidas=[];
 
 function toggleFormNuevaObra(){
@@ -695,17 +701,17 @@ function toggleFormNuevaObra(){
   document.getElementById('fo-lineas-lista').textContent='Sin líneas añadidas';
   var w=document.getElementById('form-obra-wrap');
   w.style.display=w.style.display==='none'?'block':'none';
-  if(w.style.display==='block') w.scrollIntoView({behavior:'smooth'});
+  if(w.style.display==='block')w.scrollIntoView({behavior:'smooth'});
 }
 
 function editarObraActual(){
-  if(!obraSeleccionada) return;
+  if(!obraSeleccionada)return;
   var idx=OBRAS.findIndex(function(o){return o.nombre===obraSeleccionada.nombre;});
-  if(idx<0) return;
+  if(idx<0)return;
   _foIdx=idx;
   _foPartidas=(obraSeleccionada.partidas||[]).map(function(p){return Object.assign({},p);});
   var o=obraSeleccionada;
-  document.getElementById('form-obra-titulo').textContent='✏️ Editar obra: '+o.corto;
+  document.getElementById('form-obra-titulo').textContent='✏️ Editar: '+o.corto;
   document.getElementById('fo-btn-guardar').textContent='✅ Actualizar obra';
   document.getElementById('fo-nombre').value=o.nombre;
   document.getElementById('fo-lugar').value=o.lugar==='—'?'':o.lugar;
@@ -717,8 +723,7 @@ function editarObraActual(){
   document.getElementById('fo-preview').style.display='none';
   renderLineasFO();
   var w=document.getElementById('form-obra-wrap');
-  w.style.display='block';
-  w.scrollIntoView({behavior:'smooth'});
+  w.style.display='block';w.scrollIntoView({behavior:'smooth'});
 }
 
 function renderLineasFO(){
@@ -755,7 +760,7 @@ function addLineaFO(){
   var qty=parseFloat(document.getElementById('fo-lin-qty').value)||0;
   if(!material){toast('El material es obligatorio',true);return;}
   if(qty<=0){toast('Las unidades deben ser mayor que 0',true);return;}
-  _foPartidas.push({partida:partida,material:material,contratado:qty,suministrado:0});
+  _foPartidas.push({partida:partida,material:material,contratado:qty,suministrado:0,entregas:[]});
   document.getElementById('fo-lin-partida').value='';
   document.getElementById('fo-lin-material').value='';
   document.getElementById('fo-lin-qty').value='';
@@ -779,14 +784,13 @@ function guardarObra(){
   postAPI({action:'saveObra',nombreOriginal:nombreOriginal,nombre:nombre,lugar:lugar,presupuesto:presupuesto,inicio:inicio,fin:fin,estado:estado,partidas:partidas,personal:personal},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar obra',true);btn.disabled=false;btn.textContent='✅ Guardar obra';return;}
     if(_foIdx<0){
-      if(OBRAS.find(function(o){return o.nombre===nombre;})){toast('Ya existe una obra con ese nombre',true);btn.disabled=false;btn.textContent='✅ Guardar obra';return;}
       OBRAS.push({nombre:nombre,corto:nombre.substring(0,22),lugar:lugar,icon:'🏗️',inicio:inicio,fin:fin,presupuesto:presupuesto,estado:estado,partidas:partidas,personal:[]});
       toast('Obra añadida: '+nombre);
     } else {
       var o=OBRAS[_foIdx];
       o.nombre=nombre;o.corto=nombre.substring(0,22);o.lugar=lugar;
       o.inicio=inicio;o.fin=fin;o.presupuesto=presupuesto;o.estado=estado;
-      if(partidas.length>0) o.partidas=partidas;
+      if(partidas.length>0)o.partidas=partidas;
       obraSeleccionada=o;
       toast('Obra actualizada: '+nombre);
     }
@@ -794,14 +798,14 @@ function guardarObra(){
     btn.disabled=false;btn.textContent='✅ Guardar obra';
     actualizarSelectsObras();buildObrasGrid();
     document.getElementById('form-obra-wrap').style.display='none';
-    if(_foIdx>=0) verObra(OBRAS.findIndex(function(o){return o.nombre===nombre;}));
+    if(_foIdx>=0)verObra(OBRAS.findIndex(function(o){return o.nombre===nombre;}));
   });
 }
 
 // Leer Excel
 document.addEventListener('DOMContentLoaded',function(){
   var excelInput=document.getElementById('fo-excel');
-  if(excelInput) excelInput.addEventListener('change',function(e){
+  if(excelInput)excelInput.addEventListener('change',function(e){
     var file=e.target.files[0];if(!file)return;
     var reader=new FileReader();
     reader.onload=function(ev){
@@ -815,10 +819,10 @@ document.addEventListener('DOMContentLoaded',function(){
         for(var i=0;i<rows.length;i++){
           var r=rows[i];
           var c0=String(r[0]||'').trim(),c1=String(r[1]||'').trim(),c2=r[2],c3=String(r[3]||'').trim();
-          if(c0&&c0!=='PRECIO'&&['ml','m2','ud','m3'].indexOf(c3)>=0&&!c1) partidaActual=c0;
+          if(c0&&c0!=='PRECIO'&&['ml','m2','ud','m3','ML'].indexOf(c3)>=0&&!c1)partidaActual=c0;
           else if(c1&&c1!=='MATERIAL'&&c0!=='PRECIO'){
             var qty=parseFloat(c2);
-            if(!isNaN(qty)&&qty>0&&partidaActual) partidas.push({partida:partidaActual,material:c1,contratado:qty,suministrado:0});
+            if(!isNaN(qty)&&qty>0&&partidaActual)partidas.push({partida:partidaActual,material:c1,contratado:qty,suministrado:0,entregas:[]});
           }
         }
         var wsCtrl=wb.Sheets['CONTROL'];
@@ -828,7 +832,7 @@ document.addEventListener('DOMContentLoaded',function(){
             var cr=ctrlRows[j];
             var label=String(cr[0]||'').trim().toLowerCase();
             var val=cr[1];
-            if(label.indexOf('presupuesto total')>=0&&val) document.getElementById('fo-presupuesto').value=parseFloat(val)||0;
+            if(label.indexOf('presupuesto total')>=0&&val)document.getElementById('fo-presupuesto').value=parseFloat(val)||0;
             if(label.indexOf('inicio trabajos')>=0&&val){var d=new Date(val);if(!isNaN(d))document.getElementById('fo-inicio').value=d.toISOString().split('T')[0];}
             if(label.indexOf('finalización')>=0&&val){var d2=new Date(val);if(!isNaN(d2))document.getElementById('fo-fin').value=d2.toISOString().split('T')[0];}
           }
@@ -840,7 +844,7 @@ document.addEventListener('DOMContentLoaded',function(){
           lista.innerHTML=partidas.map(function(p){return '<div style="padding:2px 0;border-bottom:0.5px solid #ddd"><b>'+p.partida+'</b> — '+p.material+' <span style="color:var(--accent);font-weight:600">'+p.contratado+' ud</span></div>';}).join('');
           prev.style.display='block';
           toast(partidas.length+' partidas importadas del Excel');
-        } else toast('No se encontraron partidas con unidades',true);
+        }else toast('No se encontraron partidas con unidades',true);
       }catch(err){toast('Error al leer el Excel: '+err.message,true);}
     };
     reader.readAsArrayBuffer(file);
@@ -851,14 +855,9 @@ function buildObrasGrid(){
   var grid=document.getElementById('obras-grid');if(!grid)return;
   var activas=OBRAS.filter(function(o){return o.estado!=='cerrada';});
   var cerradas=OBRAS.filter(function(o){return o.estado==='cerrada';});
-  var renderCard=function(o,i){
+  var renderCard=function(o){
     var count=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';}).length;
-    var pct=0;
-    if(o.partidas&&o.partidas.length){
-      var tot=o.partidas.reduce(function(a,p){return a+p.contratado;},0);
-      var sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
-      pct=tot>0?Math.round(sum/tot*100):0;
-    }
+    var pct=calcPctObra(o);
     var idx=OBRAS.indexOf(o);
     var estadoBadge=o.estado==='cerrada'?'<span class="badge falta" style="font-size:10px">CERRADA</span>':o.estado==='pausada'?'<span class="badge warn" style="font-size:10px">PAUSADA</span>':'';
     return '<div class="obra-btn-card'+(o.estado==='cerrada'?' obra-cerrada':'')+'" onclick="verObra('+idx+')">'+
@@ -866,82 +865,60 @@ function buildObrasGrid(){
       '<div class="obra-nombre">'+o.corto+'</div>'+
       '<div class="obra-lugar">'+o.lugar+'</div>'+
       estadoBadge+
-      (o.presupuesto>0?'<div style="font-size:11px;color:var(--text2);margin-top:3px">'+Number(o.presupuesto).toLocaleString('es')+'€</div>':'')+
-      (count>0?'<div class="obra-count"><span class="badge ok">'+count+' salidas</span></div>':'')+
+      (o.presupuesto>0?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+Number(o.presupuesto).toLocaleString('es')+'€</div>':'')+
+      (count>0?'<div style="margin-top:4px"><span class="badge ok">'+count+' salidas</span></div>':'')+
       (o.partidas&&o.partidas.length?'<div class="obra-pct">'+pct+'% ejecutado</div><div class="prog-bar-wrap"><div class="prog-bar" style="width:'+Math.min(pct,100)+'%"></div></div>':'')+
     '</div>';
   };
   var html='';
-  if(activas.length) html+=activas.map(renderCard).join('');
-  if(cerradas.length) html+='<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:8px;text-transform:uppercase;letter-spacing:.04em">Obras cerradas</div>'+cerradas.map(renderCard).join('');
+  if(activas.length)html+=activas.map(renderCard).join('');
+  if(cerradas.length)html+='<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-top:8px;text-transform:uppercase;letter-spacing:.04em">Obras cerradas</div>'+cerradas.map(renderCard).join('');
   grid.innerHTML=html;
   actualizarSelectsObras();
 }
 
-function sincronizarPartidas(obraObj){
-  if(!obraObj||!obraObj.partidas||!obraObj.partidas.length) return;
-  // Reset suministrado
-  obraObj.partidas.forEach(function(p){p.suministrado=0;});
-  // Recalcular desde historial: salidas + pedidos entregados
-  historial.forEach(function(h){
-    if(h.obra!==obraObj.nombre) return;
-    if(h.anulada===true||h.anulada==='true') return;
-    var esSalida=h.tipo==='salida';
-    var esPedidoEntregado=h.tipo==='pedido'&&h.entregado===true;
-    if(!esSalida&&!esPedidoEntregado) return;
-    var items=Array.isArray(h.items)?h.items:[];
-    items.forEach(function(item){
-      obraObj.partidas.forEach(function(p){
-        var nm=item.nombre.toLowerCase();
-        var pm=p.material.toLowerCase();
-        if(nm===pm||nm.indexOf(pm)>=0||pm.indexOf(nm)>=0){
-          p.suministrado=(p.suministrado||0)+(item.qty||0);
-        }
-      });
-    });
-  });
-  // Guardar en Sheets
-  postAPI({action:'saveObra',nombreOriginal:obraObj.nombre,nombre:obraObj.nombre,lugar:obraObj.lugar||'—',presupuesto:obraObj.presupuesto||0,inicio:obraObj.inicio||'',fin:obraObj.fin||'',estado:obraObj.estado||'activa',partidas:obraObj.partidas,personal:obraObj.personal||[],pctAlquiler:obraObj.pctAlquiler||0,diasAlquiler:obraObj.diasAlquiler||0},function(){});
+function calcPctObra(o){
+  if(!o.partidas||!o.partidas.length)return 0;
+  var tot=o.partidas.reduce(function(a,p){return a+(p.contratado||0);},0);
+  var sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
+  return tot>0?Math.round(sum/tot*100):0;
 }
 
+/* ── PARTIDAS: suministrado se guarda DIRECTAMENTE, no se sincroniza por nombre ── */
 function verObra(idx){
   obraSeleccionada=OBRAS[idx];
   var o=obraSeleccionada;
   document.getElementById('obra-detalle-icon').textContent=o.icon;
-  document.getElementById('obra-detalle-nombre').textContent=o.corto+' — '+o.nombre+(o.estado==='cerrada'?' [CERRADA]':o.estado==='pausada'?' [PAUSADA]':'');
-  document.getElementById('obra-detalle-lugar').textContent=o.lugar+(o.inicio?' | Inicio: '+o.inicio:'')+(o.fin?' | Fin previsto: '+o.fin:'');
+  document.getElementById('obra-detalle-nombre').textContent=o.nombre+(o.estado==='cerrada'?' [CERRADA]':o.estado==='pausada'?' [PAUSADA]':'');
+  document.getElementById('obra-detalle-lugar').textContent=o.lugar+(o.inicio?' | Inicio: '+o.inicio:'')+(o.fin?' | Fin: '+o.fin:'');
   document.getElementById('per-fecha').value=today;
   document.getElementById('obra-detalle').style.display='block';
   document.getElementById('obra-detalle').scrollIntoView({behavior:'smooth'});
-  // Cargar historial actualizado y luego sincronizar partidas
   callAPI('getHistorial',function(err,data){
-    if(!err&&Array.isArray(data)){
-      historial=data.reverse();
-      sincronizarPartidas(o);
-    }
-    // Mostrar partidas y KPIs
-    var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';});
-    var pct=0,tot=0,sum=0;
-    if(o.partidas&&o.partidas.length){
-      tot=o.partidas.reduce(function(a,p){return a+p.contratado;},0);
-      sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
-      pct=tot>0?Math.round(sum/tot*100):0;
-    }
-    document.getElementById('obra-kpis').innerHTML=
-      (o.presupuesto>0?'<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+Number(o.presupuesto).toLocaleString('es')+'€</div></div>':'')+
-      '<div class="stat"><div class="stat-label">Salidas</div><div class="stat-val">'+salidas.length+'</div></div>'+
-      (o.partidas&&o.partidas.length?
-        '<div class="stat"><div class="stat-label">Ejecutado</div><div class="stat-val '+(pct>100?'danger':'success')+'">'+pct+'%</div></div>'+
-        '<div class="stat"><div class="stat-label">Suministrado</div><div class="stat-val">'+sum.toLocaleString('es')+' ud</div></div>'+
-        '<div class="stat"><div class="stat-label">Contratado</div><div class="stat-val">'+tot.toLocaleString('es')+' ud</div></div>':'');
-    if(o.partidas&&o.partidas.length){
-      document.getElementById('obra-progreso-wrap').style.display='block';
-      document.getElementById('obra-progreso-pct').textContent=pct+'%';
-      document.getElementById('obra-progreso-bar').style.width=Math.min(pct,100)+'%';
-      document.getElementById('obra-progreso-bar').style.background=pct>100?'var(--danger)':'var(--accent)';
-    } else document.getElementById('obra-progreso-wrap').style.display='none';
+    if(!err&&Array.isArray(data))historial=data.reverse();
+    actualizarKPIsObra(o);
     obraSubTab('partidas',document.getElementById('otab-partidas'));
   });
+}
+
+function actualizarKPIsObra(o){
+  var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';}).length;
+  var pct=calcPctObra(o);
+  var tot=o.partidas?o.partidas.reduce(function(a,p){return a+(p.contratado||0);},0):0;
+  var sum=o.partidas?o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0):0;
+  document.getElementById('obra-kpis').innerHTML=
+    (o.presupuesto>0?'<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+Number(o.presupuesto).toLocaleString('es')+'€</div></div>':'')+
+    '<div class="stat"><div class="stat-label">Salidas</div><div class="stat-val">'+salidas+'</div></div>'+
+    (o.partidas&&o.partidas.length?
+      '<div class="stat"><div class="stat-label">Ejecutado</div><div class="stat-val '+(pct>100?'danger':'success')+'">'+pct+'%</div></div>'+
+      '<div class="stat"><div class="stat-label">Suministrado</div><div class="stat-val">'+sum.toLocaleString('es')+' ud</div></div>'+
+      '<div class="stat"><div class="stat-label">Contratado</div><div class="stat-val">'+tot.toLocaleString('es')+' ud</div></div>':'');
+  if(o.partidas&&o.partidas.length){
+    document.getElementById('obra-progreso-wrap').style.display='block';
+    document.getElementById('obra-progreso-pct').textContent=pct+'%';
+    document.getElementById('obra-progreso-bar').style.width=Math.min(pct,100)+'%';
+    document.getElementById('obra-progreso-bar').style.background=pct>100?'var(--danger)':'var(--accent)';
+  }else document.getElementById('obra-progreso-wrap').style.display='none';
 }
 
 function obraSubTab(id,el){
@@ -951,12 +928,13 @@ function obraSubTab(id,el){
   document.getElementById('osub-historial').style.display=id==='historial'?'block':'none';
   document.getElementById('osub-personal').style.display=id==='personal'?'block':'none';
   document.getElementById('osub-costes').style.display=id==='costes'?'block':'none';
-  if(id==='partidas') renderPartidas();
-  if(id==='historial') renderHistObra();
-  if(id==='personal') renderPersonal();
-  if(id==='costes') renderCostes();
+  if(id==='partidas')renderPartidas();
+  if(id==='historial')renderHistObra();
+  if(id==='personal')renderPersonal();
+  if(id==='costes')renderCostes();
 }
 
+/* ── RENDERPARTIDAS — control manual de suministrado ── */
 function renderPartidas(){
   var o=obraSeleccionada;
   var cont=document.getElementById('obra-partidas-content');
@@ -968,82 +946,140 @@ function renderPartidas(){
   o.partidas.forEach(function(p){if(!grupos[p.partida])grupos[p.partida]=[];grupos[p.partida].push(p);});
   cont.innerHTML=Object.keys(grupos).map(function(partida){
     var lineas=grupos[partida];
-    var totC=lineas.reduce(function(a,l){return a+l.contratado;},0);
+    var totC=lineas.reduce(function(a,l){return a+(l.contratado||0);},0);
     var totS=lineas.reduce(function(a,l){return a+(l.suministrado||0);},0);
     var pct=totC>0?Math.round(totS/totC*100):0;
-    var color=pct>=100?'var(--danger)':pct>75?'var(--warn)':'var(--accent)';
-    return '<div class="card" style="margin-bottom:10px">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">'+
+    var color=pct>=100?'var(--danger)':pct>75?'var(--warn)':'var(--success)';
+    return '<div class="partida-card">'+
+      '<div class="partida-header">'+
         '<div style="font-size:13px;font-weight:600;color:var(--text)">'+partida+'</div>'+
         '<span class="badge '+(pct>=100?'falta':pct>75?'warn':'ok')+'">'+pct+'% ejecutado</span>'+
       '</div>'+
-      '<div style="background:#e0e0e0;border-radius:4px;height:6px;margin-bottom:10px;overflow:hidden">'+
+      '<div style="background:#e0e0e0;border-radius:4px;height:5px;margin-bottom:10px;overflow:hidden">'+
         '<div style="height:100%;background:'+color+';border-radius:4px;width:'+Math.min(pct,100)+'%"></div>'+
       '</div>'+
       '<div style="overflow-x:auto"><table style="width:100%;font-size:12px"><thead><tr>'+
-        '<th style="text-align:left;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Material</th>'+
-        '<th style="text-align:center;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Tipo</th>'+
-        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Contratado</th>'+
-        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Entregado</th>'+
-        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Pendiente</th>'+
-        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)">Precio/día alq.</th>'+
-        '<th style="padding:4px 6px;border-bottom:0.5px solid var(--border)"></th>'+
+        '<th style="text-align:left;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Material</th>'+
+        '<th style="text-align:center;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Tipo</th>'+
+        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Contratado</th>'+
+        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Entregado</th>'+
+        '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Pendiente</th>'+
+        '<th style="padding:4px 4px;border-bottom:0.5px solid var(--border)"></th>'+
       '</tr></thead><tbody>'+
       lineas.map(function(l){
         var pidx=o.partidas.indexOf(l);
-        var pend=l.contratado-(l.suministrado||0);
+        var pend=(l.contratado||0)-(l.suministrado||0);
         var esAlquiler=l.tipo==='alquiler';
-        return '<tr id="prow-'+pidx+'">'+
-          '<td style="padding:5px 6px">'+l.material+'</td>'+
-          '<td style="padding:5px 6px;text-align:center">'+
+        return '<tr>'+
+          '<td style="padding:5px 4px;font-size:11px">'+l.material+'</td>'+
+          '<td style="padding:5px 4px;text-align:center">'+
             '<span class="badge '+(esAlquiler?'warn':'ok')+'" style="cursor:pointer;font-size:10px" onclick="toggleTipoPartida('+pidx+')">'+
-              (esAlquiler?'🔧 Alquiler':'💰 Venta')+
+              (esAlquiler?'🔧 Alq':'💰 Vta')+
             '</span>'+
           '</td>'+
-          '<td style="text-align:right;padding:5px 6px">'+l.contratado+'</td>'+
-          '<td style="text-align:right;padding:5px 6px">'+
-            '<input type="number" value="'+(l.suministrado||0)+'" min="0" style="width:70px;text-align:right;padding:3px 5px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:4px;color:var(--accent)" onchange="actualizarSuministrado('+pidx+',this.value)">'+
+          '<td style="text-align:right;padding:5px 4px">'+(l.contratado||0)+'</td>'+
+          '<td style="text-align:right;padding:5px 4px">'+
+            '<input type="number" value="'+(l.suministrado||0)+'" min="0" step="0.01" class="partida-input" onchange="actualizarSuministrado('+pidx+',this.value)">'+
           '</td>'+
-          '<td style="text-align:right;padding:5px 6px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend+'</td>'+
-          '<td style="text-align:right;padding:5px 6px">'+
-            (esAlquiler?'<input type="number" value="'+(l.precioAlquiler||0)+'" min="0" step="0.01" placeholder="€/día" style="width:80px;text-align:right;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px" onchange="actualizarPrecioAlquiler('+pidx+',this.value)">':'—')+
-          '</td>'+
-          '<td style="padding:5px 6px;display:flex;gap:4px">'+
-            '<button class="btn primary" style="font-size:10px;padding:3px 6px" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
-            '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarPartida('+pidx+')">✕</button>'+
+          '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend.toFixed(pend%1===0?0:2)+'</td>'+
+          '<td style="padding:5px 4px">'+
+            '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
+              '<button class="btn primary" style="font-size:10px;padding:3px 5px" title="Pedido/Salida" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
+              '<button class="btn" style="font-size:10px;padding:3px 5px;background:var(--success-light);color:var(--success);border-color:var(--success)" title="Introducir entrega anterior" onclick="abrirModalEntregaManual('+pidx+')">📥</button>'+
+              '<button class="btn danger" style="font-size:10px;padding:3px 5px" onclick="eliminarPartida('+pidx+')">✕</button>'+
+            '</div>'+
           '</td>'+
         '</tr>';
       }).join('')+'</tbody></table></div>'+
-      '<button class="btn primary" style="font-size:11px;margin-top:8px" onclick="guardarPartidas()">💾 Guardar cambios</button>'+
+      '<div style="display:flex;justify-content:flex-end;margin-top:8px">'+
+        '<button class="btn primary" style="font-size:11px" onclick="guardarPartidas()">💾 Guardar cambios partidas</button>'+
+      '</div>'+
     '</div>';
   }).join('');
+}
+
+/* ── MODAL ENTREGA MANUAL ── */
+var _memIdx=-1;
+
+function abrirModalEntregaManual(pidx){
+  if(!obraSeleccionada||!obraSeleccionada.partidas[pidx])return;
+  _memIdx=pidx;
+  var p=obraSeleccionada.partidas[pidx];
+  document.getElementById('mem-material').textContent=p.material+' — Partida: '+p.partida;
+  document.getElementById('mem-qty').value='';
+  document.getElementById('mem-fecha').value=today;
+  document.getElementById('mem-obs').value='';
+  document.getElementById('modal-entrega-manual').classList.add('open');
+}
+
+function cerrarModalEntregaManual(){
+  document.getElementById('modal-entrega-manual').classList.remove('open');
+  _memIdx=-1;
+}
+
+function confirmarEntregaManual(){
+  if(_memIdx<0||!obraSeleccionada)return;
+  var p=obraSeleccionada.partidas[_memIdx];
+  var qty=parseFloat(document.getElementById('mem-qty').value)||0;
+  var fecha=document.getElementById('mem-fecha').value;
+  var obs=document.getElementById('mem-obs').value||'Entrega manual';
+  if(qty<=0){toast('Introduce las unidades entregadas',true);return;}
+  var btn=document.getElementById('mem-btn');
+  btn.disabled=true;btn.textContent='Guardando...';
+  // Sumar al suministrado de esta partida específica
+  p.suministrado=(p.suministrado||0)+qty;
+  // Guardar en historial como "entrega" con referencia a la partida
+  postAPI({
+    action:'addHistorial',tipo:'entrega',fecha:fecha,
+    obra:obraSeleccionada.nombre,resp:'Entrega manual',
+    obs:obs+' [Partida: '+p.partida+']',
+    items:[{nombre:p.material,qty:qty,partida:p.partida,pidx:_memIdx}]
+  },function(err,data){
+    if(err||!data||!data.ok){
+      p.suministrado=(p.suministrado||0)-qty; // revertir
+      toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar entrega';return;
+    }
+    // Guardar partidas actualizadas en Sheets
+    guardarPartidasSilencioso(function(){
+      historial.unshift({tipo:'entrega',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Entrega manual',obs:obs+' [Partida: '+p.partida+']',items:[{nombre:p.material,qty:qty,partida:p.partida}],anulada:false});
+      btn.disabled=false;btn.textContent='✅ Registrar entrega';
+      cerrarModalEntregaManual();
+      actualizarKPIsObra(obraSeleccionada);
+      renderPartidas();
+      toast('Entrega registrada: +'+qty+' ud en '+p.material);
+    });
+  });
+}
+
+function guardarPartidasSilencioso(cb){
+  if(!obraSeleccionada)return;
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler||0},function(){if(cb)cb();});
 }
 
 /* ── PEDIDO DESDE PARTIDA ── */
 var _mpIdx=-1;
 
 function abrirModalPedidoPartida(pidx){
-  if(!obraSeleccionada||!obraSeleccionada.partidas[pidx]) return;
+  if(!obraSeleccionada||!obraSeleccionada.partidas[pidx])return;
   _mpIdx=pidx;
   var p=obraSeleccionada.partidas[pidx];
-  var pend=p.contratado-(p.suministrado||0);
+  var pend=(p.contratado||0)-(p.suministrado||0);
   document.getElementById('modal-pedido-material').textContent=p.material+' — Pendiente: '+pend+' ud';
   document.getElementById('mp-qty').value=pend>0?pend:'';
   document.getElementById('mp-fecha').value=today;
   document.getElementById('mp-obs').value='';
   document.getElementById('mp-prov').value='';
   document.getElementById('mp-tipo').value='almacen';
-  var modal=document.getElementById('modal-pedido-partida');
-  modal.style.display='flex';
+  document.getElementById('modal-pedido-partida').classList.add('open');
 }
 
 function cerrarModalPedidoPartida(){
-  document.getElementById('modal-pedido-partida').style.display='none';
+  document.getElementById('modal-pedido-partida').classList.remove('open');
   _mpIdx=-1;
 }
 
 function confirmarPedidoPartida(){
-  if(_mpIdx<0||!obraSeleccionada) return;
+  if(_mpIdx<0||!obraSeleccionada)return;
   var p=obraSeleccionada.partidas[_mpIdx];
   var qty=parseFloat(document.getElementById('mp-qty').value)||0;
   var tipo=document.getElementById('mp-tipo').value;
@@ -1053,109 +1089,110 @@ function confirmarPedidoPartida(){
   if(qty<=0){toast('Introduce las unidades a pedir',true);return;}
   var btn=document.getElementById('mp-btn');
   btn.disabled=true;btn.textContent='Guardando...';
-  var items=[{nombre:p.material,qty:qty}];
+  var items=[{nombre:p.material,qty:qty,partida:p.partida,pidx:_mpIdx}];
   postAPI({
     action:'addHistorial',tipo:'pedido',fecha:fecha,
     obra:obraSeleccionada.nombre,prov:prov,obs:obs,
-    ref:'Pedido desde partida — '+tipo,
+    ref:'Pedido desde partida',
+    tipoDestino:tipo,  // ← FIX: ahora se guarda correctamente
     items:items
   },function(err,data){
     btn.disabled=false;btn.textContent='🛒 Registrar pedido';
     if(err||!data||!data.ok){toast('Error al registrar pedido',true);return;}
-    historial.unshift({tipo:'pedido',fecha:fecha,obra:obraSeleccionada.nombre,prov:prov,obs:obs,ref:'Pedido desde partida',items:items,anulada:false,entregado:false});
+    historial.unshift({tipo:'pedido',fecha:fecha,obra:obraSeleccionada.nombre,prov:prov,obs:obs,ref:'Pedido desde partida',tipoDestino:tipo,items:items,anulada:false,entregado:false});
     cerrarModalPedidoPartida();
-    toast('Pedido registrado — se descontará de partidas al marcarlo como entregado');
+    toast('Pedido registrado'+(tipo==='almacen'?' — sumará stock al llegar':' — directo a obra'));
   });
 }
 
 function confirmarSalidaPartida(){
-  if(_mpIdx<0||!obraSeleccionada) return;
+  if(_mpIdx<0||!obraSeleccionada)return;
   var p=obraSeleccionada.partidas[_mpIdx];
   var qty=parseFloat(document.getElementById('mp-qty').value)||0;
   var fecha=document.getElementById('mp-fecha').value;
   var obs=document.getElementById('mp-obs').value;
   if(qty<=0){toast('Introduce las unidades',true);return;}
-  // Verificar stock
-  var inv=inventario.find(function(i){return i.nombre===p.material||i.nombre.toLowerCase().indexOf(p.material.toLowerCase())>=0||p.material.toLowerCase().indexOf(i.nombre.toLowerCase())>=0;});
-  if(inv&&inv.stock<qty){
-    if(!confirm('Stock insuficiente ('+inv.stock+' ud disponibles). ¿Registrar igualmente?')) return;
-  }
+  var inv=inventario.find(function(i){return i.nombre===p.material;});
+  if(inv&&inv.stock<qty){if(!confirm('Stock insuficiente ('+inv.stock+' ud). ¿Registrar igualmente?'))return;}
   var btn=document.getElementById('mp-btn-salida');
   btn.disabled=true;btn.textContent='Guardando...';
-  var items=[{nombre:p.material,qty:qty}];
+  var items=[{nombre:p.material,qty:qty,partida:p.partida,pidx:_mpIdx}];
   postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Salida desde partida',obs:obs,items:items},function(err,data){
-    if(err||!data||!data.ok){toast('Error al registrar salida',true);btn.disabled=false;btn.textContent='⬆️ Salida directa almacén';return;}
-    // Descontar stock
+    if(err||!data||!data.ok){toast('Error al registrar salida',true);btn.disabled=false;btn.textContent='⬆️ Salida directa';return;}
     postAPI({action:'updateStock',items:items},function(){
-      if(inv) inv.stock=Math.max(0,inv.stock-qty);
-      // Sincronizar partidas
-      historial.unshift({tipo:'salida',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Salida desde partida',obs:obs,items:items,anulada:false});
-      sincronizarPartidas(obraSeleccionada);
-      btn.disabled=false;btn.textContent='⬆️ Salida directa almacén';
-      cerrarModalPedidoPartida();
-      renderInv();
-      renderPartidas();
-      toast('Salida registrada — stock y partidas actualizados');
+      if(inv)inv.stock=Math.max(0,inv.stock-qty);
+      // Actualizar suministrado SOLO en esta partida (pidx exacto)
+      p.suministrado=(p.suministrado||0)+qty;
+      guardarPartidasSilencioso(function(){
+        historial.unshift({tipo:'salida',fecha:fecha,obra:obraSeleccionada.nombre,resp:'Salida desde partida',obs:obs,items:items,anulada:false});
+        btn.disabled=false;btn.textContent='⬆️ Salida directa';
+        cerrarModalPedidoPartida();
+        renderInv();renderPartidas();actualizarKPIsObra(obraSeleccionada);
+        toast('Salida registrada — stock y partida actualizados');
+      });
     });
   });
 }
 
 function toggleTipoPartida(idx){
-  if(!obraSeleccionada||!obraSeleccionada.partidas[idx]) return;
+  if(!obraSeleccionada||!obraSeleccionada.partidas[idx])return;
   var p=obraSeleccionada.partidas[idx];
   p.tipo=p.tipo==='alquiler'?'venta':'alquiler';
   renderPartidas();
 }
 
 function actualizarSuministrado(idx,val){
-  if(!obraSeleccionada||!obraSeleccionada.partidas[idx]) return;
+  if(!obraSeleccionada||!obraSeleccionada.partidas[idx])return;
   obraSeleccionada.partidas[idx].suministrado=parseFloat(val)||0;
 }
 
-function actualizarPrecioAlquiler(idx,val){
-  if(!obraSeleccionada||!obraSeleccionada.partidas[idx]) return;
-  obraSeleccionada.partidas[idx].precioAlquiler=parseFloat(val)||0;
-}
-
 function eliminarPartida(idx){
-  if(!obraSeleccionada) return;
-  if(!confirm('¿Eliminar esta línea?')) return;
+  if(!obraSeleccionada)return;
+  if(!confirm('¿Eliminar esta línea?'))return;
   obraSeleccionada.partidas.splice(idx,1);
   renderPartidas();
   guardarPartidas();
 }
 
 function guardarPartidas(){
-  if(!obraSeleccionada) return;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar,presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0},function(err,d){
-    if(!err&&d&&d.ok){toast('Partidas guardadas');renderCostes();}
+  if(!obraSeleccionada)return;
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler||0},function(err,d){
+    if(!err&&d&&d.ok){toast('✅ Partidas guardadas');actualizarKPIsObra(obraSeleccionada);buildObrasGrid();}
     else toast('Error al guardar',true);
   });
 }
 
+/* ── HISTORIAL OBRA ── */
 function renderHistObra(){
   var cont=document.getElementById('obra-historial-content');
   if(!obraSeleccionada){return;}
   var data=historial.filter(function(h){return h.obra===obraSeleccionada.nombre;});
-  if(!data.length){cont.innerHTML='<div class="empty">No hay salidas registradas para esta obra</div>';return;}
-  cont.innerHTML='<div style="text-align:right;margin-bottom:8px"><button class="btn" onclick="dlHistorialObraCSV()">⬇️ Descargar CSV</button></div>'+
-  data.slice(0,40).map(function(h){
+  if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas para esta obra</div>';return;}
+  cont.innerHTML='<div style="text-align:right;margin-bottom:8px"><button class="btn" onclick="dlHistorialObraCSV()">⬇️ CSV</button></div>'+
+  data.map(function(h){
     var items=Array.isArray(h.items)?h.items:[];
     var an=h.anulada===true||h.anulada==='true';
     var realIdx=historial.indexOf(h);
-    return '<div class="card" style="margin-bottom:10px;'+(an?'opacity:.5;':'')+'">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
-        '<span class="badge '+(an?'anulada':h.tipo==='salida'?'ok':'falta')+'">'+(an?'ANULADA':h.tipo==='salida'?'⬆️ Salida':'🛒 Pedido')+'</span>'+
+    var tipoLabel=h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega manual':h.tipo==='entrada'?'📦 Entrada':'🛒 Pedido';
+    var tipoClass=h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada'?'ok':'falta';
+    return '<div class="card" style="margin-bottom:8px;'+(an?'opacity:.5;':'')+'">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">'+
+        '<span class="badge '+(an?'anulada':tipoClass)+'">'+(an?'ANULADA':tipoLabel)+'</span>'+
         (h.resp?'<span style="font-size:12px;color:var(--text2)">'+h.resp+'</span>':'')+
         '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
       '</div>'+
-      '<div>'+items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)"><span>'+i.nombre+'</span><span style="font-weight:600">'+i.qty+' ud</span></div>';}).join('')+'</div>'+
-      (!an&&h.tipo==='salida'?'<div style="margin-top:10px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button></div>':'')+
-      (an?'<div style="font-size:11px;color:#888;margin-top:6px;text-align:center">Stock devuelto al almacén</div>':'')+
+      '<div>'+items.map(function(i){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)">'+
+          '<span>'+i.nombre+(i.partida?' <span style="color:var(--text2);font-size:10px">['+i.partida+']</span>':'')+'</span>'+
+          '<span style="font-weight:600">'+i.qty+' ud</span></div>';
+      }).join('')+'</div>'+
+      (h.obs?'<p style="font-size:11px;color:var(--text2);margin-top:6px">'+h.obs+'</p>':'')+
+      (!an&&h.tipo==='salida'?'<div style="margin-top:8px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular</button></div>':'')+
     '</div>';
   }).join('');
 }
 
+/* ── PERSONAL ── */
 function registrarPersonal(){
   if(!obraSeleccionada){toast('No hay obra seleccionada',true);return;}
   var nombre=document.getElementById('per-nombre').value.trim();
@@ -1165,280 +1202,108 @@ function registrarPersonal(){
   var coste=parseFloat(document.getElementById('per-coste').value)||0;
   var obs=document.getElementById('per-obs').value.trim();
   if(!nombre){toast('El nombre del operario es obligatorio',true);return;}
-  if(!obraSeleccionada.personal) obraSeleccionada.personal=[];
+  if(!obraSeleccionada.personal)obraSeleccionada.personal=[];
   obraSeleccionada.personal.push({nombre:nombre,categoria:categoria,fecha:fecha,horas:horas,coste:coste,obs:obs});
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar,presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
-    if(err||!d||!d.ok) toast('Error al guardar personal',true);
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
+    if(err||!d||!d.ok)toast('Error al guardar personal',true);
     else toast('Asistencia registrada: '+nombre);
   });
-  document.getElementById('per-nombre').value='';
-  document.getElementById('per-horas').value='';
-  document.getElementById('per-coste').value='';
-  document.getElementById('per-obs').value='';
-  renderPersonal();
-  renderCostes();
+  ['per-nombre','per-horas','per-coste','per-obs'].forEach(function(id){document.getElementById(id).value='';});
+  renderPersonal();renderCostes();
 }
 
 function renderPersonal(){
   var cont=document.getElementById('personal-lista');
   if(!obraSeleccionada||!obraSeleccionada.personal||!obraSeleccionada.personal.length){
-    cont.innerHTML='<div class="empty">Sin registros de personal para esta obra</div>';return;
+    cont.innerHTML='<div class="empty">Sin registros de personal</div>';return;
   }
   var p=obraSeleccionada.personal;
   var totalHoras=p.reduce(function(a,r){return a+(r.horas||0);},0);
   var totalCoste=p.reduce(function(a,r){return a+(r.horas||0)*(r.coste||0);},0);
-  var cats={oficial:0,peon:0,encargado:0};
-  p.forEach(function(r){if(cats[r.categoria]!==undefined)cats[r.categoria]+=(r.horas||0);});
   cont.innerHTML=
-    '<div class="stats" style="margin-bottom:12px">'+
+    '<div class="stats" style="margin-bottom:10px">'+
       '<div class="stat"><div class="stat-label">Total horas</div><div class="stat-val">'+totalHoras+'h</div></div>'+
       '<div class="stat"><div class="stat-label">Coste personal</div><div class="stat-val">'+totalCoste.toFixed(2)+' €</div></div>'+
-      '<div class="stat"><div class="stat-label">Oficiales</div><div class="stat-val">'+cats.oficial+'h</div></div>'+
-      '<div class="stat"><div class="stat-label">Peones</div><div class="stat-val">'+cats.peon+'h</div></div>'+
-      '<div class="stat"><div class="stat-label">Encargados</div><div class="stat-val">'+cats.encargado+'h</div></div>'+
     '</div>'+
     p.slice().reverse().map(function(r){
       var catLabel={oficial:'Oficial',peon:'Peón',encargado:'Encargado'}[r.categoria]||r.categoria||'—';
       var costeTotal=(r.horas||0)*(r.coste||0);
-      return '<div class="card" style="margin-bottom:8px;padding:10px 14px">'+
+      return '<div class="card" style="margin-bottom:8px;padding:10px 12px">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'+
-          '<div><span style="font-size:13px;font-weight:600;color:var(--text)">👷 '+r.nombre+'</span>'+
+          '<div><span style="font-size:13px;font-weight:600">👷 '+r.nombre+'</span>'+
           '<span style="font-size:11px;color:var(--text2);margin-left:8px">'+catLabel+'</span></div>'+
           '<span style="font-size:12px;color:var(--text2)">'+r.fecha+'</span>'+
         '</div>'+
-        '<div style="font-size:12px;color:var(--text2);margin-top:4px">'+
-          r.horas+'h'+(r.coste>0?' × '+r.coste.toFixed(2)+'€/h = <b style="color:var(--accent)">'+costeTotal.toFixed(2)+'€</b>':'')+
-          (r.obs?' — '+r.obs:'')+
+        '<div style="font-size:12px;color:var(--text2);margin-top:4px">'+r.horas+'h'+(r.coste>0?' × '+r.coste.toFixed(2)+'€/h = <b style="color:var(--accent)">'+costeTotal.toFixed(2)+'€</b>':'')+
+        (r.obs?' — '+r.obs:'')+
         '</div>'+
       '</div>';
     }).join('');
 }
 
+/* ── COSTES ── */
 function renderCostes(){
   var o=obraSeleccionada;
   var cont=document.getElementById('costes-content');
   if(!o){cont.innerHTML='<div class="empty">Sin obra seleccionada</div>';return;}
-
-  // 1. Coste material vendido (salidas × precio compra)
-  var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';});
-  var costeMaterial=0;
-  var detallesMaterial=[];
+  var salidas=historial.filter(function(h){return h.obra===o.nombre&&(h.tipo==='salida'||h.tipo==='entrega')&&!h.anulada&&h.anulada!=='true';});
+  var costeMaterial=0;var detallesMaterial=[];
   salidas.forEach(function(h){
     (Array.isArray(h.items)?h.items:[]).forEach(function(item){
       var inv=inventario.find(function(i){return i.nombre===item.nombre;});
       var pc=inv?inv.pcompra||0:0;
       var coste=pc*(item.qty||0);
       costeMaterial+=coste;
-      if(coste>0) detallesMaterial.push({nombre:item.nombre,qty:item.qty,pc:pc,coste:coste,fecha:h.fecha});
+      if(coste>0)detallesMaterial.push({nombre:item.nombre,qty:item.qty,pc:pc,coste:coste,fecha:h.fecha});
     });
   });
-
-  // 2. Coste material alquiler (partidas marcadas como alquiler × precio/día × días)
   var diasAlquiler=o.diasAlquiler||0;
-  var costeAlquiler=0;
-  var detallesAlquiler=[];
+  var costeAlquiler=0;var detallesAlquiler=[];
   if(o.partidas){
     o.partidas.forEach(function(p){
       if(p.tipo==='alquiler'&&p.precioAlquiler>0&&diasAlquiler>0){
         var coste=p.precioAlquiler*diasAlquiler*(p.suministrado||0);
         costeAlquiler+=coste;
-        if(coste>0) detallesAlquiler.push({material:p.material,uds:p.suministrado||0,precio:p.precioAlquiler,dias:diasAlquiler,coste:coste});
+        if(coste>0)detallesAlquiler.push({material:p.material,uds:p.suministrado||0,precio:p.precioAlquiler,dias:diasAlquiler,coste:coste});
       }
     });
   }
-
-  // 3. Coste personal
   var costePersonal=(o.personal||[]).reduce(function(a,r){return a+(r.horas||0)*(r.coste||0);},0);
   var totalHorasPersonal=(o.personal||[]).reduce(function(a,r){return a+(r.horas||0);},0);
-
-  // 4. Total costes y margen
   var totalCostes=costeMaterial+costeAlquiler+costePersonal;
   var presupuesto=o.presupuesto||0;
   var margen=presupuesto-totalCostes;
   var pctMargen=presupuesto>0?Math.round(margen/presupuesto*100):0;
-
   cont.innerHTML=
-    // KPIs principales
-    '<div class="stats" style="margin-bottom:16px">'+
+    '<div class="stats" style="margin-bottom:14px">'+
       '<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+(presupuesto>0?presupuesto.toLocaleString('es')+'€':'—')+'</div></div>'+
       '<div class="stat"><div class="stat-label">Total costes</div><div class="stat-val '+(totalCostes>presupuesto?'danger':'')+'">'+totalCostes.toFixed(2)+'€</div></div>'+
       '<div class="stat"><div class="stat-label">Margen</div><div class="stat-val '+(margen<0?'danger':'success')+'">'+margen.toFixed(2)+'€</div></div>'+
       '<div class="stat"><div class="stat-label">% Margen</div><div class="stat-val '+(pctMargen<0?'danger':'success')+'">'+pctMargen+'%</div></div>'+
     '</div>'+
-
-    // Desglose costes
-    '<div class="card" style="margin-bottom:12px">'+
+    '<div class="card" style="margin-bottom:10px">'+
       '<div class="card-title">💰 Desglose de costes</div>'+
       '<table style="width:100%;font-size:13px">'+
-        '<tr style="border-bottom:1px solid var(--border)">'+
-          '<td style="padding:8px 6px;font-weight:600">📦 Material vendido</td>'+
-          '<td style="text-align:right;padding:8px 6px;font-weight:700;color:var(--accent)">'+costeMaterial.toFixed(2)+' €</td>'+
-        '</tr>'+
-        '<tr style="border-bottom:1px solid var(--border)">'+
-          '<td style="padding:8px 6px;font-weight:600">🔧 Alquiler material'+
-            ' — Días: <input type="number" id="dias-alquiler" value="'+(diasAlquiler||0)+'" min="0" step="1" style="width:60px;padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-left:6px" onchange="actualizarDiasAlquiler(this.value)"></td>'+
-          '<td style="text-align:right;padding:8px 6px;font-weight:700;color:var(--accent)">'+costeAlquiler.toFixed(2)+' €</td>'+
-        '</tr>'+
-        '<tr style="border-bottom:1px solid var(--border)">'+
-          '<td style="padding:8px 6px;font-weight:600">👷 Personal ('+totalHorasPersonal+'h)</td>'+
-          '<td style="text-align:right;padding:8px 6px;font-weight:700;color:var(--accent)">'+costePersonal.toFixed(2)+' €</td>'+
-        '</tr>'+
-        '<tr style="background:var(--accent-light)">'+
-          '<td style="padding:10px 6px;font-weight:700;font-size:14px">TOTAL COSTES</td>'+
-          '<td style="text-align:right;padding:10px 6px;font-weight:700;font-size:14px;color:'+(totalCostes>presupuesto?'var(--danger)':'var(--text)')+'">'+totalCostes.toFixed(2)+' €</td>'+
-        '</tr>'+
+        '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">📦 Material</td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costeMaterial.toFixed(2)+' €</td></tr>'+
+        '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">🔧 Alquiler — Días: <input type="number" id="dias-alquiler" value="'+(diasAlquiler||0)+'" min="0" step="1" style="width:55px;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-left:4px" onchange="actualizarDiasAlquiler(this.value)"></td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costeAlquiler.toFixed(2)+' €</td></tr>'+
+        '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">👷 Personal ('+totalHorasPersonal+'h)</td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costePersonal.toFixed(2)+' €</td></tr>'+
+        '<tr style="background:var(--accent-light)"><td style="padding:10px 4px;font-weight:700;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px 4px;font-weight:700;font-size:14px;color:'+(totalCostes>presupuesto?'var(--danger)':'var(--text)')+'">'+totalCostes.toFixed(2)+' €</td></tr>'+
       '</table>'+
     '</div>'+
-
-    // Detalle material
     (detallesMaterial.length?
-      '<div class="card">'+
-        '<div class="card-title">📦 Detalle coste material</div>'+
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:8px">'+
-          '<button class="btn" onclick="dlCostesCSV()">⬇️ Descargar CSV costes</button>'+
-        '</div>'+
-        '<table style="width:100%;font-size:12px"><thead><tr>'+
-          '<th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2)">Material</th>'+
-          '<th style="text-align:right;padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2)">Uds</th>'+
-          '<th style="text-align:right;padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2)">Precio compra</th>'+
-          '<th style="text-align:right;padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2)">Coste</th>'+
-        '</tr></thead><tbody>'+
-        detallesMaterial.map(function(d){
-          return '<tr><td style="padding:5px 6px">'+d.nombre+'</td>'+
-            '<td style="text-align:right;padding:5px 6px">'+d.qty+'</td>'+
-            '<td style="text-align:right;padding:5px 6px">'+d.pc.toFixed(2)+' €</td>'+
-            '<td style="text-align:right;padding:5px 6px;font-weight:600;color:var(--accent)">'+d.coste.toFixed(2)+' €</td></tr>';
-        }).join('')+
-        '</tbody></table>'+
-      '</div>':'<div class="empty">Sin salidas de material registradas</div>');
+      '<div class="card"><div class="card-title">📦 Detalle material</div>'+
+      '<div style="text-align:right;margin-bottom:8px"><button class="btn" onclick="dlCostesCSV()">⬇️ CSV costes</button></div>'+
+      '<div class="tbl-wrap"><table><thead><tr><th>Material</th><th style="text-align:right">Uds</th><th style="text-align:right">P.Compra</th><th style="text-align:right">Coste</th></tr></thead><tbody>'+
+      detallesMaterial.map(function(d){return '<tr><td style="font-size:11px">'+d.nombre+'</td><td style="text-align:right">'+d.qty+'</td><td style="text-align:right">'+d.pc.toFixed(2)+' €</td><td style="text-align:right;font-weight:600;color:var(--accent)">'+d.coste.toFixed(2)+' €</td></tr>';}).join('')+
+      '</tbody></table></div></div>':'<div class="empty">Sin material registrado</div>');
 }
-
-function marcarEntregado(idx){
-  var h=historial[idx];
-  if(!h||h.tipo!=='pedido') return;
-  h.entregado=true;
-  h.fechaEntrega=today;
-  postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
-    if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
-    // Si el pedido era al almacén → suma stock en inventario
-    if(h.tipoDestino==='almacen'||(h.ref&&h.ref.indexOf('almacen')>=0)){
-      postAPI({action:'restoreStock',items:h.items},function(){
-        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
-          var inv=inventario.find(function(i){return i.nombre===item.nombre;});
-          if(inv) inv.stock=(inv.stock||0)+(item.qty||0);
-        });
-        renderInv();
-      });
-    }
-    // Sincronizar partidas de la obra
-    var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
-    if(obraObj) sincronizarPartidas(obraObj);
-    renderHist();
-    toast('Pedido marcado como entregado — partidas y stock actualizados');
-  });
-}
-
-function eliminarPedido(idx){
-  if(!confirm('¿Eliminar este pedido del historial?')) return;
-  var h=historial[idx];
-  postAPI({action:'deleteHistorial',idx:idx,tipo:h.tipo,fecha:h.fecha,obra:h.obra},function(err,d){
-    if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
-    historial.splice(idx,1);
-    renderHist();
-    toast('Pedido eliminado');
-  });
-}
-
-function actualizarDiasAlquiler(val){
-  if(!obraSeleccionada) return;
-  obraSeleccionada.diasAlquiler=parseInt(val)||0;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar,presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler},function(err,d){
-    if(!err&&d&&d.ok) renderCostes();
-  });
-}
-
-function dlCostesCSV(){
-  if(!obraSeleccionada) return;
-  var o=obraSeleccionada;
-  var rows=[['Concepto','Detalle','Unidades','Precio unitario','Coste total']];
-  // Material
-  var salidas=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada;});
-  salidas.forEach(function(h){
-    (Array.isArray(h.items)?h.items:[]).forEach(function(item){
-      var inv=inventario.find(function(i){return i.nombre===item.nombre;});
-      var pc=inv?inv.pcompra||0:0;
-      rows.push(['Material',item.nombre,item.qty,pc.toFixed(2),(pc*item.qty).toFixed(2)]);
-    });
-  });
-  // Personal
-  (o.personal||[]).forEach(function(r){
-    rows.push(['Personal',r.nombre+' ('+r.categoria+')',r.horas,r.coste||0,((r.horas||0)*(r.coste||0)).toFixed(2)]);
-  });
-  dlCSVgen(rows,'costes_'+o.nombre.replace(/ /g,'_'));
-  toast('CSV costes descargado');
-}
-
-function dlPersonalCSV(){
-  if(!obraSeleccionada||!obraSeleccionada.personal||!obraSeleccionada.personal.length){toast('Sin datos de personal',true);return;}
-  var rows=[['Obra','Operario','Fecha','Horas','Observaciones']];
-  obraSeleccionada.personal.forEach(function(r){rows.push([obraSeleccionada.nombre,r.nombre,r.fecha,r.horas,r.obs||'']);});
-  dlCSVgen(rows,'personal_'+obraSeleccionada.nombre.replace(/ /g,'_'));
-  toast('CSV personal descargado');
-}
-
-function dlHistorialObraCSV(){
-  if(!obraSeleccionada){return;}
-  var data=historial.filter(function(h){return h.obra===obraSeleccionada.nombre&&h.tipo==='salida'&&!h.anulada&&h.anulada!=='true';});
-  if(!data.length){toast('Sin salidas para descargar',true);return;}
-  var rows=[['Fecha','Responsable','Material','Cantidad']];
-  data.forEach(function(h){(Array.isArray(h.items)?h.items:[]).forEach(function(i){rows.push([h.fecha,h.resp||'',i.nombre,i.qty]);});});
-  dlCSVgen(rows,'historial_'+obraSeleccionada.nombre.replace(/ /g,'_'));
-  toast('CSV historial descargado');
-}
-
-function dlObrasCSV(){
-  var rows=[['Obra','Lugar','Inicio','Fin','Presupuesto','Estado','Salidas','% Ejecutado']];
-  OBRAS.forEach(function(o){
-    var count=historial.filter(function(h){return h.obra===o.nombre&&h.tipo==='salida'&&!h.anulada;}).length;
-    var pct=0;
-    if(o.partidas&&o.partidas.length){
-      var tot=o.partidas.reduce(function(a,p){return a+p.contratado;},0);
-      var sum=o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
-      pct=tot>0?Math.round(sum/tot*100):0;
-    }
-    rows.push([o.nombre,o.lugar,o.inicio||'',o.fin||'',o.presupuesto||0,o.estado||'activa',count,pct+'%']);
-  });
-  dlCSVgen(rows,'obras_segufija');
-  toast('CSV obras descargado');
-}
-
-function dlCSVgen(rows,name){
-  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
-  var a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
-  a.download=name+'_'+today+'.csv';a.click();
-}
-
-function cerrarDetalleObra(){
-  document.getElementById('obra-detalle').style.display='none';
-  obraSeleccionada=null;
-}
-
-function irSalidaObra(){
-  if(obraSeleccionada) document.getElementById('sal-obra').value=obraSeleccionada.nombre;
-  showTab('salida',document.querySelectorAll('.tab')[2]);
-}
-
-// Alias para compatibilidad
-function agregarObra(){guardarObra();}
-function limpiarNuevaObra(){toggleFormNuevaObra();}
 
 /* ── ANULAR ── */
 function pedirAnular(idx){
   anularIdx=idx;
   var h=historial[idx];
   var items=Array.isArray(h.items)?h.items:[];
-  document.getElementById('modal-anular-sub').textContent='Salida del '+h.fecha+(h.resp?' — '+h.resp:'')+'. El stock de estos materiales se devolverá al almacén.';
+  document.getElementById('modal-anular-sub').textContent='Salida del '+h.fecha+(h.resp?' — '+h.resp:'')+'. El stock se devolverá al almacén.';
   document.getElementById('modal-anular-items').innerHTML=items.map(function(i){
     return '<div class="modal-item-row"><span>'+i.nombre+'</span><span style="font-weight:600;color:var(--success)">+'+i.qty+' ud devueltas</span></div>';
   }).join('');
@@ -1448,12 +1313,12 @@ function pedirAnular(idx){
 function cerrarModalAnular(){document.getElementById('modal-anular').classList.remove('open');anularIdx=-1;}
 
 function confirmarAnular(){
-  if(anularIdx<0) return;
+  if(anularIdx<0)return;
   var h=historial[anularIdx];
   var items=Array.isArray(h.items)?h.items:[];
   var btn=document.getElementById('btn-confirmar-anular');
   btn.disabled=true;btn.textContent='Procesando...';
-  postAPI({action:'addHistorial',tipo:'anulacion',fecha:today,obra:h.obra,resp:'ANULACION',obs:'Anulacion de salida del '+h.fecha,items:items},function(err,d){
+  postAPI({action:'addHistorial',tipo:'anulacion',fecha:today,obra:h.obra,resp:'ANULACION',obs:'Anulación de salida del '+h.fecha,items:items},function(err,d){
     if(err||!d||!d.ok){toast('Error al anular',true);btn.disabled=false;btn.textContent='Anular y devolver stock';return;}
     postAPI({action:'restoreStock',items:items},function(){
       items.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+(c.qty||0);});
@@ -1461,9 +1326,60 @@ function confirmarAnular(){
       cerrarModalAnular();
       btn.disabled=false;btn.textContent='Anular y devolver stock';
       renderInv();
-      if(obraSeleccionada) verObra(OBRAS.findIndex(function(o){return o.nombre===obraSeleccionada.nombre;}));
-      toast('Salida anulada. Stock devuelto al almacén.');
+      if(obraSeleccionada)actualizarKPIsObra(obraSeleccionada);
+      toast('Salida anulada. Stock devuelto.');
     });
+  });
+}
+
+/* ── MARCAR PEDIDO ENTREGADO ── */
+function marcarEntregado(idx){
+  var h=historial[idx];
+  if(!h||h.tipo!=='pedido')return;
+  h.entregado=true;h.fechaEntrega=today;
+  postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
+    if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
+    // Si el pedido era al almacén → suma stock
+    if(h.tipoDestino==='almacen'||(h.ref&&h.ref.indexOf('almacen')>=0)){
+      postAPI({action:'restoreStock',items:h.items},function(){
+        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+          var inv=inventario.find(function(i){return i.nombre===item.nombre;});
+          if(inv)inv.stock=(inv.stock||0)+(item.qty||0);
+        });
+        renderInv();
+      });
+    }
+    // Si el pedido era a obra y tiene pidx → actualizar esa partida específica
+    if(h.tipoDestino==='obra'){
+      var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
+      if(obraObj&&Array.isArray(h.items)){
+        h.items.forEach(function(item){
+          if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
+            obraObj.partidas[item.pidx].suministrado=(obraObj.partidas[item.pidx].suministrado||0)+(item.qty||0);
+          }
+        });
+        guardarPartidasSilencioso(null);
+      }
+    }
+    renderHist();
+    toast('✅ Pedido marcado como entregado');
+  });
+}
+
+function eliminarPedido(idx){
+  if(!confirm('¿Eliminar este pedido del historial?'))return;
+  var h=historial[idx];
+  postAPI({action:'deleteHistorial',idx:idx,tipo:h.tipo,fecha:h.fecha,obra:h.obra},function(err,d){
+    if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
+    historial.splice(idx,1);renderHist();toast('Pedido eliminado');
+  });
+}
+
+function actualizarDiasAlquiler(val){
+  if(!obraSeleccionada)return;
+  obraSeleccionada.diasAlquiler=parseInt(val)||0;
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler},function(err,d){
+    if(!err&&d&&d.ok)renderCostes();
   });
 }
 
@@ -1475,10 +1391,10 @@ function renderStats(){
   var ok=inventario.filter(function(i){return i.nec>0&&i.stock>=i.nec;}).length;
   var tot=inventario.reduce(function(a,b){return a+(b.stock||0);},0);
   document.getElementById('stats-inv').innerHTML=
-    '<div class="stat"><div class="stat-label">Total articulos</div><div class="stat-val">'+inventario.length+'</div></div>'+
+    '<div class="stat"><div class="stat-label">Total artículos</div><div class="stat-val">'+inventario.length+'</div></div>'+
     '<div class="stat"><div class="stat-label">Stock insuficiente</div><div class="stat-val danger">'+falta+'</div></div>'+
     '<div class="stat"><div class="stat-label">Stock correcto</div><div class="stat-val success">'+ok+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Unidades almacen</div><div class="stat-val">'+tot.toLocaleString('es')+'</div></div>';
+    '<div class="stat"><div class="stat-label">Uds en almacén</div><div class="stat-val">'+tot.toLocaleString('es')+'</div></div>';
 }
 
 function renderInv(){
@@ -1499,7 +1415,7 @@ function renderInv(){
     var diff=i.nec>0?(i.stock-i.nec):null;
     var e=estado(i);
     return '<tr id="inv-row-'+idx+'">'+
-      '<td style="max-width:220px;font-size:12px">'+i.nombre+'</td>'+
+      '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
       '<td style="text-align:right">'+(i.nec>0?i.nec.toLocaleString('es'):'-')+'</td>'+
       '<td style="text-align:right;color:'+(diff===null?'inherit':diff<0?'var(--danger)':'var(--success)')+'">'+
@@ -1507,14 +1423,16 @@ function renderInv(){
       '<td><span class="badge '+e.cls+'">'+e.label+'</span></td>'+
       '<td style="text-align:right">'+(i.pvp>0?i.pvp.toFixed(2)+' €':'-')+'</td>'+
       '<td style="text-align:right">'+(i.pcompra>0?i.pcompra.toFixed(2)+' €':'-')+'</td>'+
-      '<td style="display:flex;gap:4px;padding:8px 10px">'+
-        '<button class="btn" style="font-size:11px;padding:4px 8px" onclick="editarFila('+idx+')">✏️</button>'+
-        '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarArticulo('+idx+')">🗑️</button>'+
+      '<td>'+
+        '<div style="display:flex;gap:3px">'+
+          '<button class="btn" style="font-size:11px;padding:4px 6px" onclick="editarFila('+idx+')">✏️</button>'+
+          '<button class="btn danger" style="font-size:11px;padding:4px 6px" onclick="eliminarArticulo('+idx+')">🗑️</button>'+
+        '</div>'+
       '</td>'+
     '</tr>'+
     '<tr id="inv-edit-'+idx+'" style="display:none;background:var(--accent-light)">'+
-      '<td colspan="8" style="padding:10px 14px">'+
-        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">'+
+      '<td colspan="8" style="padding:10px 12px">'+
+        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Nombre</div>'+
             '<input id="edit-nombre-'+idx+'" type="text" value="'+i.nombre.replace(/"/g,'&quot;')+'" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Stock</div>'+
@@ -1525,9 +1443,9 @@ function renderInv(){
             '<input id="edit-pvp-'+idx+'" type="number" value="'+(i.pvp||0)+'" step="0.01" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Compra €</div>'+
             '<input id="edit-pc-'+idx+'" type="number" value="'+(i.pcompra||0)+'" step="0.01" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
-          '<div style="display:flex;gap:6px">'+
-            '<button class="btn primary" style="font-size:11px;padding:5px 10px" onclick="guardarEdicionFila('+idx+')">✅ Guardar</button>'+
-            '<button class="btn" style="font-size:11px;padding:5px 8px" onclick="cancelarEdicion('+idx+')">✕</button>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="btn primary" style="font-size:11px;padding:5px 8px" onclick="guardarEdicionFila('+idx+')">✅</button>'+
+            '<button class="btn" style="font-size:11px;padding:5px 6px" onclick="cancelarEdicion('+idx+')">✕</button>'+
           '</div>'+
         '</div>'+
       '</td>'+
@@ -1535,303 +1453,6 @@ function renderInv(){
   }).join('');
 }
 
-function pedidoSubTab(id,el){
-  document.querySelectorAll('#tab-pedidos .tab').forEach(function(t){t.classList.remove('active');});
-  el.classList.add('active');
-  document.getElementById('psub-obra').style.display=id==='obra'?'block':'none';
-  document.getElementById('psub-almacen').style.display=id==='almacen'?'block':'none';
-  if(id==='almacen') document.getElementById('ent-fecha').value=today;
-}
-
-var entradaItems=[];
-
-function renderSearchEnt(){
-  var q=document.getElementById('buscar-ent').value.toLowerCase();
-  var cont=document.getElementById('search-ent-results');
-  if(q.length<2){cont.innerHTML='';return;}
-  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
-  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
-  cont.innerHTML='<div class="search-results">'+res.map(function(i){
-    return '<div class="search-item" onclick="addEntrada(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+'<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">Stock actual: '+i.stock+'</span></div>';
-  }).join('')+'</div>';
-}
-
-function addEntrada(nombre){
-  var ex=entradaItems.find(function(c){return c.nombre===nombre;});
-  if(ex){ex.qty++;}else{entradaItems.push({nombre:nombre,qty:1});}
-  renderEntradaItems();
-  document.getElementById('buscar-ent').value='';
-  document.getElementById('search-ent-results').innerHTML='';
-}
-
-function renderEntradaItems(){
-  var cont=document.getElementById('entrada-items');
-  if(!entradaItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Busca y añade materiales recibidos</p>';return;}
-  cont.innerHTML=entradaItems.map(function(c,i){
-    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
-      '<div class="qty-ctrl"><button onclick="chgEnt('+i+',-1)">−</button>'+
-      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setEnt('+i+',this.value)" style="width:70px;text-align:center;padding:4px 6px;font-size:14px;font-weight:600;border:0.5px solid var(--border);border-radius:6px">'+
-      '<button onclick="chgEnt('+i+',1)">+</button></div>'+
-      '<button onclick="delEnt('+i+')" class="btn danger" style="padding:4px 8px;font-size:11px">✕</button></div>';
-  }).join('');
-}
-
-function chgEnt(i,d){entradaItems[i].qty=Math.max(1,entradaItems[i].qty+d);renderEntradaItems();}
-function setEnt(i,v){entradaItems[i].qty=Math.max(1,parseInt(v)||1);renderEntradaItems();}
-function delEnt(i){entradaItems.splice(i,1);renderEntradaItems();}
-function limpiarEntrada(){entradaItems=[];renderEntradaItems();}
-
-function registrarEntrada(){
-  if(!entradaItems.length){toast('Añade al menos un material',true);return;}
-  var prov=document.getElementById('ent-prov').value;
-  var fecha=document.getElementById('ent-fecha').value;
-  var ref=document.getElementById('ent-ref').value;
-  var obs=document.getElementById('ent-obs').value;
-  var btn=document.getElementById('btn-entrada');
-  btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addHistorial',tipo:'entrada',fecha:fecha,obra:'ALMACEN',prov:prov,ref:ref,obs:obs,items:entradaItems},function(err,data){
-    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar entrada';return;}
-    postAPI({action:'restoreStock',items:entradaItems},function(){
-      entradaItems.forEach(function(c){
-        var it=inventario.find(function(i){return i.nombre===c.nombre;});
-        if(it) it.stock=(it.stock||0)+c.qty;
-      });
-      limpiarEntrada();renderInv();
-      btn.disabled=false;btn.textContent='✅ Registrar entrada';
-      toast('Entrada registrada — stock actualizado');
-    });
-  });
-}
-
-/* ── ELIMINAR ARTÍCULO ── */
-function eliminarArticulo(idx){
-  var nombre=inventario[idx].nombre;
-  if(!confirm('¿Eliminar "'+nombre+'"? Esta acción no se puede deshacer.')) return;
-  postAPI({action:'deleteArticulo',nombre:nombre},function(err,d){
-    if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
-    inventario.splice(idx,1);
-    renderInv();
-    toast('Artículo eliminado: '+nombre);
-  });
-}
-
-function editarFila(idx){
-  // Cerrar cualquier edición abierta
-  document.querySelectorAll('[id^="inv-edit-"]').forEach(function(r){r.style.display='none';});
-  document.getElementById('inv-edit-'+idx).style.display='table-row';
-}
-
-function cancelarEdicion(idx){
-  document.getElementById('inv-edit-'+idx).style.display='none';
-}
-
-function guardarEdicionFila(idx){
-  var nombre=document.getElementById('edit-nombre-'+idx).value.trim();
-  if(!nombre){toast('El nombre no puede estar vacío',true);return;}
-  var stock=parseInt(document.getElementById('edit-stock-'+idx).value)||0;
-  var nec=parseFloat(document.getElementById('edit-nec-'+idx).value)||0;
-  var pvp=parseFloat(document.getElementById('edit-pvp-'+idx).value)||0;
-  var pcompra=parseFloat(document.getElementById('edit-pc-'+idx).value)||0;
-  var nombreOriginal=inventario[idx].nombre;
-  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
-    if(err||!d||!d.ok){toast('Error al guardar',true);return;}
-    inventario[idx].nombre=nombre;
-    inventario[idx].stock=stock;
-    inventario[idx].nec=nec;
-    inventario[idx].pvp=pvp;
-    inventario[idx].pcompra=pcompra;
-    renderInv();
-    toast('✅ Artículo actualizado');
-  });
-}
-
-/* ── SALIDA ── */
-function renderSearchSal(){
-  var q=document.getElementById('buscar-sal').value.toLowerCase();
-  var cont=document.getElementById('search-sal-results');
-  if(q.length<2){cont.innerHTML='';return;}
-  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1&&i.stock>0;}).slice(0,6);
-  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados con stock</p>';return;}
-  cont.innerHTML='<div class="search-results">'+res.map(function(i){
-    return '<div class="search-item" onclick="addCarrito(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+'<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">Stock: '+i.stock+'</span></div>';
-  }).join('')+'</div>';
-}
-
-function addCarrito(nombre){
-  var item=inventario.find(function(i){return i.nombre===nombre;});if(!item)return;
-  var ex=carrito.find(function(c){return c.nombre===nombre;});
-  if(ex){ex.qty=Math.min(ex.qty+1,item.stock);}else{carrito.push({nombre:nombre,qty:1,maxQty:item.stock});}
-  renderCarrito();document.getElementById('buscar-sal').value='';document.getElementById('search-sal-results').innerHTML='';
-}
-
-function renderCarrito(){
-  var cont=document.getElementById('carrito-items');
-  if(!carrito.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Ningun material añadido aun</p>';return;}
-  cont.innerHTML=carrito.map(function(c,i){
-    return '<div class="pedido-row">'+
-      '<span class="pedido-nombre">'+c.nombre+'<br><span style="font-size:11px;color:var(--text2)">máx. '+c.maxQty+' ud</span></span>'+
-      '<div class="qty-ctrl">'+
-        '<button onclick="changeQty('+i+',-1)">−</button>'+
-        '<input type="number" id="qty-'+i+'" value="'+c.qty+'" min="1" max="'+c.maxQty+'" inputmode="numeric" onchange="setQty('+i+',this.value)" oninput="setQty('+i+',this.value)">'+
-        '<button onclick="changeQty('+i+',1)">+</button>'+
-      '</div>'+
-      '<button onclick="removeCarrito('+i+')" class="btn" style="padding:4px 8px;font-size:11px">✕</button>'+
-    '</div>';
-  }).join('');
-}
-
-function changeQty(i,d){
-  carrito[i].qty=Math.max(1,Math.min(carrito[i].maxQty,carrito[i].qty+d));
-  var el=document.getElementById('qty-'+i);if(el)el.value=carrito[i].qty;
-}
-function setQty(i,v){
-  var val=parseInt(v)||1;
-  carrito[i].qty=Math.max(1,Math.min(carrito[i].maxQty,val));
-  var el=document.getElementById('qty-'+i);if(el&&parseInt(el.value)!==carrito[i].qty)el.value=carrito[i].qty;
-}
-function removeCarrito(i){carrito.splice(i,1);renderCarrito();}
-function limpiarCarrito(){carrito=[];renderCarrito();}
-
-function registrarSalida(){
-  var obra=document.getElementById('sal-obra').value;
-  var fecha=document.getElementById('sal-fecha').value;
-  var resp=document.getElementById('sal-resp').value;
-  if(!obra){toast('Selecciona una obra',true);return;}
-  if(!carrito.length){toast('Añade al menos un material',true);return;}
-  var btn=document.getElementById('btn-salida');btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito},function(err,data){
-    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar salida';return;}
-    postAPI({action:'updateStock',items:carrito},function(){
-      carrito.forEach(function(c){
-        var it=inventario.find(function(i){return i.nombre===c.nombre;});
-        if(it) it.stock=Math.max(0,it.stock-c.qty);
-      });
-      historial.unshift({tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito.slice(),anulada:false});
-      // Sincronizar partidas de la obra desde historial completo
-      var obraObj=OBRAS.find(function(o){return o.nombre===obra;});
-      if(obraObj) sincronizarPartidas(obraObj);
-      carrito=[];renderCarrito();renderInv();buildObrasGrid();
-      document.getElementById('sal-obra').value='';document.getElementById('sal-resp').value='';
-      btn.disabled=false;btn.textContent='Registrar salida';
-      toast('Salida registrada correctamente');
-    });
-  });
-}
-
-/* ── PEDIDOS ── */
-function renderSearchPed(){
-  var q=document.getElementById('buscar-ped').value.toLowerCase();
-  var cont=document.getElementById('search-ped-results');
-  if(q.length<2){cont.innerHTML='';return;}
-  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
-  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
-  cont.innerHTML='<div class="search-results">'+res.map(function(i){
-    return '<div class="search-item" onclick="addPedido(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+'<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">'+(i.pvp>0?i.pvp.toFixed(2)+' EUR/ud':'')+'</span></div>';
-  }).join('')+'</div>';
-}
-
-function addPedido(nombre){
-  var ex=pedidoItems.find(function(c){return c.nombre===nombre;});
-  if(ex){ex.qty++;}else{var inv=inventario.find(function(i){return i.nombre===nombre;});pedidoItems.push({nombre:nombre,qty:1,pvp:inv?inv.pvp:0});}
-  renderPedidoItems();document.getElementById('buscar-ped').value='';document.getElementById('search-ped-results').innerHTML='';
-}
-
-function renderPedidoItems(){
-  var cont=document.getElementById('pedido-items');
-  if(!pedidoItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Ningun material añadido aun</p>';return;}
-  var total=pedidoItems.reduce(function(a,c){return a+(c.pvp*c.qty);},0);
-  cont.innerHTML=pedidoItems.map(function(c,i){
-    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
-      '<div class="qty-ctrl"><button onclick="changePedQty('+i+',-1)">−</button>'+
-      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setPedQty('+i+',this.value)">'+
-      '<button onclick="changePedQty('+i+',1)">+</button></div>'+
-      (c.pvp>0?'<span style="font-size:12px;color:var(--text2);min-width:70px">'+(c.pvp*c.qty).toFixed(2)+' EUR</span>':'<span style="min-width:70px"></span>')+
-      '<button onclick="removePedido('+i+')" class="btn" style="padding:4px 8px;font-size:11px">✕</button></div>';
-  }).join('')+(total>0?'<div style="text-align:right;padding:8px 0;font-size:13px;font-weight:500;border-top:0.5px solid var(--border);margin-top:4px">Total estimado: '+total.toFixed(2)+' EUR</div>':'');
-}
-
-function changePedQty(i,d){pedidoItems[i].qty=Math.max(1,pedidoItems[i].qty+d);renderPedidoItems();}
-function setPedQty(i,v){pedidoItems[i].qty=Math.max(1,parseInt(v)||1);renderPedidoItems();}
-function removePedido(i){pedidoItems.splice(i,1);renderPedidoItems();}
-function limpiarPedido(){pedidoItems=[];renderPedidoItems();}
-
-function registrarPedido(){
-  var obra=document.getElementById('ped-obra').value;
-  var prov=document.getElementById('ped-prov').value;
-  var fecha=document.getElementById('ped-fecha').value;
-  var ref=document.getElementById('ped-ref').value;
-  var obs=document.getElementById('ped-obs').value;
-  if(!obra){toast('Selecciona una obra',true);return;}
-  if(!prov){toast('Selecciona un proveedor',true);return;}
-  if(!pedidoItems.length){toast('Añade al menos un material',true);return;}
-  var btn=document.getElementById('btn-pedido');btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addHistorial',tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,items:pedidoItems},function(err,data){
-    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar pedido';return;}
-    historial.unshift({tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,items:pedidoItems.slice()});
-    pedidoItems=[];renderPedidoItems();buildObrasGrid();
-    document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
-    document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
-    btn.disabled=false;btn.textContent='Registrar pedido';
-    toast('Pedido registrado en Google Sheets');
-  });
-}
-
-/* ── HISTORIAL GENERAL ── */
-function renderHist(){
-  var tipo=document.getElementById('hist-tipo').value;
-  var obra=document.getElementById('hist-obra').value;
-  var data=historial.filter(function(h){
-    if(tipo!=='todos'&&h.tipo!==tipo)return false;
-    if(obra&&h.obra!==obra)return false;
-    return true;
-  });
-  var cont=document.getElementById('hist-content');
-  if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas</div>';return;}
-  cont.innerHTML=data.map(function(h,idx){
-    var items=Array.isArray(h.items)?h.items:[];
-    var an=h.anulada===true||h.anulada==='true';
-    var realIdx=historial.indexOf(h);
-    return '<div class="card" style="margin-bottom:10px;'+(an?'opacity:.5;':'')+'">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
-        '<span class="badge '+(an?'anulada':h.tipo==='salida'?'ok':'falta')+'">'+(an?'ANULADA':h.tipo==='salida'?'⬆️ Salida':'🛒 Pedido')+'</span>'+
-        '<span class="tag-obra">'+h.obra+'</span>'+
-        (h.prov?'<span style="font-size:12px;color:var(--text2)">'+h.prov+'</span>':'')+
-        (h.resp?'<span style="font-size:12px;color:var(--text2)">Resp: '+h.resp+'</span>':'')+
-        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
-      '</div>'+
-      '<div>'+items.map(function(i){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)"><span>'+i.nombre+'</span><span style="font-weight:500">'+i.qty+' ud</span></div>';}).join('')+'</div>'+
-      (!an&&h.tipo==='salida'?'<div style="margin-top:8px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button></div>':'')+
-      (!an&&h.tipo==='pedido'?
-        '<div style="margin-top:8px;display:flex;justify-content:flex-end;gap:6px;align-items:center">'+
-          (h.entregado?'<span class="badge ok" style="font-size:10px">✅ Entregado '+( h.fechaEntrega||''  )+'</span>':
-            '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="marcarEntregado('+realIdx+')">✅ Marcar como entregado</button>')+
-          '<button class="btn danger" style="font-size:11px;padding:4px 10px" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
-        '</div>':'')+
-      (h.obs?'<p style="font-size:12px;color:var(--text2);margin-top:8px">'+h.obs+'</p>':'')+
-    '</div>';
-  }).join('');
-}
-
-/* ── EXPORT ── */
-function exportCSV(){
-  var rows=[['Material','Stock','Necesario','Diferencia','Estado','PVP','Precio Compra']];
-  inventario.forEach(function(i){var diff=i.nec>0?(i.stock-i.nec):'-';var e=estado(i);rows.push([i.nombre,i.stock,i.nec,diff,e.label,i.pvp||0,i.pcompra||0]);});
-  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='inventario_'+today+'.csv';a.click();
-}
-
-function toast(msg,isError){
-  var t=document.getElementById('toast');t.textContent=msg;
-  t.className='toast'+(isError?' error':'')+' show';
-  setTimeout(function(){t.className='toast'+(isError?' error':'');},2500);
-}
-
-/* ── NUEVO ARTÍCULO ── */
-function limpiarNuevo(){
-  ['new-nombre','new-stock','new-nec','new-pvp','new-pcompra'].forEach(function(id){document.getElementById(id).value='';});
-}
-
-/* ── NUEVO ARTÍCULO EN INVENTARIO ── */
 function toggleFormNuevoArt(){
   var f=document.getElementById('form-nuevo-art');
   f.style.display=f.style.display==='none'?'block':'none';
@@ -1852,33 +1473,280 @@ function guardarNuevoArt(){
   var btn=document.getElementById('btn-ninv');
   btn.disabled=true;btn.textContent='Guardando...';
   postAPI({action:'addArticulo',nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
-    if(err||!d||!d.ok){toast('Error al guardar. Comprueba la conexión.',true);btn.disabled=false;btn.textContent='✅ Añadir al inventario';return;}
+    if(err||!d||!d.ok){toast('Error al guardar. Comprueba la conexión.',true);btn.disabled=false;btn.textContent='✅ Añadir';return;}
     inventario.push({nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra});
-    btn.disabled=false;btn.textContent='✅ Añadir al inventario';
-    toggleFormNuevoArt();
-    renderInv();
+    btn.disabled=false;btn.textContent='✅ Añadir';
+    toggleFormNuevoArt();renderInv();
     toast('✅ '+nombre+' añadido al inventario');
   });
 }
 
-function guardarNuevo(){
-  var nombre=document.getElementById('new-nombre').value.trim();
-  if(!nombre){toast('El nombre es obligatorio',true);return;}
-  if(inventario.find(function(i){return i.nombre.toLowerCase()===nombre.toLowerCase();})){toast('Ya existe un artículo con ese nombre',true);return;}
-  var stock=parseInt(document.getElementById('new-stock').value)||0;
-  var nec=parseFloat(document.getElementById('new-nec').value)||0;
-  var pvp=parseFloat(document.getElementById('new-pvp').value)||0;
-  var pcompra=parseFloat(document.getElementById('new-pcompra').value)||0;
-  var btn=document.getElementById('btn-nuevo');
-  btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addArticulo',nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
-    if(err||!d||!d.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Añadir al inventario';return;}
-    inventario.push({nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra});
-    btn.disabled=false;btn.textContent='✅ Añadir al inventario';
-    limpiarNuevo();
-    toast('Artículo añadido correctamente');
-    renderInv();
+function editarFila(idx){
+  document.querySelectorAll('[id^="inv-edit-"]').forEach(function(r){r.style.display='none';});
+  document.getElementById('inv-edit-'+idx).style.display='table-row';
+}
+function cancelarEdicion(idx){document.getElementById('inv-edit-'+idx).style.display='none';}
+
+function guardarEdicionFila(idx){
+  var nombre=document.getElementById('edit-nombre-'+idx).value.trim();
+  if(!nombre){toast('El nombre no puede estar vacío',true);return;}
+  var stock=parseInt(document.getElementById('edit-stock-'+idx).value)||0;
+  var nec=parseFloat(document.getElementById('edit-nec-'+idx).value)||0;
+  var pvp=parseFloat(document.getElementById('edit-pvp-'+idx).value)||0;
+  var pcompra=parseFloat(document.getElementById('edit-pc-'+idx).value)||0;
+  var nombreOriginal=inventario[idx].nombre;
+  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar',true);return;}
+    inventario[idx].nombre=nombre;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;
+    renderInv();toast('✅ Artículo actualizado');
   });
+}
+
+function eliminarArticulo(idx){
+  var nombre=inventario[idx].nombre;
+  if(!confirm('¿Eliminar "'+nombre+'"?'))return;
+  postAPI({action:'deleteArticulo',nombre:nombre},function(err,d){
+    if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
+    inventario.splice(idx,1);renderInv();toast('Artículo eliminado: '+nombre);
+  });
+}
+
+/* ── SALIDA ── */
+function renderSearchSal(){
+  var q=document.getElementById('buscar-sal').value.toLowerCase();
+  var cont=document.getElementById('search-sal-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,7);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    var stockInfo=i.stock>0?'<span style="color:var(--success);font-size:12px">'+i.stock+' ud</span>':'<span style="color:var(--danger);font-size:12px">Sin stock</span>';
+    return '<div class="search-item-big" onclick="addCarrito(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')" style="'+(i.stock===0?'opacity:.5':'')+'">'+
+      '<span style="font-size:13px">'+i.nombre+'</span>'+stockInfo+
+    '</div>';
+  }).join('')+'</div>';
+}
+
+function addCarrito(nombre){
+  var item=inventario.find(function(i){return i.nombre===nombre;});if(!item)return;
+  var ex=carrito.find(function(c){return c.nombre===nombre;});
+  if(ex){ex.qty=Math.min(ex.qty+1,Math.max(item.stock,ex.qty+1));}
+  else{carrito.push({nombre:nombre,qty:1,maxQty:item.stock});}
+  renderCarrito();
+  document.getElementById('buscar-sal').value='';
+  document.getElementById('search-sal-results').innerHTML='';
+}
+
+function renderCarrito(){
+  var cont=document.getElementById('carrito-items');
+  if(!carrito.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Ningún material añadido aún</p>';return;}
+  cont.innerHTML=carrito.map(function(c,i){
+    return '<div class="carrito-row">'+
+      '<span class="carrito-nombre">'+c.nombre+'<br><span style="font-size:10px;color:var(--text2)">Stock: '+c.maxQty+' ud</span></span>'+
+      '<div class="qty-ctrl qty-big" style="display:flex;align-items:center;gap:5px;flex-shrink:0">'+
+        '<button onclick="changeQty('+i+',-1)">−</button>'+
+        '<input type="number" id="qty-'+i+'" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setQty('+i+',this.value)" style="width:55px;text-align:center;padding:5px;font-size:15px;font-weight:700;border:0.5px solid var(--border);border-radius:6px">'+
+        '<button onclick="changeQty('+i+',1)">+</button>'+
+      '</div>'+
+      '<button onclick="removeCarrito('+i+')" class="btn danger" style="padding:6px 10px;font-size:13px;flex-shrink:0">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+function changeQty(i,d){carrito[i].qty=Math.max(1,carrito[i].qty+d);var el=document.getElementById('qty-'+i);if(el)el.value=carrito[i].qty;}
+function setQty(i,v){carrito[i].qty=Math.max(1,parseInt(v)||1);var el=document.getElementById('qty-'+i);if(el&&parseInt(el.value)!==carrito[i].qty)el.value=carrito[i].qty;}
+function removeCarrito(i){carrito.splice(i,1);renderCarrito();}
+function limpiarCarrito(){carrito=[];renderCarrito();}
+
+function registrarSalida(){
+  var obra=document.getElementById('sal-obra').value;
+  var fecha=document.getElementById('sal-fecha').value;
+  var resp=document.getElementById('sal-resp').value;
+  if(!obra){toast('Selecciona una obra',true);return;}
+  if(!carrito.length){toast('Añade al menos un material',true);return;}
+  var btn=document.getElementById('btn-salida');btn.disabled=true;btn.textContent='Guardando...';
+  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito},function(err,data){
+    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar salida';return;}
+    postAPI({action:'updateStock',items:carrito},function(){
+      carrito.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=Math.max(0,it.stock-c.qty);});
+      historial.unshift({tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito.slice(),anulada:false});
+      carrito=[];renderCarrito();renderInv();buildObrasGrid();
+      document.getElementById('sal-obra').value='';document.getElementById('sal-resp').value='';
+      btn.disabled=false;btn.textContent='✅ Registrar salida';
+      toast('✅ Salida registrada correctamente');
+    });
+  });
+}
+
+/* ── PEDIDOS ── */
+function pedidoSubTab(id,el){
+  document.querySelectorAll('#tab-pedidos .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('psub-obra').style.display=id==='obra'?'block':'none';
+  document.getElementById('psub-almacen').style.display=id==='almacen'?'block':'none';
+  if(id==='almacen')document.getElementById('ent-fecha').value=today;
+}
+
+function renderSearchPed(){
+  var q=document.getElementById('buscar-ped').value.toLowerCase();
+  var cont=document.getElementById('search-ped-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    return '<div class="search-item" onclick="addPedido(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+'<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">'+(i.pvp>0?i.pvp.toFixed(2)+' €/ud':'')+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function addPedido(nombre){
+  var ex=pedidoItems.find(function(c){return c.nombre===nombre;});
+  if(ex){ex.qty++;}else{var inv=inventario.find(function(i){return i.nombre===nombre;});pedidoItems.push({nombre:nombre,qty:1,pvp:inv?inv.pvp:0});}
+  renderPedidoItems();
+  document.getElementById('buscar-ped').value='';
+  document.getElementById('search-ped-results').innerHTML='';
+}
+
+function renderPedidoItems(){
+  var cont=document.getElementById('pedido-items');
+  if(!pedidoItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Ningún material añadido aún</p>';return;}
+  var total=pedidoItems.reduce(function(a,c){return a+(c.pvp*c.qty);},0);
+  cont.innerHTML=pedidoItems.map(function(c,i){
+    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
+      '<div class="qty-ctrl"><button onclick="changePedQty('+i+',-1)">−</button>'+
+      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setPedQty('+i+',this.value)">'+
+      '<button onclick="changePedQty('+i+',1)">+</button></div>'+
+      (c.pvp>0?'<span style="font-size:12px;color:var(--text2);min-width:70px">'+(c.pvp*c.qty).toFixed(2)+' €</span>':'<span style="min-width:70px"></span>')+
+      '<button onclick="removePedido('+i+')" class="btn" style="padding:4px 8px;font-size:11px">✕</button></div>';
+  }).join('')+(total>0?'<div style="text-align:right;padding:8px 0;font-size:13px;font-weight:500;border-top:0.5px solid var(--border);margin-top:4px">Total estimado: '+total.toFixed(2)+' €</div>':'');
+}
+
+function changePedQty(i,d){pedidoItems[i].qty=Math.max(1,pedidoItems[i].qty+d);renderPedidoItems();}
+function setPedQty(i,v){pedidoItems[i].qty=Math.max(1,parseInt(v)||1);renderPedidoItems();}
+function removePedido(i){pedidoItems.splice(i,1);renderPedidoItems();}
+function limpiarPedido(){pedidoItems=[];renderPedidoItems();}
+
+function registrarPedido(){
+  var obra=document.getElementById('ped-obra').value;
+  var prov=document.getElementById('ped-prov').value;
+  var fecha=document.getElementById('ped-fecha').value;
+  var ref=document.getElementById('ped-ref').value;
+  var obs=document.getElementById('ped-obs').value;
+  if(!obra){toast('Selecciona una obra',true);return;}
+  if(!prov){toast('Selecciona un proveedor',true);return;}
+  if(!pedidoItems.length){toast('Añade al menos un material',true);return;}
+  var btn=document.getElementById('btn-pedido');btn.disabled=true;btn.textContent='Guardando...';
+  postAPI({action:'addHistorial',tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',items:pedidoItems},function(err,data){
+    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar pedido';return;}
+    historial.unshift({tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',items:pedidoItems.slice(),anulada:false,entregado:false});
+    pedidoItems=[];renderPedidoItems();buildObrasGrid();
+    document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
+    document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
+    btn.disabled=false;btn.textContent='Registrar pedido';
+    toast('✅ Pedido registrado');
+  });
+}
+
+/* ── ENTRADA ALMACÉN ── */
+function renderSearchEnt(){
+  var q=document.getElementById('buscar-ent').value.toLowerCase();
+  var cont=document.getElementById('search-ent-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    return '<div class="search-item" onclick="addEntrada(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+
+      '<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">Stock: '+i.stock+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function addEntrada(nombre){
+  var ex=entradaItems.find(function(c){return c.nombre===nombre;});
+  if(ex){ex.qty++;}else{entradaItems.push({nombre:nombre,qty:1});}
+  renderEntradaItems();
+  document.getElementById('buscar-ent').value='';
+  document.getElementById('search-ent-results').innerHTML='';
+}
+
+function renderEntradaItems(){
+  var cont=document.getElementById('entrada-items');
+  if(!entradaItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Busca y añade materiales recibidos</p>';return;}
+  cont.innerHTML=entradaItems.map(function(c,i){
+    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
+      '<div class="qty-ctrl"><button onclick="chgEnt('+i+',-1)">−</button>'+
+      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setEnt('+i+',this.value)">'+
+      '<button onclick="chgEnt('+i+',1)">+</button></div>'+
+      '<button onclick="delEnt('+i+')" class="btn danger" style="padding:4px 8px;font-size:11px">✕</button></div>';
+  }).join('');
+}
+
+function chgEnt(i,d){entradaItems[i].qty=Math.max(1,entradaItems[i].qty+d);renderEntradaItems();}
+function setEnt(i,v){entradaItems[i].qty=Math.max(1,parseInt(v)||1);renderEntradaItems();}
+function delEnt(i){entradaItems.splice(i,1);renderEntradaItems();}
+function limpiarEntrada(){entradaItems=[];renderEntradaItems();}
+
+function registrarEntrada(){
+  if(!entradaItems.length){toast('Añade al menos un material',true);return;}
+  var prov=document.getElementById('ent-prov').value;
+  var fecha=document.getElementById('ent-fecha').value;
+  var ref=document.getElementById('ent-ref').value;
+  var obs=document.getElementById('ent-obs').value;
+  var btn=document.getElementById('btn-entrada');
+  btn.disabled=true;btn.textContent='Guardando...';
+  postAPI({action:'addHistorial',tipo:'entrada',fecha:fecha,obra:'ALMACEN',prov:prov,ref:ref,obs:obs,items:entradaItems},function(err,data){
+    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar entrada';return;}
+    postAPI({action:'restoreStock',items:entradaItems},function(){
+      entradaItems.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+c.qty;});
+      limpiarEntrada();renderInv();
+      btn.disabled=false;btn.textContent='✅ Registrar entrada';
+      toast('✅ Entrada registrada — stock actualizado');
+    });
+  });
+}
+
+/* ── HISTORIAL GENERAL ── */
+function renderHist(){
+  var tipo=document.getElementById('hist-tipo').value;
+  var obra=document.getElementById('hist-obra').value;
+  var buscar=(document.getElementById('hist-buscar').value||'').toLowerCase();
+  var data=historial.filter(function(h){
+    if(tipo!=='todos'&&h.tipo!==tipo)return false;
+    if(obra&&h.obra!==obra)return false;
+    if(buscar){
+      var txt=(h.obra+' '+(h.prov||'')+(h.resp||'')+(h.obs||'')+JSON.stringify(h.items||[])).toLowerCase();
+      if(txt.indexOf(buscar)===-1)return false;
+    }
+    return true;
+  });
+  var cont=document.getElementById('hist-content');
+  if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas</div>';return;}
+  cont.innerHTML=data.map(function(h){
+    var items=Array.isArray(h.items)?h.items:[];
+    var an=h.anulada===true||h.anulada==='true';
+    var realIdx=historial.indexOf(h);
+    var tipoLabel=an?'ANULADA':h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega':h.tipo==='entrada'?'📦 Entrada almacén':'🛒 Pedido';
+    var tipoClass=an?'anulada':(h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada')?'ok':'falta';
+    return '<div class="card" style="margin-bottom:8px;'+(an?'opacity:.5;':'')+'">'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+        '<span class="badge '+tipoClass+'">'+tipoLabel+'</span>'+
+        '<span class="tag-obra">'+h.obra+'</span>'+
+        (h.prov?'<span style="font-size:11px;color:var(--text2)">'+h.prov+'</span>':'')+
+        (h.resp?'<span style="font-size:11px;color:var(--text2)">'+h.resp+'</span>':'')+
+        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
+      '</div>'+
+      '<div>'+items.map(function(i){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)">'+
+          '<span>'+i.nombre+(i.partida?' <span style="color:var(--text2);font-size:10px">['+i.partida+']</span>':'')+'</span>'+
+          '<span style="font-weight:500">'+i.qty+' ud</span></div>';
+      }).join('')+'</div>'+
+      (h.obs?'<p style="font-size:11px;color:var(--text2);margin-top:5px">'+h.obs+'</p>':'')+
+      (!an&&h.tipo==='salida'?'<div style="margin-top:6px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button></div>':'')+
+      (!an&&h.tipo==='pedido'?
+        '<div style="margin-top:6px;display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
+          (h.entregado?'<span class="badge ok" style="font-size:10px">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
+            '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="marcarEntregado('+realIdx+')">✅ Marcar entregado</button>')+
+          '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+        '</div>':'')+
+    '</div>';
+  }).join('');
 }
 
 /* ── PRECIOS ── */
@@ -1890,11 +1758,11 @@ function renderPrecios(){
   tb.innerHTML=data.map(function(i){
     var idx=inventario.indexOf(i);
     return '<tr>'+
-      '<td style="font-size:12px;max-width:280px">'+i.nombre+'</td>'+
+      '<td style="font-size:12px;max-width:260px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+i.stock+'</td>'+
-      '<td><input type="number" id="pvp-'+idx+'" value="'+(i.pvp||0)+'" min="0" step="0.01" style="width:90px;padding:5px 6px;font-size:13px;border:0.5px solid var(--border);border-radius:6px;text-align:right"></td>'+
-      '<td><input type="number" id="pc-'+idx+'" value="'+(i.pcompra||0)+'" min="0" step="0.01" style="width:90px;padding:5px 6px;font-size:13px;border:0.5px solid var(--border);border-radius:6px;text-align:right"></td>'+
-      '<td><button class="btn primary" style="font-size:11px;padding:5px 10px" onclick="guardarPrecio('+idx+')">Guardar</button></td>'+
+      '<td><input type="number" id="pvp-'+idx+'" value="'+(i.pvp||0)+'" min="0" step="0.01" style="width:85px;padding:5px 6px;font-size:13px;border:0.5px solid var(--border);border-radius:6px;text-align:right"></td>'+
+      '<td><input type="number" id="pc-'+idx+'" value="'+(i.pcompra||0)+'" min="0" step="0.01" style="width:85px;padding:5px 6px;font-size:13px;border:0.5px solid var(--border);border-radius:6px;text-align:right"></td>'+
+      '<td><button class="btn primary" style="font-size:11px;padding:5px 8px" onclick="guardarPrecio('+idx+')">Guardar</button></td>'+
     '</tr>';
   }).join('');
 }
@@ -1905,12 +1773,61 @@ function guardarPrecio(idx){
   var nombre=inventario[idx].nombre;
   postAPI({action:'updatePrecios',nombre:nombre,pvp:pvp,pcompra:pcompra},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar precio',true);return;}
-    inventario[idx].pvp=pvp;
-    inventario[idx].pcompra=pcompra;
-    toast('Precio actualizado: '+nombre.substring(0,30));
-    renderInv();
+    inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;
+    toast('✅ Precio actualizado: '+nombre.substring(0,30));renderInv();
   });
 }
+
+/* ── EXPORTS CSV ── */
+function exportCSV(){
+  var rows=[['Material','Stock','Necesario','Diferencia','Estado','PVP','Precio Compra']];
+  inventario.forEach(function(i){var diff=i.nec>0?(i.stock-i.nec):'-';var e=estado(i);rows.push([i.nombre,i.stock,i.nec,diff,e.label,i.pvp||0,i.pcompra||0]);});
+  dlCSVgen(rows,'inventario');
+}
+
+function dlHistorialObraCSV(){
+  if(!obraSeleccionada)return;
+  var data=historial.filter(function(h){return h.obra===obraSeleccionada.nombre&&!h.anulada&&h.anulada!=='true';});
+  if(!data.length){toast('Sin datos para descargar',true);return;}
+  var rows=[['Tipo','Fecha','Responsable','Proveedor','Material','Cantidad','Partida']];
+  data.forEach(function(h){(Array.isArray(h.items)?h.items:[]).forEach(function(i){rows.push([h.tipo,h.fecha,h.resp||'',h.prov||'',i.nombre,i.qty,i.partida||'']);});});
+  dlCSVgen(rows,'historial_'+obraSeleccionada.nombre.replace(/ /g,'_'));
+}
+
+function dlObrasCSV(){
+  var rows=[['Obra','Lugar','Inicio','Fin','Presupuesto','Estado','% Ejecutado']];
+  OBRAS.forEach(function(o){rows.push([o.nombre,o.lugar,o.inicio||'',o.fin||'',o.presupuesto||0,o.estado||'activa',calcPctObra(o)+'%']);});
+  dlCSVgen(rows,'obras_segufija');
+  toast('CSV descargado');
+}
+
+function dlPersonalCSV(){
+  if(!obraSeleccionada||!obraSeleccionada.personal||!obraSeleccionada.personal.length){toast('Sin datos de personal',true);return;}
+  var rows=[['Obra','Operario','Categoría','Fecha','Horas','Coste/h','Total €']];
+  obraSeleccionada.personal.forEach(function(r){rows.push([obraSeleccionada.nombre,r.nombre,r.categoria||'',r.fecha,r.horas,r.coste||0,((r.horas||0)*(r.coste||0)).toFixed(2)]);});
+  dlCSVgen(rows,'personal_'+obraSeleccionada.nombre.replace(/ /g,'_'));
+}
+
+function dlCostesCSV(){
+  if(!obraSeleccionada)return;
+  var rows=[['Concepto','Detalle','Unidades','Precio unitario','Coste total']];
+  var salidas=historial.filter(function(h){return h.obra===obraSeleccionada.nombre&&(h.tipo==='salida'||h.tipo==='entrega')&&!h.anulada;});
+  salidas.forEach(function(h){(Array.isArray(h.items)?h.items:[]).forEach(function(item){var inv=inventario.find(function(i){return i.nombre===item.nombre;});var pc=inv?inv.pcompra||0:0;rows.push(['Material',item.nombre,item.qty,pc.toFixed(2),(pc*item.qty).toFixed(2)]);});});
+  (obraSeleccionada.personal||[]).forEach(function(r){rows.push(['Personal',r.nombre+' ('+r.categoria+')',r.horas,r.coste||0,((r.horas||0)*(r.coste||0)).toFixed(2)]);});
+  dlCSVgen(rows,'costes_'+obraSeleccionada.nombre.replace(/ /g,'_'));
+}
+
+function dlCSVgen(rows,name){
+  var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=name+'_'+today+'.csv';a.click();
+  toast('CSV descargado');
+}
+
+/* ── HELPERS ── */
+function cerrarDetalleObra(){document.getElementById('obra-detalle').style.display='none';obraSeleccionada=null;}
+function irSalidaObra(){if(obraSeleccionada)document.getElementById('sal-obra').value=obraSeleccionada.nombre;showTab('salida',document.querySelectorAll('.top-bar .tab')[2]);}
 
 recargarTodo();
 </script>
