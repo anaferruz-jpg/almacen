@@ -1258,6 +1258,7 @@ function renderCostes(){
     });
   });
   var diasAlquiler=o.diasAlquiler||0;
+  var pctAlquiler=o.pctAlquiler||0;
   var costeAlquiler=0;var detallesAlquiler=[];
   if(o.partidas){
     o.partidas.forEach(function(p){
@@ -1285,7 +1286,10 @@ function renderCostes(){
       '<div class="card-title">💰 Desglose de costes</div>'+
       '<table style="width:100%;font-size:13px">'+
         '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">📦 Material</td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costeMaterial.toFixed(2)+' €</td></tr>'+
-        '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">🔧 Alquiler — Días: <input type="number" id="dias-alquiler" value="'+(diasAlquiler||0)+'" min="0" step="1" style="width:55px;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-left:4px" onchange="actualizarDiasAlquiler(this.value)"></td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costeAlquiler.toFixed(2)+' €</td></tr>'+
+        '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">🔧 Alquiler — '+
+          'Días: <input type="number" id="dias-alquiler" value="'+(diasAlquiler||0)+'" min="0" step="1" style="width:55px;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-left:4px" onchange="actualizarDiasAlquiler(this.value)"> '+
+          '‰ por ud/día: <input type="number" id="pct-alquiler" value="'+(pctAlquiler||0)+'" min="0" step="0.001" style="width:65px;padding:3px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;margin-left:4px" onchange="actualizarPctAlquiler(this.value)">'+
+        '</td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costeAlquiler.toFixed(2)+' €</td></tr>'+
         '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 4px;font-weight:600">👷 Personal ('+totalHorasPersonal+'h)</td><td style="text-align:right;padding:8px 4px;font-weight:700;color:var(--accent)">'+costePersonal.toFixed(2)+' €</td></tr>'+
         '<tr style="background:var(--accent-light)"><td style="padding:10px 4px;font-weight:700;font-size:14px">TOTAL</td><td style="text-align:right;padding:10px 4px;font-weight:700;font-size:14px;color:'+(totalCostes>presupuesto?'var(--danger)':'var(--text)')+'">'+totalCostes.toFixed(2)+' €</td></tr>'+
       '</table>'+
@@ -1322,11 +1326,15 @@ function confirmarAnular(){
     if(err||!d||!d.ok){toast('Error al anular',true);btn.disabled=false;btn.textContent='Anular y devolver stock';return;}
     postAPI({action:'restoreStock',items:items},function(){
       items.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+(c.qty||0);});
-      historial[anularIdx].anulada=true;
       cerrarModalAnular();
       btn.disabled=false;btn.textContent='Anular y devolver stock';
       renderInv();
-      if(obraSeleccionada)actualizarKPIsObra(obraSeleccionada);
+      // Recargar historial completo desde Sheets para que esté actualizado
+      callAPI('getHistorial',function(err2,data2){
+        if(!err2&&Array.isArray(data2)){historial=data2.reverse();}
+        renderHist();
+        if(obraSeleccionada){actualizarKPIsObra(obraSeleccionada);renderHistObra();}
+      });
       toast('Salida anulada. Stock devuelto.');
     });
   });
@@ -1367,11 +1375,17 @@ function marcarEntregado(idx){
 }
 
 function eliminarPedido(idx){
-  if(!confirm('¿Eliminar este pedido del historial?'))return;
+  if(!confirm('¿Eliminar este registro del historial?'))return;
   var h=historial[idx];
   postAPI({action:'deleteHistorial',idx:idx,tipo:h.tipo,fecha:h.fecha,obra:h.obra},function(err,d){
     if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
-    historial.splice(idx,1);renderHist();toast('Pedido eliminado');
+    // Recargar historial completo desde Sheets
+    callAPI('getHistorial',function(err2,data2){
+      if(!err2&&Array.isArray(data2)){historial=data2.reverse();}
+      renderHist();
+      if(obraSeleccionada)renderHistObra();
+    });
+    toast('Registro eliminado');
   });
 }
 
@@ -1379,6 +1393,14 @@ function actualizarDiasAlquiler(val){
   if(!obraSeleccionada)return;
   obraSeleccionada.diasAlquiler=parseInt(val)||0;
   postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler},function(err,d){
+    if(!err&&d&&d.ok)renderCostes();
+  });
+}
+
+function actualizarPctAlquiler(val){
+  if(!obraSeleccionada)return;
+  obraSeleccionada.pctAlquiler=parseFloat(val)||0;
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler,diasAlquiler:obraSeleccionada.diasAlquiler||0},function(err,d){
     if(!err&&d&&d.ok)renderCostes();
   });
 }
@@ -1738,7 +1760,13 @@ function renderHist(){
           '<span style="font-weight:500">'+i.qty+' ud</span></div>';
       }).join('')+'</div>'+
       (h.obs?'<p style="font-size:11px;color:var(--text2);margin-top:5px">'+h.obs+'</p>':'')+
-      (!an&&h.tipo==='salida'?'<div style="margin-top:6px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button></div>':'')+
+      (!an&&h.tipo==='salida'?'<div style="margin-top:6px;text-align:right;display:flex;justify-content:flex-end;gap:5px">'+
+        '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button>'+
+        '<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+      '</div>':'')+
+      (!an&&(h.tipo==='entrega'||h.tipo==='entrada')?'<div style="margin-top:6px;text-align:right">'+
+        '<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+      '</div>':'')+
       (!an&&h.tipo==='pedido'?
         '<div style="margin-top:6px;display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
           (h.entregado?'<span class="badge ok" style="font-size:10px">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
