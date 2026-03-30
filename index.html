@@ -238,6 +238,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       </div>
       <button class="btn" onclick="editarObraActual()" style="font-size:12px">✏️ Editar</button>
       <button class="btn primary" onclick="irSalidaObra()" style="font-size:12px">⬆️ Salida</button>
+      <button class="btn danger" onclick="eliminarObraActual()" style="font-size:12px">🗑️ Eliminar obra</button>
       <button class="btn" onclick="cerrarDetalleObra()" style="font-size:12px">✕</button>
     </div>
     <div class="stats" id="obra-kpis"></div>
@@ -258,44 +259,166 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
     <div id="osub-partidas"><div id="obra-partidas-content"></div></div>
     <div id="osub-historial" style="display:none"><div id="obra-historial-content"></div></div>
     <div id="osub-personal" style="display:none">
-      <div class="card" style="margin-bottom:10px">
-        <div class="card-title">👷 Registrar asistencia</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre del operario *</label>
-            <input type="text" id="per-nombre" placeholder="Nombre...">
+      <!-- SUBTABS PERSONAL -->
+      <div style="display:flex;gap:4px;background:rgba(92,45,14,.08);border-radius:8px;padding:3px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="tab active" id="pertab-asistencia" onclick="perSubTab('asistencia',this)">📋 Asistencia</button>
+        <button class="tab" id="pertab-fichas" onclick="perSubTab('fichas',this)">👷 Fichas trabajadores</button>
+        <button class="tab" id="pertab-prevision" onclick="perSubTab('prevision',this)">📊 Previsión</button>
+      </div>
+
+      <!-- ASISTENCIA -->
+      <div id="persub-asistencia">
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">📋 Registrar asistencia diaria</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Trabajador *</label>
+              <input type="text" id="per-nombre" placeholder="Escribe o selecciona..." oninput="buscarTrabajadorPer()" autocomplete="off">
+              <div id="per-nombre-drop" style="display:none;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px;background:var(--bg);position:relative;z-index:20;max-height:150px;overflow-y:auto"></div>
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="per-categoria">
+                <option value="oficial">Oficial</option>
+                <option value="peon">Peón</option>
+                <option value="encargado">Encargado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="per-fecha">
+            </div>
+            <div class="form-group">
+              <label>Horas trabajadas</label>
+              <input type="number" id="per-horas" placeholder="8" min="0" step="0.5">
+            </div>
+            <div class="form-group">
+              <label>Coste/hora (€) — se carga de la ficha</label>
+              <input type="number" id="per-coste" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Responsable (para eliminar registros)</label>
+              <input type="text" id="per-responsable" placeholder="Tu nombre...">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Observaciones</label>
+              <input type="text" id="per-obs" placeholder="Opcional...">
+            </div>
           </div>
-          <div class="form-group">
-            <label>Categoría</label>
-            <select id="per-categoria">
-              <option value="oficial">Oficial</option>
-              <option value="peon">Peón</option>
-              <option value="encargado">Encargado</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Fecha</label>
-            <input type="date" id="per-fecha">
-          </div>
-          <div class="form-group">
-            <label>Horas trabajadas</label>
-            <input type="number" id="per-horas" placeholder="8" min="0" step="0.5">
-          </div>
-          <div class="form-group">
-            <label>Coste/hora (€)</label>
-            <input type="number" id="per-coste" placeholder="Ej: 18.00" min="0" step="0.01">
-          </div>
-          <div class="form-group">
-            <label>Observaciones</label>
-            <input type="text" id="per-obs" placeholder="Opcional...">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <button class="btn" onclick="dlPersonalCSV()">⬇️ CSV</button>
+            <button class="btn primary" onclick="registrarPersonal()">✅ Registrar asistencia</button>
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <button class="btn" onclick="dlPersonalCSV()">⬇️ CSV</button>
-          <button class="btn primary" onclick="registrarPersonal()">✅ Registrar</button>
+        <div id="personal-lista"><div class="empty">Sin registros de personal</div></div>
+      </div>
+
+      <!-- FICHAS TRABAJADORES -->
+      <div id="persub-fichas" style="display:none">
+        <div class="card" style="margin-bottom:10px;border:1.5px solid var(--accent)">
+          <div class="card-title" style="color:var(--accent)">➕ Añadir / editar trabajador</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre completo *</label>
+              <input type="text" id="ficha-nombre" placeholder="Nombre y apellidos...">
+            </div>
+            <div class="form-group">
+              <label>DNI / NIE</label>
+              <input type="text" id="ficha-dni" placeholder="12345678A">
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="ficha-categoria">
+                <option value="oficial">Oficial</option>
+                <option value="peon">Peón</option>
+                <option value="encargado">Encargado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Precio/hora (€) — se carga automáticamente</label>
+              <input type="number" id="ficha-coste" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="tel" id="ficha-tel" placeholder="600 000 000">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="ficha-email" placeholder="opcional...">
+            </div>
+            <div class="form-group">
+              <label>Fecha alta</label>
+              <input type="date" id="ficha-alta">
+            </div>
+            <div class="form-group">
+              <label>Fecha baja (si aplica)</label>
+              <input type="date" id="ficha-baja">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Observaciones</label>
+              <input type="text" id="ficha-obs" placeholder="Opcional...">
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn" onclick="limpiarFicha()">Limpiar</button>
+            <button class="btn primary" id="btn-ficha-guardar" onclick="guardarFichaTrabajador()">✅ Guardar trabajador</button>
+          </div>
+        </div>
+        <div id="fichas-lista"><div class="empty">Sin trabajadores registrados</div></div>
+      </div>
+
+      <!-- PREVISIÓN PERSONAL -->
+      <div id="persub-prevision" style="display:none">
+        <div class="card" style="margin-bottom:10px;border:1.5px solid var(--accent)">
+          <div class="card-title" style="color:var(--accent)">📊 Añadir previsión de personal</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Fase / Descripción *</label>
+              <input type="text" id="prev-fase" placeholder="Ej: Estructura, Cerramientos...">
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="prev-categoria">
+                <option value="oficial">Oficial</option>
+                <option value="peon">Peón</option>
+                <option value="encargado">Encargado</option>
+                <option value="mixto">Mixto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nº operarios previstos</label>
+              <input type="number" id="prev-operarios" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Jornadas previstas</label>
+              <input type="number" id="prev-jornadas" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Duración (semanas)</label>
+              <input type="number" id="prev-semanas" placeholder="0" min="0" step="0.5">
+            </div>
+            <div class="form-group">
+              <label>Horas/día por operario</label>
+              <input type="number" id="prev-horas-dia" placeholder="8" min="0" step="0.5" value="8">
+            </div>
+            <div class="form-group">
+              <label>Coste/hora estimado (€)</label>
+              <input type="number" id="prev-coste-hora" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Coste total estimado (€)</label>
+              <input type="text" id="prev-coste-total" readonly style="background:var(--accent-light);font-weight:600;color:var(--accent)">
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn primary" onclick="añadirPrevision()">➕ Añadir fase</button>
+          </div>
+        </div>
+        <div id="prevision-lista"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="btn primary" onclick="guardarPrevision()">💾 Guardar previsión</button>
         </div>
       </div>
-      <div id="personal-lista"><div class="empty">Sin registros de personal</div></div>
     </div>
     <div id="osub-costes" style="display:none">
       <div id="costes-content"></div>
@@ -647,7 +770,7 @@ function recargarTodo(){
       {nombre:'CORP ABRERA',lugar:'Abrera',icon:'🏭',estado:'activa',partidas:[],personal:[]}
     ];
     if(!err&&Array.isArray(data)){
-      OBRAS=data.map(function(o){o.icon=iconos[o.nombre]||'🏗️';o.corto=o.nombre.substring(0,22);if(!o.partidas)o.partidas=[];if(!o.personal)o.personal=[];return o;});
+      OBRAS=data.map(function(o){o.icon=iconos[o.nombre]||'🏗️';o.corto=o.nombre.substring(0,22);if(!o.partidas)o.partidas=[];if(!o.personal)o.personal=[];if(!o.previsionPersonal)o.previsionPersonal=[];return o;});
       obrasFijas.forEach(function(of){if(!OBRAS.find(function(o){return o.nombre===of.nombre;})){of.corto=of.nombre.substring(0,22);OBRAS.push(of);}});
     } else {
       OBRAS=obrasFijas.map(function(o){o.corto=o.nombre.substring(0,22);return o;});
@@ -1053,7 +1176,7 @@ function confirmarEntregaManual(){
 
 function guardarPartidasSilencioso(cb){
   if(!obraSeleccionada)return;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler||0},function(){if(cb)cb();});
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],pctAlquiler:obraSeleccionada.pctAlquiler||0,diasAlquiler:obraSeleccionada.diasAlquiler||0,previsionPersonal:obraSeleccionada.previsionPersonal||[]},function(){if(cb)cb();});
 }
 
 /* ── PEDIDO DESDE PARTIDA ── */
@@ -1192,6 +1315,261 @@ function renderHistObra(){
   }).join('');
 }
 
+/* ── FICHAS TRABAJADORES ── */
+var fichasTrabajadores = [];
+var _fichaEditIdx = -1;
+
+function loadFichas(){ try{fichasTrabajadores=JSON.parse(localStorage.getItem('sf_fichas_personal')||'[]');}catch(e){fichasTrabajadores=[];} }
+function saveFichas(){ try{localStorage.setItem('sf_fichas_personal',JSON.stringify(fichasTrabajadores));}catch(e){} }
+
+function perSubTab(id,el){
+  document.querySelectorAll('#osub-personal .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('persub-asistencia').style.display=id==='asistencia'?'block':'none';
+  document.getElementById('persub-fichas').style.display=id==='fichas'?'block':'none';
+  document.getElementById('persub-prevision').style.display=id==='prevision'?'block':'none';
+  if(id==='fichas'){loadFichas();renderFichas();}
+  if(id==='prevision'){renderPrevision();}
+}
+
+function buscarTrabajadorPer(){
+  loadFichas();
+  var q=(document.getElementById('per-nombre').value||'').toLowerCase().trim();
+  var drop=document.getElementById('per-nombre-drop');
+  if(q.length<2){drop.style.display='none';return;}
+  var activos=fichasTrabajadores.filter(function(f){return !f.baja&&f.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+  if(!activos.length){drop.style.display='none';return;}
+  drop.innerHTML=activos.map(function(f,i){
+    var cat={oficial:'Oficial',peon:'Peón',encargado:'Encargado'}[f.categoria]||f.categoria;
+    return '<div style="padding:8px 12px;font-size:12px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;justify-content:space-between" '+
+      'onmousedown="seleccionarFicha('+i+')">'+
+      '<span>'+f.nombre+'</span>'+
+      '<span style="color:var(--text2);font-size:11px">'+cat+' — '+(f.coste||0)+' €/h</span>'+
+    '</div>';
+  }).join('');
+  drop.style.display='block';
+}
+
+function seleccionarFicha(idx){
+  var f=fichasTrabajadores[idx];if(!f)return;
+  document.getElementById('per-nombre').value=f.nombre;
+  document.getElementById('per-categoria').value=f.categoria;
+  document.getElementById('per-coste').value=f.coste||'';
+  document.getElementById('per-nombre-drop').style.display='none';
+}
+function seleccionarTrabajador(nombre,categoria,coste){
+  document.getElementById('per-nombre').value=nombre;
+  document.getElementById('per-categoria').value=categoria;
+  document.getElementById('per-coste').value=coste||'';
+  document.getElementById('per-nombre-drop').style.display='none';
+}
+
+function guardarFichaTrabajador(){
+  var nombre=document.getElementById('ficha-nombre').value.trim();
+  if(!nombre){toast('El nombre es obligatorio',true);return;}
+  loadFichas();
+  var ficha={
+    nombre:nombre,
+    dni:document.getElementById('ficha-dni').value.trim(),
+    categoria:document.getElementById('ficha-categoria').value,
+    coste:parseFloat(document.getElementById('ficha-coste').value)||0,
+    tel:document.getElementById('ficha-tel').value.trim(),
+    email:document.getElementById('ficha-email').value.trim(),
+    alta:document.getElementById('ficha-alta').value,
+    baja:document.getElementById('ficha-baja').value||null,
+    obs:document.getElementById('ficha-obs').value.trim()
+  };
+  if(_fichaEditIdx>=0){fichasTrabajadores[_fichaEditIdx]=ficha;}
+  else{
+    var existe=fichasTrabajadores.findIndex(function(f){return f.nombre.toLowerCase()===nombre.toLowerCase();});
+    if(existe>=0){fichasTrabajadores[existe]=ficha;}else{fichasTrabajadores.push(ficha);}
+  }
+  saveFichas();
+  _fichaEditIdx=-1;
+  limpiarFicha();
+  renderFichas();
+  toast('✅ Trabajador guardado: '+nombre);
+}
+
+function limpiarFicha(){
+  _fichaEditIdx=-1;
+  ['ficha-nombre','ficha-dni','ficha-tel','ficha-email','ficha-obs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('ficha-coste').value='';
+  document.getElementById('ficha-alta').value='';
+  document.getElementById('ficha-baja').value='';
+  document.getElementById('ficha-categoria').value='oficial';
+  document.getElementById('btn-ficha-guardar').textContent='✅ Guardar trabajador';
+}
+
+function editarFichaTrabajador(idx){
+  loadFichas();
+  var f=fichasTrabajadores[idx];if(!f)return;
+  _fichaEditIdx=idx;
+  document.getElementById('ficha-nombre').value=f.nombre;
+  document.getElementById('ficha-dni').value=f.dni||'';
+  document.getElementById('ficha-categoria').value=f.categoria||'oficial';
+  document.getElementById('ficha-coste').value=f.coste||'';
+  document.getElementById('ficha-tel').value=f.tel||'';
+  document.getElementById('ficha-email').value=f.email||'';
+  document.getElementById('ficha-alta').value=f.alta||'';
+  document.getElementById('ficha-baja').value=f.baja||'';
+  document.getElementById('ficha-obs').value=f.obs||'';
+  document.getElementById('btn-ficha-guardar').textContent='✅ Actualizar trabajador';
+  document.getElementById('ficha-nombre').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function eliminarFichaTrabajador(idx){
+  loadFichas();
+  var f=fichasTrabajadores[idx];
+  if(!confirm('¿Eliminar la ficha de '+f.nombre+'?'))return;
+  fichasTrabajadores.splice(idx,1);
+  saveFichas();
+  renderFichas();
+  toast('Ficha eliminada');
+}
+
+function renderFichas(){
+  loadFichas();
+  var cont=document.getElementById('fichas-lista');
+  if(!fichasTrabajadores.length){cont.innerHTML='<div class="empty">Sin trabajadores registrados.<br>Añade el primero arriba.</div>';return;}
+  var cats={oficial:0,peon:0,encargado:0};
+  fichasTrabajadores.filter(function(f){return !f.baja;}).forEach(function(f){if(cats[f.categoria]!==undefined)cats[f.categoria]++;});
+  cont.innerHTML=
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">'+
+      '<div class="card" style="padding:8px 12px;flex:1;min-width:80px;text-align:center"><div style="font-size:11px;color:var(--text2)">Oficiales</div><div style="font-size:18px;font-weight:700">'+cats.oficial+'</div></div>'+
+      '<div class="card" style="padding:8px 12px;flex:1;min-width:80px;text-align:center"><div style="font-size:11px;color:var(--text2)">Peones</div><div style="font-size:18px;font-weight:700">'+cats.peon+'</div></div>'+
+      '<div class="card" style="padding:8px 12px;flex:1;min-width:80px;text-align:center"><div style="font-size:11px;color:var(--text2)">Encargados</div><div style="font-size:18px;font-weight:700">'+cats.encargado+'</div></div>'+
+    '</div>'+
+    fichasTrabajadores.map(function(f,i){
+      var catLabel={oficial:'Oficial',peon:'Peón',encargado:'Encargado'}[f.categoria]||f.categoria;
+      var activo=!f.baja||f.baja>'';
+      return '<div class="card" style="margin-bottom:8px;padding:10px 14px;'+(f.baja?'opacity:.6;':'')+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">'+
+          '<div>'+
+            '<div style="font-weight:600;font-size:13px">👷 '+f.nombre+(f.baja?'<span style="font-size:10px;color:var(--danger);margin-left:6px">BAJA</span>':'')+'</div>'+
+            '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+catLabel+(f.dni?' · DNI: '+f.dni:'')+(f.tel?' · '+f.tel:'')+'</div>'+
+            '<div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:3px">'+(f.coste||0)+' €/h</div>'+
+            (f.alta?'<div style="font-size:11px;color:var(--text2)">Alta: '+f.alta+(f.baja?' | Baja: '+f.baja:'')+'</div>':'')+
+            (f.obs?'<div style="font-size:11px;color:var(--text2);font-style:italic">'+f.obs+'</div>':'')+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="btn" style="font-size:11px;padding:4px 8px" onclick="editarFichaTrabajador('+i+')">✏️</button>'+
+            '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarFichaTrabajador('+i+')">🗑️</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+}
+
+/* ── PREVISIÓN PERSONAL EN OBRA ── */
+// Calcular coste total en tiempo real
+document.addEventListener('DOMContentLoaded',function(){
+  ['prev-operarios','prev-jornadas','prev-semanas','prev-horas-dia','prev-coste-hora'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('input',calcPrevCoste);
+  });
+});
+
+function calcPrevCoste(){
+  var ops=parseFloat(document.getElementById('prev-operarios').value)||0;
+  var jorn=parseFloat(document.getElementById('prev-jornadas').value)||0;
+  var sem=parseFloat(document.getElementById('prev-semanas').value)||0;
+  var hd=parseFloat(document.getElementById('prev-horas-dia').value)||8;
+  var ch=parseFloat(document.getElementById('prev-coste-hora').value)||0;
+  // Si hay jornadas úsalas, si no calcular por semanas (5 días/sem)
+  var totalJorn=jorn>0?jorn:(sem*5);
+  var totalHoras=ops*totalJorn*hd;
+  var total=totalHoras*ch;
+  var el=document.getElementById('prev-coste-total');
+  if(el)el.value=total>0?total.toFixed(2)+' €':'';
+}
+
+function añadirPrevision(){
+  if(!obraSeleccionada)return;
+  var fase=document.getElementById('prev-fase').value.trim();
+  if(!fase){toast('La fase es obligatoria',true);return;}
+  var ops=parseFloat(document.getElementById('prev-operarios').value)||0;
+  var jorn=parseFloat(document.getElementById('prev-jornadas').value)||0;
+  var sem=parseFloat(document.getElementById('prev-semanas').value)||0;
+  var hd=parseFloat(document.getElementById('prev-horas-dia').value)||8;
+  var ch=parseFloat(document.getElementById('prev-coste-hora').value)||0;
+  var cat=document.getElementById('prev-categoria').value;
+  var totalJorn=jorn>0?jorn:(sem*5);
+  var totalHoras=ops*totalJorn*hd;
+  var costeTotal=totalHoras*ch;
+  if(!obraSeleccionada.previsionPersonal)obraSeleccionada.previsionPersonal=[];
+  obraSeleccionada.previsionPersonal.push({fase:fase,categoria:cat,operarios:ops,jornadas:totalJorn,semanas:sem,horasDia:hd,costeHora:ch,costeTotal:costeTotal});
+  ['prev-fase','prev-operarios','prev-jornadas','prev-semanas','prev-coste-hora'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('prev-horas-dia').value='8';
+  document.getElementById('prev-coste-total').value='';
+  renderPrevision();
+  toast('Fase añadida');
+}
+
+function eliminarPrevision(idx){
+  if(!obraSeleccionada||!obraSeleccionada.previsionPersonal)return;
+  obraSeleccionada.previsionPersonal.splice(idx,1);
+  renderPrevision();
+}
+
+function guardarPrevision(){
+  guardarPartidasSilencioso(function(){toast('✅ Previsión guardada');});
+}
+
+function renderPrevision(){
+  var cont=document.getElementById('prevision-lista');
+  if(!obraSeleccionada||!obraSeleccionada.previsionPersonal||!obraSeleccionada.previsionPersonal.length){
+    cont.innerHTML='<div class="empty">Sin previsión de personal añadida.<br>Añade fases arriba.</div>';return;
+  }
+  var prev=obraSeleccionada.previsionPersonal;
+  var totalCoste=prev.reduce(function(a,p){return a+(p.costeTotal||0);},0);
+  var totalOps=prev.reduce(function(a,p){return a+(p.operarios||0);},0);
+  var cats={oficial:0,peon:0,encargado:0,mixto:0};
+  prev.forEach(function(p){if(cats[p.categoria]!==undefined)cats[p.categoria]+=(p.operarios||0);});
+  cont.innerHTML=
+    '<div class="stats" style="margin-bottom:10px">'+
+      '<div class="stat"><div class="stat-label">Total operarios</div><div class="stat-val">'+totalOps+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Coste previsto</div><div class="stat-val '+(totalCoste>0?'danger':'')+'">'+Number(totalCoste).toFixed(0)+' €</div></div>'+
+      (cats.oficial>0?'<div class="stat"><div class="stat-label">Oficiales</div><div class="stat-val">'+cats.oficial+'</div></div>':'')+
+      (cats.peon>0?'<div class="stat"><div class="stat-label">Peones</div><div class="stat-val">'+cats.peon+'</div></div>':'')+
+    '</div>'+
+    '<div class="tbl-wrap"><table><thead><tr>'+
+      '<th>Fase</th><th>Categoría</th><th style="text-align:right">Operarios</th><th style="text-align:right">Jornadas</th><th style="text-align:right">Semanas</th><th style="text-align:right">Coste estimado</th><th></th>'+
+    '</tr></thead><tbody>'+
+    prev.map(function(p,i){
+      var catLabel={oficial:'Oficial',peon:'Peón',encargado:'Encargado',mixto:'Mixto'}[p.categoria]||p.categoria;
+      return '<tr>'+
+        '<td style="font-weight:500">'+p.fase+'</td>'+
+        '<td><span class="badge ok" style="font-size:10px">'+catLabel+'</span></td>'+
+        '<td style="text-align:right">'+p.operarios+'</td>'+
+        '<td style="text-align:right">'+p.jornadas+'</td>'+
+        '<td style="text-align:right">'+(p.semanas||'—')+'</td>'+
+        '<td style="text-align:right;font-weight:600;color:var(--accent)">'+(p.costeTotal>0?p.costeTotal.toFixed(2)+' €':'—')+'</td>'+
+        '<td><button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarPrevision('+i+')">✕</button></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>'+
+    '<div style="text-align:right;font-size:13px;font-weight:700;color:var(--accent);padding:8px 0">Total coste previsto: '+totalCoste.toFixed(2)+' €</div>';
+}
+
+/* ── ELIMINAR OBRA ── */
+function eliminarObraActual(){
+  if(!obraSeleccionada)return;
+  var nombre=obraSeleccionada.nombre;
+  if(!confirm('¿Eliminar la obra "'+nombre+'"? Se borrarán todas sus partidas y datos. Esta acción no se puede deshacer.'))return;
+  var confirmNombre=prompt('Escribe el nombre de la obra para confirmar:');
+  if(!confirmNombre||confirmNombre.trim().toUpperCase()!==nombre.toUpperCase()){toast('Nombre incorrecto — obra no eliminada',true);return;}
+  postAPI({action:'deleteObra',nombre:nombre},function(err,d){
+    if(err||!d||!d.ok){toast('Error al eliminar la obra',true);return;}
+    var idx=OBRAS.findIndex(function(o){return o.nombre===nombre;});
+    if(idx>=0)OBRAS.splice(idx,1);
+    cerrarDetalleObra();
+    buildObrasGrid();
+    actualizarSelectsObras();
+    toast('Obra eliminada: '+nombre);
+  });
+}
+
 /* ── PERSONAL ── */
 function registrarPersonal(){
   if(!obraSeleccionada){toast('No hay obra seleccionada',true);return;}
@@ -1201,21 +1579,23 @@ function registrarPersonal(){
   var horas=parseFloat(document.getElementById('per-horas').value)||8;
   var coste=parseFloat(document.getElementById('per-coste').value)||0;
   var obs=document.getElementById('per-obs').value.trim();
+  var responsable=document.getElementById('per-responsable').value.trim();
   if(!nombre){toast('El nombre del operario es obligatorio',true);return;}
   if(!obraSeleccionada.personal)obraSeleccionada.personal=[];
-  obraSeleccionada.personal.push({nombre:nombre,categoria:categoria,fecha:fecha,horas:horas,coste:coste,obs:obs});
+  obraSeleccionada.personal.push({nombre:nombre,categoria:categoria,fecha:fecha,horas:horas,coste:coste,obs:obs,responsable:responsable});
   postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
     if(err||!d||!d.ok)toast('Error al guardar personal',true);
     else toast('Asistencia registrada: '+nombre);
   });
   ['per-nombre','per-horas','per-coste','per-obs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('per-nombre-drop').style.display='none';
   renderPersonal();renderCostes();
 }
 
 function renderPersonal(){
   var cont=document.getElementById('personal-lista');
   if(!obraSeleccionada||!obraSeleccionada.personal||!obraSeleccionada.personal.length){
-    cont.innerHTML='<div class="empty">Sin registros de personal</div>';return;
+    cont.innerHTML='<div class="empty">Sin registros de asistencia</div>';return;
   }
   var p=obraSeleccionada.personal;
   var totalHoras=p.reduce(function(a,r){return a+(r.horas||0);},0);
@@ -1223,22 +1603,47 @@ function renderPersonal(){
   cont.innerHTML=
     '<div class="stats" style="margin-bottom:10px">'+
       '<div class="stat"><div class="stat-label">Total horas</div><div class="stat-val">'+totalHoras+'h</div></div>'+
-      '<div class="stat"><div class="stat-label">Coste personal</div><div class="stat-val">'+totalCoste.toFixed(2)+' €</div></div>'+
+      '<div class="stat"><div class="stat-label">Coste personal</div><div class="stat-val danger">'+totalCoste.toFixed(2)+' €</div></div>'+
     '</div>'+
-    p.slice().reverse().map(function(r){
+    p.slice().reverse().map(function(r,iRev){
+      var realIdx=p.length-1-iRev;
       var catLabel={oficial:'Oficial',peon:'Peón',encargado:'Encargado'}[r.categoria]||r.categoria||'—';
       var costeTotal=(r.horas||0)*(r.coste||0);
       return '<div class="card" style="margin-bottom:8px;padding:10px 12px">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'+
-          '<div><span style="font-size:13px;font-weight:600">👷 '+r.nombre+'</span>'+
-          '<span style="font-size:11px;color:var(--text2);margin-left:8px">'+catLabel+'</span></div>'+
-          '<span style="font-size:12px;color:var(--text2)">'+r.fecha+'</span>'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">'+
+          '<div>'+
+            '<span style="font-size:13px;font-weight:600">👷 '+r.nombre+'</span>'+
+            '<span style="font-size:11px;color:var(--text2);margin-left:8px">'+catLabel+'</span>'+
+            (r.responsable?'<span style="font-size:10px;color:var(--text2);margin-left:6px">Resp: '+r.responsable+'</span>':'')+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<span style="font-size:12px;color:var(--text2)">'+r.fecha+'</span>'+
+            '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarRegistroPersonal('+realIdx+')">🗑️</button>'+
+          '</div>'+
         '</div>'+
         '<div style="font-size:12px;color:var(--text2);margin-top:4px">'+r.horas+'h'+(r.coste>0?' × '+r.coste.toFixed(2)+'€/h = <b style="color:var(--accent)">'+costeTotal.toFixed(2)+'€</b>':'')+
         (r.obs?' — '+r.obs:'')+
         '</div>'+
       '</div>';
     }).join('');
+}
+
+function eliminarRegistroPersonal(idx){
+  if(!obraSeleccionada||!obraSeleccionada.personal)return;
+  var r=obraSeleccionada.personal[idx];
+  if(!r)return;
+  // Verificar responsable
+  var resp=prompt('Para eliminar el registro de '+r.nombre+' del '+r.fecha+', introduce el nombre del responsable:');
+  if(!resp||resp.trim()===''){toast('Eliminación cancelada',true);return;}
+  if(r.responsable&&resp.trim().toLowerCase()!==r.responsable.toLowerCase()){
+    toast('Responsable incorrecto — no se puede eliminar',true);return;
+  }
+  obraSeleccionada.personal.splice(idx,1);
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar',true);return;}
+    renderPersonal();renderCostes();
+    toast('Registro eliminado');
+  });
 }
 
 /* ── COSTES ── */
