@@ -702,6 +702,47 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 
 </div><!-- fin .app -->
 
+<!-- ══ MODAL EDITAR PEDIDO ══ -->
+<div class="modal-overlay" id="modal-editar-pedido">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Editar pedido</div>
+    <div class="modal-sub" id="modal-editar-pedido-sub"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Proveedor</label>
+        <select id="ep-prov">
+          <option value="">Sin especificar</option>
+          <option>VISORNETS (90 dias, portes pagados 600EUR)</option>
+          <option>LEON DE ORO (90 dias)</option>
+          <option>UNETRAMESAS DTO 40-45%</option>
+          <option>MULTIGARBEN (30 dias domiciliado)</option>
+          <option>TORRES Y SAEZ (60 dias)</option>
+          <option>WURTH INDEXFIX (30 dias, 300EUR)</option>
+          <option>MARCELINO</option><option>INDE-K</option>
+          <option>CV TOOLS (portes 12EUR)</option>
+          <option>AMAZON / BRICODEPOT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha límite entrega</label>
+        <input type="date" id="ep-fecha-limite">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Referencia</label>
+        <input type="text" id="ep-ref" placeholder="Nº pedido, referencia...">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observaciones</label>
+        <textarea id="ep-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="btn" onclick="cerrarModalEditarPedido()">Cancelar</button>
+      <button class="btn primary" id="btn-ep-guardar" onclick="guardarEdicionPedido()">✅ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL ANULAR ══ -->
 <div class="modal-overlay" id="modal-anular">
   <div class="modal-box">
@@ -1294,9 +1335,14 @@ function confirmarPedidoPartida(){
   },function(err,data){
     btn.disabled=false;btn.textContent='🛒 Registrar pedido';
     if(err||!data||!data.ok){toast('Error al registrar pedido',true);return;}
-    historial.unshift({tipo:'pedido',fecha:fecha,obra:obraSeleccionada.nombre,prov:prov,obs:obs,ref:'Pedido desde partida',tipoDestino:tipo,items:items,anulada:false,entregado:false});
-    cerrarModalPedidoPartida();
-    toast('Pedido registrado'+(tipo==='almacen'?' — sumará stock al llegar':' — directo a obra'));
+    // Recargar desde Sheets para evitar duplicados
+    callAPI('getHistorial',function(err2,data2){
+      if(!err2&&Array.isArray(data2))historial=data2.reverse();
+      cerrarModalPedidoPartida();
+      renderHist();
+      if(obraSeleccionada)renderPartidas();
+      toast('✅ Pedido registrado'+(tipo==='almacen'?' — sumará stock al llegar':' — directo a obra'));
+    });
   });
 }
 
@@ -2239,12 +2285,17 @@ function registrarPedido(){
         if(it&&it.stock<c.qty) toast('⚠️ Stock insuficiente para '+c.nombre.substring(0,30),true);
       });
     }
-    historial.unshift({tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',origenPedido:origen,items:pedidoItems.slice(),anulada:false,entregado:false});
-    pedidoItems=[];renderPedidoItems();buildObrasGrid();
-    document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
-    document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
-    btn.disabled=false;btn.textContent='Registrar pedido';
-    toast('✅ Pedido registrado');
+    callAPI('getHistorial',function(err2,data2){
+      if(!err2&&Array.isArray(data2))historial=data2.reverse();
+      pedidoItems=[];renderPedidoItems();buildObrasGrid();
+      document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
+      document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
+      document.getElementById('ped-origen').value='proveedor';
+      document.getElementById('ped-origen-info').style.display='none';
+      btn.disabled=false;btn.textContent='Registrar pedido';
+      renderHist();
+      toast('✅ Pedido registrado correctamente');
+    });
   });
 }
 
@@ -2382,7 +2433,7 @@ function renderHist(){
       (h.obs?'<p style="font-size:11px;color:var(--text2);margin-top:5px">'+h.obs+'</p>':'')+
       (!an&&h.tipo==='salida'?'<div style="margin-top:6px;text-align:right;display:flex;justify-content:flex-end;gap:5px">'+
         '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular esta salida</button>'+
-        '<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+        '<button class="btn" style="font-size:11px;padding:4px 8px" onclick="abrirModalEditarPedido('+realIdx+')">✏️ Editar</button>'+'<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
       '</div>':'')+
       (!an&&(h.tipo==='entrega'||h.tipo==='entrada')?'<div style="margin-top:6px;text-align:right">'+
         '<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
@@ -2501,14 +2552,15 @@ function cambiarEstadoPedido(idx, nuevoEstado){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
   h.estadoPedido=nuevoEstado;
-  // Guardar en Sheets
   postAPI({
     action:'marcarPedidoEntregado',
-    idx:idx,fecha:h.fecha,obra:h.obra,
-    fechaEntrega:'',estadoPedido:nuevoEstado
+    fecha:h.fecha,obra:h.obra,
+    fechaEntrega:'',estadoPedido:nuevoEstado,
+    fechaLimite:h.fechaLimite||''
   },function(err,d){
     if(err||!d||!d.ok){toast('Error al actualizar estado',true);return;}
     renderHist();
+    mostrarBannerCompras();
     toast('🔵 Pedido marcado como realizado al proveedor');
   });
 }
@@ -2583,6 +2635,63 @@ cargarHistorial=function(){
     if(!err&&Array.isArray(data)){historial=data.reverse();renderHist();mostrarBannerCompras();}
   });
 };
+
+/* ── EDITAR PEDIDO ── */
+var _epIdx = -1;
+
+function abrirModalEditarPedido(idx){
+  var h=historial[idx];
+  if(!h||h.tipo!=='pedido')return;
+  _epIdx=idx;
+  var items=Array.isArray(h.items)?h.items:[];
+  document.getElementById('modal-editar-pedido-sub').textContent=
+    'Pedido del '+h.fecha+' — '+h.obra+' — '+items.map(function(i){return i.nombre+'('+i.qty+'ud)';}).join(', ');
+  document.getElementById('ep-prov').value=h.prov||'';
+  document.getElementById('ep-fecha-limite').value=h.fechaLimite||'';
+  document.getElementById('ep-ref').value=h.ref||'';
+  document.getElementById('ep-obs').value=h.obs||'';
+  document.getElementById('modal-editar-pedido').classList.add('open');
+}
+
+function cerrarModalEditarPedido(){
+  document.getElementById('modal-editar-pedido').classList.remove('open');
+  _epIdx=-1;
+}
+
+function guardarEdicionPedido(){
+  if(_epIdx<0)return;
+  var h=historial[_epIdx];
+  var prov=document.getElementById('ep-prov').value;
+  var fechaLimite=document.getElementById('ep-fecha-limite').value;
+  var ref=document.getElementById('ep-ref').value;
+  var obs=document.getElementById('ep-obs').value;
+  var btn=document.getElementById('btn-ep-guardar');
+  btn.disabled=true;btn.textContent='Guardando...';
+  postAPI({
+    action:'editarHistorial',
+    tipo:h.tipo,fecha:h.fecha,obra:h.obra,
+    prov:prov,ref:ref,obs:obs,items:h.items
+  },function(err,d){
+    btn.disabled=false;btn.textContent='✅ Guardar cambios';
+    if(err||!d||!d.ok){toast('Error al guardar',true);return;}
+    // Actualizar local
+    h.prov=prov;h.ref=ref;h.obs=obs;
+    if(fechaLimite){
+      h.fechaLimite=fechaLimite;
+      // Guardar fecha límite también
+      postAPI({
+        action:'marcarPedidoEntregado',
+        fecha:h.fecha,obra:h.obra,
+        fechaEntrega:'',estadoPedido:h.estadoPedido||'pendiente',
+        fechaLimite:fechaLimite
+      },function(){});
+    }
+    cerrarModalEditarPedido();
+    renderHist();
+    mostrarBannerCompras();
+    toast('✅ Pedido actualizado');
+  });
+}
 
 /* ── STOCK MÍNIMO Y REPOSICIÓN ── */
 function filtrarPorReponer(){
