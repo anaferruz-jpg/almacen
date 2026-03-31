@@ -428,11 +428,28 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 
 <!-- ══════════════ INVENTARIO ══════════════ -->
 <div id="tab-inventario" class="panel">
+  <!-- BANNER REPOSICIÓN EMMA -->
+  <div id="banner-reposicion" style="display:none;background:#fef9e7;border:1px solid #f39c12;border-radius:10px;padding:10px 16px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#7d6608">Aviso para Emma García — Reposición de stock</div>
+          <div id="banner-reposicion-lista" style="font-size:12px;color:#7d6608;margin-top:2px"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" style="font-size:11px;padding:4px 10px;background:#f39c12;border-color:#f39c12;color:#fff" onclick="irAPedirReposicion()">🛒 Pedir al proveedor</button>
+        <button class="btn" style="font-size:11px;padding:4px 8px" onclick="document.getElementById('banner-reposicion').style.display='none'">✕</button>
+      </div>
+    </div>
+  </div>
   <div class="stats" id="stats-inv"></div>
   <div class="toolbar">
     <input type="text" id="buscar-inv" placeholder="Buscar material..." oninput="renderInv()">
     <select id="filtro-inv" onchange="renderInv()">
       <option value="todos">Todos</option>
+      <option value="reponer">⚠️ A reponer (bajo mínimo)</option>
       <option value="falta">Falta stock</option>
       <option value="ok">Stock OK</option>
       <option value="sinuso">Sin necesidad</option>
@@ -457,6 +474,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
           <input type="number" id="ninv-nec" placeholder="0" min="0">
         </div>
         <div class="form-group">
+          <label>Stock mínimo (alerta reposición)</label>
+          <input type="number" id="ninv-stockmin" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
           <label>PVP (€/ud)</label>
           <input type="number" id="ninv-pvp" placeholder="0.00" min="0" step="0.01">
         </div>
@@ -473,9 +494,13 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>Material</th><th>Stock</th><th>Necesario</th><th>Diferencia</th><th>Estado</th><th>PVP</th><th>Compra</th><th></th>
+      <th>Material</th><th>Stock</th><th>Necesario</th><th>Diferencia</th><th>Estado</th>
+      <th style="color:#3498db" title="Pedidos en tránsito del proveedor">📦 En camino</th>
+      <th style="color:#8e44ad" title="Stock reservado para pedidos de almacén pendientes">🔒 Reservado</th>
+      <th style="color:#e67e22" title="Pendiente de servir a obras">🏗️ Pend. servir</th>
+      <th>PVP</th><th>Compra</th><th></th>
     </tr></thead>
-    <tbody id="tbody-inv"><tr><td colspan="8" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+    <tbody id="tbody-inv"><tr><td colspan="11" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
   </div>
 </div>
 
@@ -552,6 +577,16 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
             <option>AMAZON / BRICODEPOT</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Origen del material *</label>
+          <select id="ped-origen" onchange="actualizarInfoOrigen()">
+            <option value="proveedor">🚚 Viene del proveedor (directo a obra)</option>
+            <option value="almacen">📦 Sale del almacén</option>
+          </select>
+        </div>
+        <div class="form-group" id="ped-origen-info" style="grid-column:1/-1;display:none">
+          <div id="ped-origen-aviso" style="background:var(--accent-light);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent)"></div>
+        </div>
         <div class="form-group"><label>Fecha pedido</label><input type="date" id="ped-fecha"></div>
         <div class="form-group"><label>Referencia / Nota</label><input type="text" id="ped-ref" placeholder="No pedido o referencia"></div>
         <div class="form-group" style="grid-column:1/-1"><label>Observaciones</label>
@@ -613,6 +648,19 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 
 <!-- ══════════════ HISTORIAL ══════════════ -->
 <div id="tab-historial" class="panel">
+  <!-- BANNER COMPRAS -->
+  <div id="banner-compras" style="display:none;background:#e8f4fd;border:1px solid #3498db;border-radius:10px;padding:10px 16px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🛒</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a5276">Aviso para Emma García — Compras</div>
+          <div id="banner-compras-lista" style="font-size:12px;color:#1a5276;margin-top:2px"></div>
+        </div>
+      </div>
+      <button class="btn" style="font-size:11px;padding:4px 8px;background:#3498db;border-color:#3498db;color:#fff" onclick="document.getElementById('banner-compras').style.display='none'">✕ Cerrar</button>
+    </div>
+  </div>
   <div class="toolbar">
     <select id="hist-tipo" onchange="renderHist()">
       <option value="todos">Todas las operaciones</option>
@@ -622,6 +670,15 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
     </select>
     <select id="hist-obra" onchange="renderHist()">
       <option value="">Todas las obras</option>
+    </select>
+    <select id="hist-prov" onchange="renderHist()" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
+      <option value="">Todos los proveedores</option>
+    </select>
+    <select id="hist-estado-pedido" onchange="renderHist()" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">🟡 Pendiente de pedir</option>
+      <option value="en_transito">🔵 Pedido en tránsito</option>
+      <option value="entregado">✅ Entregado</option>
     </select>
     <input type="text" id="hist-buscar" placeholder="Buscar..." oninput="renderHist()" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:120px">
     <button class="btn" onclick="cargarHistorial()">Actualizar</button>
@@ -1753,7 +1810,19 @@ function marcarEntregado(idx){
   postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
     if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
     // Si el pedido era al almacén → suma stock
-    if(h.tipoDestino==='almacen'||(h.ref&&h.ref.indexOf('almacen')>=0)){
+    // Pedido de almacén entregado → descuenta stock físico
+    if(h.origenPedido==='almacen'||(h.tipoDestino==='almacen'&&!h.origenPedido)){
+      postAPI({action:'updateStock',items:h.items},function(){
+        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+          var inv=inventario.find(function(i){return i.nombre===item.nombre;});
+          if(inv)inv.stock=Math.max(0,(inv.stock||0)-(item.qty||0));
+        });
+        renderInv();
+        toast('📦 Stock descontado del almacén');
+      });
+    }
+    // Pedido de proveedor que pasa por almacén → suma stock
+    if(h.origenPedido==='proveedor'&&h.pasaPorAlmacen){
       postAPI({action:'restoreStock',items:h.items},function(){
         (Array.isArray(h.items)?h.items:[]).forEach(function(item){
           var inv=inventario.find(function(i){return i.nombre===item.nombre;});
@@ -1811,17 +1880,42 @@ function actualizarPctAlquiler(val){
 }
 
 /* ── INVENTARIO ── */
-function estado(item){if(item.nec===0)return{label:'Sin uso',cls:'warn'};var d=item.stock-item.nec;if(d>=0)return{label:'OK',cls:'ok'};return{label:'Falta '+Math.abs(d).toFixed(0),cls:'falta'};}
+function estado(item){
+  // Alerta stock mínimo para reposición
+  if(item.stockMin>0&&item.stock<=item.stockMin) return{label:'⚠️ Reponer',cls:'falta',reponer:true};
+  if(item.nec===0)return{label:'Sin uso',cls:'warn'};
+  var d=item.stock-item.nec;
+  if(d>=0)return{label:'OK',cls:'ok'};
+  return{label:'Falta '+Math.abs(d).toFixed(0),cls:'falta'};
+}
 
 function renderStats(){
   var falta=inventario.filter(function(i){return i.nec>0&&i.stock<i.nec;}).length;
-  var ok=inventario.filter(function(i){return i.nec>0&&i.stock>=i.nec;}).length;
+  var reponer=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;}).length;
+  var ok=inventario.filter(function(i){return i.nec>0&&i.stock>=i.nec&&!(i.stockMin>0&&i.stock<=i.stockMin);}).length;
   var tot=inventario.reduce(function(a,b){return a+(b.stock||0);},0);
+  // Calcular totales de en camino y pendiente servir
+  var totalEnCamino=0;var totalPendServir=0;
+  var totalReservado=0;
+  historial.forEach(function(h){
+    if(h.anulada===true||h.anulada==='true'||h.tipo!=='pedido')return;
+    var est=getEstadoPedido(h);
+    var items=Array.isArray(h.items)?h.items:[];
+    var uds=items.reduce(function(a,it){return a+(it.qty||0);},0);
+    var esAlmacen=(h.origenPedido==='almacen');
+    if(!esAlmacen&&(est==='en_transito'||est==='pendiente')) totalEnCamino+=uds;
+    if(esAlmacen&&est!=='entregado') totalReservado+=uds;
+    if(est!=='entregado') totalPendServir+=uds;
+  });
   document.getElementById('stats-inv').innerHTML=
     '<div class="stat"><div class="stat-label">Total artículos</div><div class="stat-val">'+inventario.length+'</div></div>'+
     '<div class="stat"><div class="stat-label">Stock insuficiente</div><div class="stat-val danger">'+falta+'</div></div>'+
+    (reponer>0?'<div class="stat" style="border-top:3px solid #e67e22;cursor:pointer" onclick="filtrarPorReponer()"><div class="stat-label" style="color:#e67e22">⚠️ Reponer</div><div class="stat-val" style="color:#e67e22">'+reponer+'</div></div>':'')+
     '<div class="stat"><div class="stat-label">Stock correcto</div><div class="stat-val success">'+ok+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Uds en almacén</div><div class="stat-val">'+tot.toLocaleString('es')+'</div></div>';
+    '<div class="stat"><div class="stat-label">Uds en almacén</div><div class="stat-val">'+tot.toLocaleString('es')+'</div></div>'+
+    (totalEnCamino>0?'<div class="stat"><div class="stat-label" style="color:#3498db">📦 En camino</div><div class="stat-val" style="color:#3498db">'+totalEnCamino+' ud</div></div>':'')+
+    (totalReservado>0?'<div class="stat"><div class="stat-label" style="color:#8e44ad">🔒 Reservado</div><div class="stat-val" style="color:#8e44ad">'+totalReservado+' ud</div></div>':'')+
+    (totalPendServir>0?'<div class="stat"><div class="stat-label" style="color:#e67e22">🏗️ Pend. servir</div><div class="stat-val" style="color:#e67e22">'+totalPendServir+' ud</div></div>':'');
 }
 
 function renderInv(){
@@ -1830,24 +1924,63 @@ function renderInv(){
   var f=document.getElementById('filtro-inv').value;
   var data=inventario.filter(function(i){
     if(q&&i.nombre.toLowerCase().indexOf(q)===-1)return false;
+    if(f==='reponer')return i.stockMin>0&&i.stock<=i.stockMin;
     if(f==='falta')return i.nec>0&&i.stock<i.nec;
     if(f==='ok')return i.nec>0&&i.stock>=i.nec;
     if(f==='sinuso')return i.nec===0;
     return true;
   });
   var tb=document.getElementById('tbody-inv');
-  if(!data.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin resultados</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="11" class="empty">Sin resultados</td></tr>';return;}
+  // Calcular en camino y pendiente servir desde historial
+  var enCaminoMap={};    // proveedor → obra, en tránsito
+  var reservadoMap={};   // almacén → obra, stock reservado pendiente de servir
+  var pendServirMap={};  // total pendiente de servir (todos los pedidos no entregados)
+  historial.forEach(function(h){
+    if(h.anulada===true||h.anulada==='true')return;
+    var items=Array.isArray(h.items)?h.items:[];
+    if(h.tipo==='pedido'){
+      var est=getEstadoPedido(h);
+      var esAlmacen=(h.origenPedido==='almacen')||(h.tipoDestino==='almacen');
+      var esProveedor=!esAlmacen;
+      if(est!=='entregado'){
+        items.forEach(function(it){
+          // En camino: solo pedidos de proveedor en tránsito o pendientes
+          if(esProveedor&&(est==='en_transito'||est==='pendiente')){
+            if(!enCaminoMap[it.nombre])enCaminoMap[it.nombre]=0;
+            enCaminoMap[it.nombre]+=(it.qty||0);
+          }
+          // Reservado: pedidos de almacén pendientes de servir
+          if(esAlmacen){
+            if(!reservadoMap[it.nombre])reservadoMap[it.nombre]=0;
+            reservadoMap[it.nombre]+=(it.qty||0);
+          }
+          // Pendiente de servir: todos los pedidos no entregados
+          if(!pendServirMap[it.nombre])pendServirMap[it.nombre]=0;
+          pendServirMap[it.nombre]+=(it.qty||0);
+        });
+      }
+    }
+  });
+
   tb.innerHTML=data.map(function(i){
     var idx=inventario.indexOf(i);
     var diff=i.nec>0?(i.stock-i.nec):null;
     var e=estado(i);
+    var enCamino=enCaminoMap[i.nombre]||0;
+    var reservado=reservadoMap[i.nombre]||0;
+    var pendServir=pendServirMap[i.nombre]||0;
+    // Stock disponible real = stock físico - reservado
+    var stockDisp=Math.max(0,(i.stock||0)-reservado);
     return '<tr id="inv-row-'+idx+'">'+
       '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
       '<td style="text-align:right">'+(i.nec>0?i.nec.toLocaleString('es'):'-')+'</td>'+
-      '<td style="text-align:right;color:'+(diff===null?'inherit':diff<0?'var(--danger)':'var(--success)')+'">'+
-        (diff===null?'-':(diff>=0?'+':'')+diff.toFixed(0))+'</td>'+
+      '<td style="text-align:right;color:'+(diff===null?'inherit':diff<0?'var(--danger)':'var(--success)')+'">'+(diff===null?'-':(diff>=0?'+':'')+diff.toFixed(0))+'</td>'+
       '<td><span class="badge '+e.cls+'">'+e.label+'</span></td>'+
+      '<td style="text-align:right;color:#3498db;font-weight:'+(enCamino>0?'700':'400')+'">'+(enCamino>0?'+'+enCamino+' ud':'—')+'</td>'+
+      '<td style="text-align:right;color:'+(reservado>0?'#8e44ad':'inherit')+';font-weight:'+(reservado>0?'700':'400')+'">'+(reservado>0?reservado+' ud':'—')+'</td>'+
+      '<td style="text-align:right;color:'+(pendServir>0?'#e67e22':'inherit')+';font-weight:'+(pendServir>0?'700':'400')+'">'+(pendServir>0?pendServir+' ud':'—')+'</td>'+
       '<td style="text-align:right">'+(i.pvp>0?i.pvp.toFixed(2)+' €':'-')+'</td>'+
       '<td style="text-align:right">'+(i.pcompra>0?i.pcompra.toFixed(2)+' €':'-')+'</td>'+
       '<td>'+
@@ -1857,7 +1990,7 @@ function renderInv(){
         '</div>'+
       '</td>'+
     '</tr>'+
-    '<tr id="inv-edit-'+idx+'" style="display:none;background:var(--accent-light)">'+
+'<tr id="inv-edit-'+idx+'" style="display:none;background:var(--accent-light)">'+
       '<td colspan="8" style="padding:10px 12px">'+
         '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Nombre</div>'+
@@ -1870,6 +2003,8 @@ function renderInv(){
             '<input id="edit-pvp-'+idx+'" type="number" value="'+(i.pvp||0)+'" step="0.01" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Compra €</div>'+
             '<input id="edit-pc-'+idx+'" type="number" value="'+(i.pcompra||0)+'" step="0.01" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
+          '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Stock mín.</div>'+
+            '<input id="edit-sm-'+idx+'" type="number" value="'+(i.stockMin||0)+'" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
           '<div style="display:flex;gap:4px">'+
             '<button class="btn primary" style="font-size:11px;padding:5px 8px" onclick="guardarEdicionFila('+idx+')">✅</button>'+
             '<button class="btn" style="font-size:11px;padding:5px 6px" onclick="cancelarEdicion('+idx+')">✕</button>'+
@@ -1884,7 +2019,7 @@ function toggleFormNuevoArt(){
   var f=document.getElementById('form-nuevo-art');
   f.style.display=f.style.display==='none'?'block':'none';
   if(f.style.display==='block'){
-    ['ninv-nombre','ninv-stock','ninv-nec','ninv-pvp','ninv-pcompra'].forEach(function(id){document.getElementById(id).value='';});
+    ['ninv-nombre','ninv-stock','ninv-nec','ninv-pvp','ninv-pcompra','ninv-stockmin'].forEach(function(id){document.getElementById(id).value='';});
     document.getElementById('ninv-nombre').focus();
   }
 }
@@ -1899,9 +2034,10 @@ function guardarNuevoArt(){
   var pcompra=parseFloat(document.getElementById('ninv-pcompra').value)||0;
   var btn=document.getElementById('btn-ninv');
   btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addArticulo',nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
+  var stockMin=parseInt(document.getElementById('ninv-stockmin').value)||0;
+  postAPI({action:'addArticulo',nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar. Comprueba la conexión.',true);btn.disabled=false;btn.textContent='✅ Añadir';return;}
-    inventario.push({nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra});
+    inventario.push({nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin});
     btn.disabled=false;btn.textContent='✅ Añadir';
     toggleFormNuevoArt();renderInv();
     toast('✅ '+nombre+' añadido al inventario');
@@ -1921,10 +2057,11 @@ function guardarEdicionFila(idx){
   var nec=parseFloat(document.getElementById('edit-nec-'+idx).value)||0;
   var pvp=parseFloat(document.getElementById('edit-pvp-'+idx).value)||0;
   var pcompra=parseFloat(document.getElementById('edit-pc-'+idx).value)||0;
+  var stockMin=parseInt(document.getElementById('edit-sm-'+idx).value)||0;
   var nombreOriginal=inventario[idx].nombre;
-  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra},function(err,d){
+  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar',true);return;}
-    inventario[idx].nombre=nombre;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;
+    inventario[idx].nombre=nombre;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;inventario[idx].stockMin=stockMin;
     renderInv();toast('✅ Artículo actualizado');
   });
 }
@@ -2061,9 +2198,17 @@ function registrarPedido(){
   if(!prov){toast('Selecciona un proveedor',true);return;}
   if(!pedidoItems.length){toast('Añade al menos un material',true);return;}
   var btn=document.getElementById('btn-pedido');btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addHistorial',tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',items:pedidoItems},function(err,data){
+  var origen=document.getElementById('ped-origen').value;
+  postAPI({action:'addHistorial',tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',origenPedido:origen,items:pedidoItems},function(err,data){
     if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar pedido';return;}
-    historial.unshift({tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',items:pedidoItems.slice(),anulada:false,entregado:false});
+    // Si es de almacén, verificar stock suficiente
+    if(origen==='almacen'){
+      pedidoItems.forEach(function(c){
+        var it=inventario.find(function(i){return i.nombre===c.nombre;});
+        if(it&&it.stock<c.qty) toast('⚠️ Stock insuficiente para '+c.nombre.substring(0,30),true);
+      });
+    }
+    historial.unshift({tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',origenPedido:origen,items:pedidoItems.slice(),anulada:false,entregado:false});
     pedidoItems=[];renderPedidoItems();buildObrasGrid();
     document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
     document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
@@ -2130,26 +2275,65 @@ function registrarEntrada(){
 }
 
 /* ── HISTORIAL GENERAL ── */
+function actualizarInfoOrigen(){
+  var origen=document.getElementById('ped-origen').value;
+  var wrap=document.getElementById('ped-origen-info');
+  var aviso=document.getElementById('ped-origen-aviso');
+  if(origen==='almacen'){
+    wrap.style.display='block';
+    aviso.style.background='#d6eaf8';aviso.style.color='#1a5276';
+    aviso.textContent='📦 Sale del almacén — al marcar entregado descuenta del stock físico. Se mostrará como "Reservado" en el inventario.';
+  } else {
+    wrap.style.display='block';
+    aviso.style.background='var(--accent-light)';aviso.style.color='var(--accent)';
+    aviso.textContent='🚚 Viene del proveedor directo a obra — no toca el stock del almacén. Se mostrará como "En camino" en el inventario.';
+  }
+}
+
+function getEstadoPedido(h){
+  if(h.entregado===true||h.entregado==='true') return 'entregado';
+  if(h.estadoPedido==='en_transito') return 'en_transito';
+  if(h.estadoPedido==='pendiente') return 'pendiente';
+  return 'pendiente'; // por defecto
+}
+
 function renderHist(){
   var tipo=document.getElementById('hist-tipo').value;
   var obra=document.getElementById('hist-obra').value;
   var buscar=(document.getElementById('hist-buscar').value||'').toLowerCase();
+  var filtProv=document.getElementById('hist-prov').value;
+  var filtEstado=document.getElementById('hist-estado-pedido').value;
+
+  // Actualizar selector de proveedores
+  var provs=[...new Set(historial.filter(function(h){return h.prov;}).map(function(h){return h.prov;}))].sort();
+  var selProv=document.getElementById('hist-prov');
+  var valProv=selProv.value;
+  selProv.innerHTML='<option value="">Todos los proveedores</option>'+provs.map(function(p){return '<option value="'+p+'"'+(p===valProv?' selected':'')+'>'+p+'</option>';}).join('');
+
   var data=historial.filter(function(h){
     if(tipo!=='todos'&&h.tipo!==tipo)return false;
     if(obra&&h.obra!==obra)return false;
+    if(filtProv&&h.prov!==filtProv)return false;
+    if(filtEstado&&h.tipo==='pedido'){
+      if(getEstadoPedido(h)!==filtEstado)return false;
+    }
     if(buscar){
       var txt=(h.obra+' '+(h.prov||'')+(h.resp||'')+(h.obs||'')+JSON.stringify(h.items||[])).toLowerCase();
       if(txt.indexOf(buscar)===-1)return false;
     }
     return true;
   });
+
+  // Mostrar banner compras si hay pedidos pendientes próximos
+  mostrarBannerCompras();
   var cont=document.getElementById('hist-content');
   if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas</div>';return;}
   cont.innerHTML=data.map(function(h){
     var items=Array.isArray(h.items)?h.items:[];
     var an=h.anulada===true||h.anulada==='true';
     var realIdx=historial.indexOf(h);
-    var tipoLabel=an?'ANULADA':h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega':h.tipo==='entrada'?'📦 Entrada almacén':'🛒 Pedido';
+    var origenLabel=h.origenPedido==='almacen'?'📦 Pedido almacén':'🚚 Pedido proveedor';
+    var tipoLabel=an?'ANULADA':h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega':h.tipo==='entrada'?'📦 Entrada almacén':(h.tipo==='pedido'?origenLabel:'🛒 Pedido');
     var tipoClass=an?'anulada':(h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada')?'ok':'falta';
     return '<div class="card" style="margin-bottom:8px;'+(an?'opacity:.5;':'')+'">'+
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
@@ -2173,10 +2357,26 @@ function renderHist(){
         '<button class="btn" style="font-size:11px;padding:4px 8px;color:var(--danger);border-color:var(--danger)" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
       '</div>':'')+
       (!an&&h.tipo==='pedido'?
-        '<div style="margin-top:6px;display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
-          (h.entregado?'<span class="badge ok" style="font-size:10px">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
-            '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="marcarEntregado('+realIdx+')">✅ Marcar entregado</button>')+
-          '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarPedido('+realIdx+')">🗑️ Eliminar</button>'+
+        '<div style="margin-top:8px">'+
+          // Badge estado
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+            (getEstadoPedido(h)==='entregado'?
+              '<span class="badge ok">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
+            getEstadoPedido(h)==='en_transito'?
+              '<span class="badge" style="background:#d6eaf8;color:#1a5276">🔵 Pedido en tránsito</span>':
+              '<span class="badge warn">🟡 Pendiente de pedir al proveedor</span>')+
+            (h.fechaLimite?'<span style="font-size:11px;color:'+(h.fechaLimite<today?'var(--danger)':'var(--text2)')+'">📅 Fecha límite: '+h.fechaLimite+(h.fechaLimite<today?' ⚠️ VENCIDA':'')+'</span>':'')+
+          '</div>'+
+          // Botones acción según estado
+          '<div style="display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
+            (getEstadoPedido(h)==='pendiente'?
+              '<button class="btn" style="font-size:11px;padding:4px 8px;background:#d6eaf8;color:#1a5276;border-color:#3498db" onclick="cambiarEstadoPedido('+realIdx+',"en_transito")">🔵 Marcar pedido realizado</button>':'') +
+            (getEstadoPedido(h)==='en_transito'?
+              '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="marcarEntregado('+realIdx+')">✅ Marcar entregado</button>':'')+
+            (getEstadoPedido(h)==='entregado'?'':
+              '<button class="btn" style="font-size:11px;padding:4px 8px" onclick="editarFechaLimite('+realIdx+')">📅 '+(h.fechaLimite?'Cambiar':'Añadir')+' fecha límite</button>')+
+            '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarPedido('+realIdx+')">🗑️</button>'+
+          '</div>'+
         '</div>':'')+
     '</div>';
   }).join('');
@@ -2261,6 +2461,146 @@ function dlCSVgen(rows,name){
 /* ── HELPERS ── */
 function cerrarDetalleObra(){document.getElementById('obra-detalle').style.display='none';obraSeleccionada=null;}
 function irSalidaObra(){if(obraSeleccionada)document.getElementById('sal-obra').value=obraSeleccionada.nombre;showTab('salida',document.querySelectorAll('.top-bar .tab')[2]);}
+
+/* ── ESTADOS PEDIDOS Y BANNER COMPRAS ── */
+var DIAS_AVISO_COMPRAS = 7;
+var RESPONSABLE_COMPRAS = 'Emma García';
+
+function cambiarEstadoPedido(idx, nuevoEstado){
+  var h=historial[idx];
+  if(!h||h.tipo!=='pedido')return;
+  h.estadoPedido=nuevoEstado;
+  // Guardar en Sheets
+  postAPI({
+    action:'marcarPedidoEntregado',
+    idx:idx,fecha:h.fecha,obra:h.obra,
+    fechaEntrega:'',estadoPedido:nuevoEstado
+  },function(err,d){
+    if(err||!d||!d.ok){toast('Error al actualizar estado',true);return;}
+    renderHist();
+    toast('🔵 Pedido marcado como realizado al proveedor');
+  });
+}
+
+function editarFechaLimite(idx){
+  var h=historial[idx];
+  if(!h)return;
+  var fecha=prompt('Fecha límite para este pedido (AAAA-MM-DD):',h.fechaLimite||today);
+  if(!fecha)return;
+  // Validar formato
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha)){toast('Formato incorrecto. Usa AAAA-MM-DD',true);return;}
+  h.fechaLimite=fecha;
+  postAPI({
+    action:'marcarPedidoEntregado',
+    idx:idx,fecha:h.fecha,obra:h.obra,
+    fechaEntrega:'',estadoPedido:h.estadoPedido||'pendiente',
+    fechaLimite:fecha
+  },function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar fecha',true);return;}
+    renderHist();
+    mostrarBannerCompras();
+    toast('📅 Fecha límite guardada');
+  });
+}
+
+function mostrarBannerCompras(){
+  var hoy=new Date();hoy.setHours(0,0,0,0);
+  var limite=new Date(hoy);limite.setDate(limite.getDate()+DIAS_AVISO_COMPRAS);
+  var pedidosPendientes=historial.filter(function(h){
+    if(h.tipo!=='pedido')return false;
+    if(h.anulada===true||h.anulada==='true')return false;
+    if(getEstadoPedido(h)==='entregado')return false;
+    if(getEstadoPedido(h)==='en_transito')return false;
+    // Solo los pendientes con fecha límite próxima o sin fecha (recordatorio general)
+    if(h.fechaLimite){
+      var fl=new Date(h.fechaLimite);fl.setHours(0,0,0,0);
+      return fl<=limite;
+    }
+    return false; // Sin fecha límite no avisa
+  });
+
+  var banner=document.getElementById('banner-compras');
+  if(!pedidosPendientes.length){banner.style.display='none';return;}
+
+  var vencidos=pedidosPendientes.filter(function(h){return h.fechaLimite&&h.fechaLimite<today;});
+  var proximos=pedidosPendientes.filter(function(h){return h.fechaLimite&&h.fechaLimite>=today;});
+
+  banner.style.display='block';
+  banner.style.background=vencidos.length?'#fce8e6':'#e8f4fd';
+  banner.style.borderColor=vencidos.length?'#c0392b':'#3498db';
+  var colorTexto=vencidos.length?'#7b241c':'#1a5276';
+  banner.querySelector('div > div > div:first-child').style.color=colorTexto;
+
+  var lista=[];
+  vencidos.forEach(function(h){
+    var dias=Math.round((new Date(today)-new Date(h.fechaLimite))/86400000);
+    lista.push('⚠️ VENCIDO '+dias+'d — Pedir '+h.items.map(function(i){return i.nombre+'('+i.qty+'ud)';}).join(', ')+(h.prov?' a '+h.prov:'')+' para '+h.obra);
+  });
+  proximos.forEach(function(h){
+    var dias=Math.round((new Date(h.fechaLimite)-new Date(today))/86400000);
+    lista.push('📅 Vence en '+dias+'d — Pedir '+h.items.map(function(i){return i.nombre+'('+i.qty+'ud)';}).join(', ')+(h.prov?' a '+h.prov:'')+' para '+h.obra);
+  });
+
+  document.getElementById('banner-compras-lista').innerHTML=
+    lista.map(function(l){return '<div style="padding:1px 0">'+l+'</div>';}).join('');
+}
+
+// Mostrar banner al cargar historial
+var _origCargarHistorial=cargarHistorial;
+cargarHistorial=function(){
+  callAPI('getHistorial',function(err,data){
+    if(!err&&Array.isArray(data)){historial=data.reverse();renderHist();mostrarBannerCompras();}
+  });
+};
+
+/* ── STOCK MÍNIMO Y REPOSICIÓN ── */
+function filtrarPorReponer(){
+  document.getElementById('filtro-inv').value='reponer';
+  renderInv();
+}
+function mostrarBannerReposicion(){
+  var aReponer=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;});
+  var banner=document.getElementById('banner-reposicion');
+  if(!aReponer.length){banner.style.display='none';return;}
+  banner.style.display='block';
+  // Urgentes: stock = 0
+  var sinStock=aReponer.filter(function(i){return i.stock===0;});
+  banner.style.borderColor=sinStock.length?'#c0392b':'#f39c12';
+  banner.style.background=sinStock.length?'#fce8e6':'#fef9e7';
+  document.getElementById('banner-reposicion-lista').innerHTML=
+    aReponer.map(function(i){
+      var urgente=i.stock===0;
+      return '<div style="color:'+(urgente?'#c0392b':'#7d6608')+'">'+
+        (urgente?'🔴 SIN STOCK':'🟡 Stock bajo')+
+        ' — <b>'+i.nombre.substring(0,40)+'</b>'+
+        ' Stock: '+i.stock+' ud | Mínimo: '+i.stockMin+' ud'+
+      '</div>';
+    }).join('');
+}
+
+function irAPedirReposicion(){
+  // Ir a tab pedidos → entrada almacén con los artículos a reponer pre-seleccionados
+  var aReponer=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;});
+  showTab('pedidos',document.querySelectorAll('.top-bar .tab')[3]);
+  setTimeout(function(){
+    pedidoSubTab('almacen',document.getElementById('ptab-almacen'));
+    // Pre-rellenar los artículos a reponer
+    entradaItems=[];
+    aReponer.forEach(function(i){
+      var qty=Math.max(1,(i.stockMin*2)-i.stock); // Pedir hasta 2x el mínimo
+      entradaItems.push({nombre:i.nombre,qty:qty});
+    });
+    renderEntradaItems();
+    toast('✅ '+aReponer.length+' artículos añadidos para reponer');
+  },300);
+}
+
+// Llamar al renderStats para mostrar banner
+var _origRenderStats=renderStats;
+renderStats=function(){
+  _origRenderStats();
+  mostrarBannerReposicion();
+};
 
 recargarTodo();
 </script>
