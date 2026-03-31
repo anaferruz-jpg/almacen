@@ -172,6 +172,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <button class="tab-btn" onclick="showTab('cobros',this)">💰 Cobros</button>
   <button class="tab-btn" onclick="showTab('margen',this)">📈 Margen</button>
   <button class="tab-btn" onclick="showTab('export',this)">📤 Gestoría</button>
+  <button class="tab-btn" onclick="showTab('config',this)">⚙️ Config</button>
   <button class="tab-btn" onclick="showTab('clientes',this)">👥 Clientes</button>
   <button class="tab-btn" onclick="showTab('proveedores',this)">🏭 Proveedores</button>
   <button class="tab-btn" onclick="showTab('gastos_internos',this)">🏢 Gastos internos</button>
@@ -326,6 +327,28 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <div class="card" id="preview-export" style="display:none">
     <div class="card-title">Vista previa del resumen</div>
     <div id="preview-export-content"></div>
+  </div>
+</div>
+
+<!-- ══════ CONFIG ══════ -->
+<div id="tab-config" class="panel">
+  <p style="font-size:15px;font-weight:600;font-family:Playfair Display,serif;margin-bottom:12px">⚙️ Configuración</p>
+  <div class="card">
+    <div class="card-title">🤖 Clave API de IA (Claude)</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Necesaria para leer facturas automáticamente con IA (escaneo de imágenes/PDF). Se guarda solo en este navegador.</p>
+    <div class="form-group" style="max-width:480px">
+      <label>API Key de Anthropic</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="password" id="cfg-apikey" placeholder="sk-ant-..." style="flex:1;font-family:monospace;font-size:13px">
+        <button class="btn" id="cfg-apikey-toggle" onclick="toggleApiKeyVis()" style="padding:6px 10px;font-size:13px">👁</button>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:6px">Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--brand2)">console.anthropic.com</a></p>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <button class="btn primary" onclick="guardarApiKey()">💾 Guardar clave</button>
+      <button class="btn" onclick="borrarApiKey()" style="color:var(--danger);border-color:var(--danger)">🗑 Borrar</button>
+      <span id="cfg-apikey-status" style="font-size:12px;color:var(--text2)"></span>
+    </div>
   </div>
 </div>
 
@@ -881,6 +904,37 @@ function setSyncBadge(st, msg) {
   b.className = 'sync-badge ' + st;
   b.innerHTML = (st === 'loading' ? '<span class="spinner"></span>' : '') + msg;
 }
+// ── API KEY CONFIG ──────────────────────────────────────
+function getApiKey() {
+  return localStorage.getItem('segufija_anthropic_key') || '';
+}
+function guardarApiKey() {
+  var val = document.getElementById('cfg-apikey').value.trim();
+  if (!val) { document.getElementById('cfg-apikey-status').textContent = '⚠️ Introduce una clave'; return; }
+  localStorage.setItem('segufija_anthropic_key', val);
+  document.getElementById('cfg-apikey-status').textContent = '✅ Guardada correctamente';
+  setTimeout(function(){ document.getElementById('cfg-apikey-status').textContent = ''; }, 3000);
+}
+function borrarApiKey() {
+  localStorage.removeItem('segufija_anthropic_key');
+  document.getElementById('cfg-apikey').value = '';
+  document.getElementById('cfg-apikey-status').textContent = '🗑 Clave eliminada';
+  setTimeout(function(){ document.getElementById('cfg-apikey-status').textContent = ''; }, 3000);
+}
+function toggleApiKeyVis() {
+  var inp = document.getElementById('cfg-apikey');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+// Cargar clave guardada al iniciar
+(function() {
+  var saved = getApiKey();
+  if (saved) {
+    var el = document.getElementById('cfg-apikey');
+    if (el) el.value = saved;
+  }
+})();
+// ──────────────────────────────────────────────────────
+
 function toast(msg, isError) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -2253,9 +2307,20 @@ function leerFacturaIA(file) {
       ];
     }
 
+    var apiKey = getApiKey();
+    if (!apiKey) {
+      document.getElementById('scan-status-txt').textContent = '⚠️ Configura tu API key en la pestaña ⚙️ Config';
+      document.getElementById('scan-status').style.display = 'flex';
+      return;
+    }
     fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -2332,9 +2397,20 @@ function leerFacturaEmitidaIA(file) {
         { type: 'text', text: PROMPT_FACTURA_EMITIDA }
       ];
     }
+    var apiKey2 = getApiKey();
+    if (!apiKey2) {
+      document.getElementById('scan-status-fac-txt').textContent = '⚠️ Configura tu API key en la pestaña ⚙️ Config';
+      document.getElementById('scan-status-fac').style.display = 'flex';
+      return;
+    }
     fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey2,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1500,
