@@ -2452,7 +2452,7 @@ function renderHist(){
           // Botones acción según estado
           '<div style="display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
             (getEstadoPedido(h)==='pendiente'?
-              '<button class="btn" style="font-size:11px;padding:4px 8px;background:#d6eaf8;color:#1a5276;border-color:#3498db" onclick="cambiarEstadoPedido('+realIdx+',"en_transito")">🔵 Marcar pedido realizado</button>':'') +
+              '<button class="btn" style="font-size:11px;padding:4px 8px;background:#d6eaf8;color:#1a5276;border-color:#3498db" onclick="pedidoEnTransito('+realIdx+')">🔵 Marcar pedido realizado</button>':'') +
             (getEstadoPedido(h)==='en_transito'?
               '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="marcarEntregado('+realIdx+')">✅ Marcar entregado</button>':'')+
             (getEstadoPedido(h)==='entregado'?'':
@@ -2548,6 +2548,10 @@ function irSalidaObra(){if(obraSeleccionada)document.getElementById('sal-obra').
 var DIAS_AVISO_COMPRAS = 7;
 var RESPONSABLE_COMPRAS = 'Emma García';
 
+function pedidoEnTransito(idx){
+  cambiarEstadoPedido(idx,'en_transito');
+}
+
 function cambiarEstadoPedido(idx, nuevoEstado){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
@@ -2559,9 +2563,13 @@ function cambiarEstadoPedido(idx, nuevoEstado){
     fechaLimite:h.fechaLimite||''
   },function(err,d){
     if(err||!d||!d.ok){toast('Error al actualizar estado',true);return;}
-    renderHist();
-    mostrarBannerCompras();
-    toast('🔵 Pedido marcado como realizado al proveedor');
+    // Recargar desde Sheets para que el estado persista correctamente
+    callAPI('getHistorial',function(err2,data2){
+      if(!err2&&Array.isArray(data2))historial=data2.reverse();
+      renderHist();
+      mostrarBannerCompras();
+      toast('🔵 Pedido en tránsito — realizado al proveedor');
+    });
   });
 }
 
