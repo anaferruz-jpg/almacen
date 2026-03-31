@@ -494,13 +494,13 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>Material</th><th>Stock</th><th>Necesario</th><th>Diferencia</th><th>Estado</th>
+      <th>Material</th><th>Stock</th><th>Mínimo</th><th>Estado</th>
       <th style="color:#3498db" title="Pedidos en tránsito del proveedor">📦 En camino</th>
       <th style="color:#8e44ad" title="Stock reservado para pedidos de almacén pendientes">🔒 Reservado</th>
       <th style="color:#e67e22" title="Pendiente de servir a obras">🏗️ Pend. servir</th>
       <th>PVP</th><th>Compra</th><th></th>
     </tr></thead>
-    <tbody id="tbody-inv"><tr><td colspan="11" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+    <tbody id="tbody-inv"><tr><td colspan="10" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
   </div>
 </div>
 
@@ -1122,6 +1122,19 @@ function renderPartidas(){
     cont.innerHTML='<div class="empty">Sin partidas contratadas.<br>Edita la obra para añadirlas.</div>'+
       '<button class="btn primary" style="margin-top:8px" onclick="editarObraActual()">✏️ Editar obra</button>';return;
   }
+  // Calcular pedidos pendientes por material para esta obra
+  var enPedidoMap={};
+  historial.forEach(function(h){
+    if(h.obra!==o.nombre||h.tipo!=='pedido')return;
+    if(h.anulada===true||h.anulada==='true')return;
+    if(getEstadoPedido(h)==='entregado')return;
+    (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+      var k=(item.nombre||'').toLowerCase();
+      if(!enPedidoMap[k])enPedidoMap[k]=0;
+      enPedidoMap[k]+=(item.qty||0);
+    });
+  });
+
   var grupos={};
   o.partidas.forEach(function(p){if(!grupos[p.partida])grupos[p.partida]=[];grupos[p.partida].push(p);});
   cont.innerHTML=Object.keys(grupos).map(function(partida){
@@ -1144,6 +1157,7 @@ function renderPartidas(){
         '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Contratado</th>'+
         '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Entregado</th>'+
         '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Pendiente</th>'+
+        '<th style="text-align:right;color:#3498db;font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)" title="Pedidos registrados pendientes de entrega">📦 En pedido</th>'+
         '<th style="padding:4px 4px;border-bottom:0.5px solid var(--border)"></th>'+
       '</tr></thead><tbody>'+
       lineas.map(function(l){
@@ -1162,6 +1176,7 @@ function renderPartidas(){
             '<input type="number" value="'+(l.suministrado||0)+'" min="0" step="0.01" class="partida-input" onchange="actualizarSuministrado('+pidx+',this.value)">'+
           '</td>'+
           '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend.toFixed(pend%1===0?0:2)+'</td>'+
+          (function(){var k=l.material.toLowerCase();var ep=enPedidoMap[k]||0;return '<td style="text-align:right;padding:5px 4px;color:#3498db;font-weight:'+(ep>0?'700':'400')+'">'+(ep>0?ep+' ud':'—')+'</td>';})() +
           '<td style="padding:5px 4px">'+
             '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
               '<button class="btn primary" style="font-size:10px;padding:3px 5px" title="Pedido/Salida" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
@@ -1806,11 +1821,11 @@ function confirmarAnular(){
 function marcarEntregado(idx){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
-  h.entregado=true;h.fechaEntrega=today;
+  h.entregado=true;h.estadoPedido='entregado';h.fechaEntrega=today;
   postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
     if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
-    // Si el pedido era al almacén → suma stock
-    // Pedido de almacén entregado → descuenta stock físico
+
+    // ── Pedido de ALMACÉN entregado → descuenta stock físico
     if(h.origenPedido==='almacen'||(h.tipoDestino==='almacen'&&!h.origenPedido)){
       postAPI({action:'updateStock',items:h.items},function(){
         (Array.isArray(h.items)?h.items:[]).forEach(function(item){
@@ -1821,30 +1836,48 @@ function marcarEntregado(idx){
         toast('📦 Stock descontado del almacén');
       });
     }
-    // Pedido de proveedor que pasa por almacén → suma stock
-    if(h.origenPedido==='proveedor'&&h.pasaPorAlmacen){
-      postAPI({action:'restoreStock',items:h.items},function(){
-        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
-          var inv=inventario.find(function(i){return i.nombre===item.nombre;});
-          if(inv)inv.stock=(inv.stock||0)+(item.qty||0);
-        });
-        renderInv();
-      });
-    }
-    // Si el pedido era a obra y tiene pidx → actualizar esa partida específica
-    if(h.tipoDestino==='obra'){
-      var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
-      if(obraObj&&Array.isArray(h.items)){
-        h.items.forEach(function(item){
-          if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
-            obraObj.partidas[item.pidx].suministrado=(obraObj.partidas[item.pidx].suministrado||0)+(item.qty||0);
+
+    // ── Sincronizar partidas de la obra con TODOS los pedidos
+    // Buscar la obra del pedido
+    var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
+    if(obraObj&&obraObj.partidas&&Array.isArray(h.items)){
+      var modificado=false;
+      h.items.forEach(function(item){
+        // 1. Si tiene pidx exacto (pedido desde partida) → usar directamente
+        if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
+          obraObj.partidas[item.pidx].suministrado=(obraObj.partidas[item.pidx].suministrado||0)+(item.qty||0);
+          modificado=true;
+        } else {
+          // 2. Si no tiene pidx → buscar partida por nombre de material
+          var matches=obraObj.partidas.filter(function(p){
+            var nm=(item.nombre||'').toLowerCase();
+            var pm=(p.material||'').toLowerCase();
+            return nm===pm||nm.indexOf(pm)>=0||pm.indexOf(nm)>=0;
+          });
+          if(matches.length===1){
+            // Coincidencia única → descontar automáticamente
+            matches[0].suministrado=(matches[0].suministrado||0)+(item.qty||0);
+            modificado=true;
+          } else if(matches.length>1){
+            // Varias coincidencias → pedir que seleccione manualmente
+            toast('⚠️ '+item.nombre+' coincide con varias partidas — actualiza manualmente en la obra',true);
           }
+        }
+      });
+      if(modificado){
+        guardarPartidasSilencioso(function(){
+          // Actualizar KPIs si estamos viendo esa obra
+          if(obraSeleccionada&&obraSeleccionada.nombre===h.obra){
+            actualizarKPIsObra(obraSeleccionada);
+            renderPartidas();
+          }
+          buildObrasGrid();
         });
-        guardarPartidasSilencioso(null);
       }
     }
+
     renderHist();
-    toast('✅ Pedido marcado como entregado');
+    toast('✅ Pedido marcado como entregado — partidas actualizadas');
   });
 }
 
@@ -1931,7 +1964,7 @@ function renderInv(){
     return true;
   });
   var tb=document.getElementById('tbody-inv');
-  if(!data.length){tb.innerHTML='<tr><td colspan="11" class="empty">Sin resultados</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="10" class="empty">Sin resultados</td></tr>';return;}
   // Calcular en camino y pendiente servir desde historial
   var enCaminoMap={};    // proveedor → obra, en tránsito
   var reservadoMap={};   // almacén → obra, stock reservado pendiente de servir
@@ -1965,7 +1998,6 @@ function renderInv(){
 
   tb.innerHTML=data.map(function(i){
     var idx=inventario.indexOf(i);
-    var diff=i.nec>0?(i.stock-i.nec):null;
     var e=estado(i);
     var enCamino=enCaminoMap[i.nombre]||0;
     var reservado=reservadoMap[i.nombre]||0;
@@ -1975,9 +2007,8 @@ function renderInv(){
     return '<tr id="inv-row-'+idx+'">'+
       '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
-      '<td style="text-align:right">'+(i.nec>0?i.nec.toLocaleString('es'):'-')+'</td>'+
-      '<td style="text-align:right;color:'+(diff===null?'inherit':diff<0?'var(--danger)':'var(--success)')+'">'+(diff===null?'-':(diff>=0?'+':'')+diff.toFixed(0))+'</td>'+
-      '<td><span class="badge '+e.cls+'">'+e.label+'</span></td>'+
+      '<td style="text-align:right;color:'+(i.stockMin>0?'var(--text2)':'inherit')+'">'+(i.stockMin>0?i.stockMin:'-')+'</td>'+
+      '<td><span class="badge '+e.cls+'"'+(e.reponer?' title="Stock por debajo del mínimo — necesita reposición"':'')+'>'+e.label+'</span></td>'+
       '<td style="text-align:right;color:#3498db;font-weight:'+(enCamino>0?'700':'400')+'">'+(enCamino>0?'+'+enCamino+' ud':'—')+'</td>'+
       '<td style="text-align:right;color:'+(reservado>0?'#8e44ad':'inherit')+';font-weight:'+(reservado>0?'700':'400')+'">'+(reservado>0?reservado+' ud':'—')+'</td>'+
       '<td style="text-align:right;color:'+(pendServir>0?'#e67e22':'inherit')+';font-weight:'+(pendServir>0?'700':'400')+'">'+(pendServir>0?pendServir+' ud':'—')+'</td>'+
@@ -2413,8 +2444,8 @@ function guardarPrecio(idx){
 
 /* ── EXPORTS CSV ── */
 function exportCSV(){
-  var rows=[['Material','Stock','Necesario','Diferencia','Estado','PVP','Precio Compra']];
-  inventario.forEach(function(i){var diff=i.nec>0?(i.stock-i.nec):'-';var e=estado(i);rows.push([i.nombre,i.stock,i.nec,diff,e.label,i.pvp||0,i.pcompra||0]);});
+  var rows=[['Material','Stock','Mínimo','Estado','PVP','Precio Compra']];
+  inventario.forEach(function(i){var e=estado(i);rows.push([i.nombre,i.stock,i.stockMin||0,e.label,i.pvp||0,i.pcompra||0]);});
   dlCSVgen(rows,'inventario');
 }
 
