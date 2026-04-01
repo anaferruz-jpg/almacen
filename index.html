@@ -1127,9 +1127,22 @@ function actualizarKPIsObra(o){
   var pct=calcPctObra(o);
   var tot=o.partidas?o.partidas.reduce(function(a,p){return a+(p.contratado||0);},0):0;
   var sum=o.partidas?o.partidas.reduce(function(a,p){return a+(p.suministrado||0);},0):0;
+  // Calcular pedidos en tránsito para esta obra
+  var udsTransito=0;var udsPendPedir=0;
+  historial.forEach(function(h){
+    if(h.obra!==o.nombre||h.tipo!=='pedido')return;
+    if(h.anulada===true||h.anulada==='true')return;
+    var est=getEstadoPedido(h);
+    if(est==='entregado')return;
+    var uds=(Array.isArray(h.items)?h.items:[]).reduce(function(a,i){return a+(i.qty||0);},0);
+    if(est==='en_transito')udsTransito+=uds;
+    else udsPendPedir+=uds;
+  });
   document.getElementById('obra-kpis').innerHTML=
     (o.presupuesto>0?'<div class="stat"><div class="stat-label">Presupuesto</div><div class="stat-val">'+Number(o.presupuesto).toLocaleString('es')+'€</div></div>':'')+
     '<div class="stat"><div class="stat-label">Salidas</div><div class="stat-val">'+salidas+'</div></div>'+
+    (udsTransito>0?'<div class="stat" style="border-top:3px solid #3498db"><div class="stat-label" style="color:#1a5276">🔵 En tránsito</div><div class="stat-val" style="color:#1a5276;font-size:16px">'+udsTransito+' ud</div></div>':'')+
+    (udsPendPedir>0?'<div class="stat" style="border-top:3px solid #f39c12"><div class="stat-label" style="color:#7d6608">🟡 Pend. pedir</div><div class="stat-val" style="color:#7d6608;font-size:16px">'+udsPendPedir+' ud</div></div>':'')+
     (o.partidas&&o.partidas.length?
       '<div class="stat"><div class="stat-label">Ejecutado</div><div class="stat-val '+(pct>100?'danger':'success')+'">'+pct+'%</div></div>'+
       '<div class="stat"><div class="stat-label">Suministrado</div><div class="stat-val">'+sum.toLocaleString('es')+' ud</div></div>'+
@@ -1164,15 +1177,25 @@ function renderPartidas(){
       '<button class="btn primary" style="margin-top:8px" onclick="editarObraActual()">✏️ Editar obra</button>';return;
   }
   // Calcular pedidos pendientes por material para esta obra
-  var enPedidoMap={};
+  var enPedidoMap={};      // total pendiente+tránsito por material
+  var enTransitoMap={};    // solo en tránsito por material
+  var enPendienteMap={};   // solo pendiente por material
   historial.forEach(function(h){
     if(h.obra!==o.nombre||h.tipo!=='pedido')return;
     if(h.anulada===true||h.anulada==='true')return;
-    if(getEstadoPedido(h)==='entregado')return;
+    var est=getEstadoPedido(h);
+    if(est==='entregado')return;
     (Array.isArray(h.items)?h.items:[]).forEach(function(item){
       var k=(item.nombre||'').toLowerCase();
       if(!enPedidoMap[k])enPedidoMap[k]=0;
       enPedidoMap[k]+=(item.qty||0);
+      if(est==='en_transito'){
+        if(!enTransitoMap[k])enTransitoMap[k]=0;
+        enTransitoMap[k]+=(item.qty||0);
+      } else {
+        if(!enPendienteMap[k])enPendienteMap[k]=0;
+        enPendienteMap[k]+=(item.qty||0);
+      }
     });
   });
 
@@ -1217,7 +1240,17 @@ function renderPartidas(){
             '<input type="number" value="'+(l.suministrado||0)+'" min="0" step="0.01" class="partida-input" onchange="actualizarSuministrado('+pidx+',this.value)">'+
           '</td>'+
           '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend.toFixed(pend%1===0?0:2)+'</td>'+
-          (function(){var k=l.material.toLowerCase();var ep=enPedidoMap[k]||0;return '<td style="text-align:right;padding:5px 4px;color:#3498db;font-weight:'+(ep>0?'700':'400')+'">'+(ep>0?ep+' ud':'—')+'</td>';})() +
+          (function(){
+  var k=l.material.toLowerCase();
+  var ep=enPedidoMap[k]||0;
+  var et=enTransitoMap[k]||0;
+  var epend=enPendienteMap[k]||0;
+  if(ep===0) return '<td style="text-align:right;padding:5px 4px;color:var(--text2)">—</td>';
+  var badges='';
+  if(et>0) badges+='<span style="background:#d6eaf8;color:#1a5276;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🔵 '+et+' ud</span> ';
+  if(epend>0) badges+='<span style="background:#fef9e7;color:#7d6608;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🟡 '+epend+' ud</span>';
+  return '<td style="padding:5px 4px;text-align:right">'+badges+'</td>';
+})() +
           '<td style="padding:5px 4px">'+
             '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
               '<button class="btn primary" style="font-size:10px;padding:3px 5px" title="Pedido/Salida" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
@@ -1414,11 +1447,15 @@ function renderHistObra(){
     var items=Array.isArray(h.items)?h.items:[];
     var an=h.anulada===true||h.anulada==='true';
     var realIdx=historial.indexOf(h);
-    var tipoLabel=h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega manual':h.tipo==='entrada'?'📦 Entrada':'🛒 Pedido';
-    var tipoClass=h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada'?'ok':'falta';
+    var est=h.tipo==='pedido'?getEstadoPedido(h):'';
+    var tipoLabel=h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega manual':h.tipo==='entrada'?'📦 Entrada':
+      est==='entregado'?'✅ Pedido entregado':est==='en_transito'?'🔵 Pedido en tránsito':'🟡 Pedido pendiente';
+    var tipoClass=h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada'?'ok':
+      est==='entregado'?'ok':est==='en_transito'?'':'falta';
+    var tipoStyle=est==='en_transito'?'background:#d6eaf8;color:#1a5276':'';
     return '<div class="card" style="margin-bottom:8px;'+(an?'opacity:.5;':'')+'">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">'+
-        '<span class="badge '+(an?'anulada':tipoClass)+'">'+(an?'ANULADA':tipoLabel)+'</span>'+
+        '<span class="badge '+(an?'anulada':tipoClass)+'" style="'+(an?'':tipoStyle)+'">'+(an?'ANULADA':tipoLabel)+'</span>'+
         (h.resp?'<span style="font-size:12px;color:var(--text2)">'+h.resp+'</span>':'')+
         '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
       '</div>'+
