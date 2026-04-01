@@ -1930,9 +1930,8 @@ function marcarEntregado(idx){
 function eliminarPedido(idx){
   if(!confirm('¿Eliminar este registro del historial?'))return;
   var h=historial[idx];
-  postAPI({action:'deleteHistorial',idx:idx,tipo:h.tipo,fecha:h.fecha,obra:h.obra},function(err,d){
+  postAPI({action:'deleteHistorial',rowIndex:h.rowIndex||0,tipo:h.tipo,fecha:h.fecha,obra:h.obra},function(err,d){
     if(err||!d||!d.ok){toast('Error al eliminar',true);return;}
-    // Recargar historial completo desde Sheets
     callAPI('getHistorial',function(err2,data2){
       if(!err2&&Array.isArray(data2)){historial=data2.reverse();}
       renderHist();
