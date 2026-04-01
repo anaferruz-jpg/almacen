@@ -1186,9 +1186,15 @@ function renderPartidas(){
     var est=getEstadoPedido(h);
     if(est==='entregado')return;
     (Array.isArray(h.items)?h.items:[]).forEach(function(item){
-      var k=(item.nombre||'').toLowerCase();
+      // Clave: partida+material para distinguir mismo material en distintas partidas
+      var kMat=(item.nombre||'').toLowerCase();
+      var kPart=(item.partida||'').toLowerCase();
+      var k= kPart ? kPart+'|||'+kMat : kMat;
+      // También guardar por material solo (para partidas sin referencia)
       if(!enPedidoMap[k])enPedidoMap[k]=0;
       enPedidoMap[k]+=(item.qty||0);
+      if(!enPedidoMap[kMat])enPedidoMap[kMat]=0;
+      // NO acumular por solo material - solo por clave exacta
       if(est==='en_transito'){
         if(!enTransitoMap[k])enTransitoMap[k]=0;
         enTransitoMap[k]+=(item.qty||0);
@@ -1241,7 +1247,9 @@ function renderPartidas(){
           '</td>'+
           '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend.toFixed(pend%1===0?0:2)+'</td>'+
           (function(){
-  var k=l.material.toLowerCase();
+  var kMat=l.material.toLowerCase();
+  var kPart=(l.partida||'').toLowerCase();
+  var k= kPart ? kPart+'|||'+kMat : kMat;
   var ep=enPedidoMap[k]||0;
   var et=enTransitoMap[k]||0;
   var epend=enPendienteMap[k]||0;
