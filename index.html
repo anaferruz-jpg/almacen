@@ -1868,7 +1868,7 @@ function marcarEntregado(idx){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
   h.entregado=true;h.estadoPedido='entregado';h.fechaEntrega=today;
-  postAPI({action:'marcarPedidoEntregado',idx:idx,fecha:h.fecha,obra:h.obra,fechaEntrega:today},function(err,d){
+  postAPI({action:'marcarPedidoEntregado',rowIndex:h.rowIndex||0,fecha:h.fecha,obra:h.obra,fechaEntrega:today,estadoPedido:'entregado'},function(err,d){
     if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
 
     // ── Pedido de ALMACÉN entregado → descuenta stock físico
@@ -2564,6 +2564,7 @@ function cambiarEstadoPedido(idx, nuevoEstado){
   // Guardar en Sheets en segundo plano
   postAPI({
     action:'marcarPedidoEntregado',
+    rowIndex:h.rowIndex||0,
     fecha:h.fecha,obra:h.obra,
     fechaEntrega:'',estadoPedido:nuevoEstado,
     fechaLimite:h.fechaLimite||''
@@ -2584,7 +2585,8 @@ function editarFechaLimite(idx){
   h.fechaLimite=fecha;
   postAPI({
     action:'marcarPedidoEntregado',
-    idx:idx,fecha:h.fecha,obra:h.obra,
+    rowIndex:h.rowIndex||0,
+    fecha:h.fecha,obra:h.obra,
     fechaEntrega:'',estadoPedido:h.estadoPedido||'pendiente',
     fechaLimite:fecha
   },function(err,d){
