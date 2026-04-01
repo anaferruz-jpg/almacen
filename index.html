@@ -2555,21 +2555,22 @@ function pedidoEnTransito(idx){
 function cambiarEstadoPedido(idx, nuevoEstado){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
+  // Actualizar estado local INMEDIATAMENTE para que se vea al instante
   h.estadoPedido=nuevoEstado;
+  h.entregado=false;
+  renderHist();
+  mostrarBannerCompras();
+  toast(nuevoEstado==='en_transito'?'🔵 Pedido marcado como realizado al proveedor':'Estado actualizado');
+  // Guardar en Sheets en segundo plano
   postAPI({
     action:'marcarPedidoEntregado',
     fecha:h.fecha,obra:h.obra,
     fechaEntrega:'',estadoPedido:nuevoEstado,
     fechaLimite:h.fechaLimite||''
   },function(err,d){
-    if(err||!d||!d.ok){toast('Error al actualizar estado',true);return;}
-    // Recargar desde Sheets para que el estado persista correctamente
-    callAPI('getHistorial',function(err2,data2){
-      if(!err2&&Array.isArray(data2))historial=data2.reverse();
-      renderHist();
-      mostrarBannerCompras();
-      toast('🔵 Pedido en tránsito — realizado al proveedor');
-    });
+    if(err||!d||!d.ok){
+      toast('⚠️ Guardado local OK pero error al sincronizar con Sheets',true);
+    }
   });
 }
 
