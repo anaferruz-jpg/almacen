@@ -1926,25 +1926,28 @@ function marcarEntregado(idx){
     if(obraObj&&obraObj.partidas&&Array.isArray(h.items)){
       var modificado=false;
       h.items.forEach(function(item){
-        // 1. Si tiene pidx exacto (pedido desde partida) → usar directamente
+        // Solo descontar si tiene pidx exacto (pedido hecho desde la partida)
         if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
           obraObj.partidas[item.pidx].suministrado=(obraObj.partidas[item.pidx].suministrado||0)+(item.qty||0);
           modificado=true;
-        } else {
-          // 2. Si no tiene pidx → buscar partida por nombre de material
-          var matches=obraObj.partidas.filter(function(p){
+        } else if(item.partida){
+          // Si tiene nombre de partida, buscar coincidencia exacta por partida+material
+          var match=obraObj.partidas.find(function(p){
             var nm=(item.nombre||'').toLowerCase();
             var pm=(p.material||'').toLowerCase();
-            return nm===pm||nm.indexOf(pm)>=0||pm.indexOf(nm)>=0;
+            var ppart=(p.partida||'').toLowerCase();
+            var ipart=(item.partida||'').toLowerCase();
+            return nm===pm && ppart===ipart;
           });
-          if(matches.length===1){
-            // Coincidencia única → descontar automáticamente
-            matches[0].suministrado=(matches[0].suministrado||0)+(item.qty||0);
+          if(match){
+            match.suministrado=(match.suministrado||0)+(item.qty||0);
             modificado=true;
-          } else if(matches.length>1){
-            // Varias coincidencias → pedir que seleccione manualmente
-            toast('⚠️ '+item.nombre+' coincide con varias partidas — actualiza manualmente en la obra',true);
+          } else {
+            toast('⚠️ Actualiza manualmente la partida de '+item.nombre+' en la obra',true);
           }
+        } else {
+          // Sin referencia de partida → no tocar automáticamente, avisar
+          toast('⚠️ Pedido entregado — actualiza manualmente la partida de '+item.nombre+' en la obra',true);
         }
       });
       if(modificado){
