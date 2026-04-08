@@ -172,7 +172,6 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <button class="tab-btn" onclick="showTab('cobros',this)">💰 Cobros</button>
   <button class="tab-btn" onclick="showTab('margen',this)">📈 Margen</button>
   <button class="tab-btn" onclick="showTab('export',this)">📤 Gestoría</button>
-  <button class="tab-btn" onclick="showTab('config',this)">⚙️ Config</button>
   <button class="tab-btn" onclick="showTab('clientes',this)">👥 Clientes</button>
   <button class="tab-btn" onclick="showTab('proveedores',this)">🏭 Proveedores</button>
   <button class="tab-btn" onclick="showTab('gastos_internos',this)">🏢 Gastos internos</button>
@@ -327,28 +326,6 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <div class="card" id="preview-export" style="display:none">
     <div class="card-title">Vista previa del resumen</div>
     <div id="preview-export-content"></div>
-  </div>
-</div>
-
-<!-- ══════ CONFIG ══════ -->
-<div id="tab-config" class="panel">
-  <p style="font-size:15px;font-weight:600;font-family:Playfair Display,serif;margin-bottom:12px">⚙️ Configuración</p>
-  <div class="card">
-    <div class="card-title">🤖 Clave API de IA (Claude)</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Necesaria para leer facturas automáticamente con IA (escaneo de imágenes/PDF). Se guarda solo en este navegador.</p>
-    <div class="form-group" style="max-width:480px">
-      <label>API Key de Anthropic</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="password" id="cfg-apikey" placeholder="sk-ant-..." style="flex:1;font-family:monospace;font-size:13px">
-        <button class="btn" id="cfg-apikey-toggle" onclick="toggleApiKeyVis()" style="padding:6px 10px;font-size:13px">👁</button>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin-top:6px">Obtén tu clave en <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--brand2)">console.anthropic.com</a></p>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-      <button class="btn primary" onclick="guardarApiKey()">💾 Guardar clave</button>
-      <button class="btn" onclick="borrarApiKey()" style="color:var(--danger);border-color:var(--danger)">🗑 Borrar</button>
-      <span id="cfg-apikey-status" style="font-size:12px;color:var(--text2)"></span>
-    </div>
   </div>
 </div>
 
@@ -904,37 +881,6 @@ function setSyncBadge(st, msg) {
   b.className = 'sync-badge ' + st;
   b.innerHTML = (st === 'loading' ? '<span class="spinner"></span>' : '') + msg;
 }
-// ── API KEY CONFIG ──────────────────────────────────────
-function getApiKey() {
-  return localStorage.getItem('segufija_anthropic_key') || '';
-}
-function guardarApiKey() {
-  var val = document.getElementById('cfg-apikey').value.trim();
-  if (!val) { document.getElementById('cfg-apikey-status').textContent = '⚠️ Introduce una clave'; return; }
-  localStorage.setItem('segufija_anthropic_key', val);
-  document.getElementById('cfg-apikey-status').textContent = '✅ Guardada correctamente';
-  setTimeout(function(){ document.getElementById('cfg-apikey-status').textContent = ''; }, 3000);
-}
-function borrarApiKey() {
-  localStorage.removeItem('segufija_anthropic_key');
-  document.getElementById('cfg-apikey').value = '';
-  document.getElementById('cfg-apikey-status').textContent = '🗑 Clave eliminada';
-  setTimeout(function(){ document.getElementById('cfg-apikey-status').textContent = ''; }, 3000);
-}
-function toggleApiKeyVis() {
-  var inp = document.getElementById('cfg-apikey');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-// Cargar clave guardada al iniciar
-(function() {
-  var saved = getApiKey();
-  if (saved) {
-    var el = document.getElementById('cfg-apikey');
-    if (el) el.value = saved;
-  }
-})();
-// ──────────────────────────────────────────────────────
-
 function toast(msg, isError) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -965,20 +911,13 @@ function nextNumFac() {
 
 function recargarTodo() {
   setSyncBadge('loading', 'Cargando...');
-  loadLocal();
-  loadLocalContactos();
-  loadGastosInternos();
-  callAPI('getObras', function(err, data) {
-    if (!err && Array.isArray(data)) {
-      OBRAS = data;
-    } else {
-      OBRAS = [
-        {nombre:'ARCADI PLA ST ADRIA'},{nombre:'GRUP MAS ST JOAN DESPI'},
-        {nombre:'LUIS PARES LLORET'},{nombre:'VOPI 4 CUNIT'},{nombre:'CORP ABRERA'}
-      ];
-    }
+  // Cargar todo desde Sheets en paralelo
+  var pendientes = 6;
+  function check() { pendientes--; if (pendientes <= 0) { renderTodo(); setSyncBadge('ok', 'Conectado ✓'); } }
+  function renderTodo() {
     actualizarSelectsObras();
-    setSyncBadge('ok', 'Conectado');
+    actualizarSelectClientes();
+    actualizarSelectProveedores();
     renderDashboard();
     renderFacturas();
     renderGastos();
@@ -987,9 +926,57 @@ function recargarTodo() {
     renderClientes();
     renderProveedores();
     renderGastosInternos();
-    actualizarSelectClientes();
-    actualizarSelectProveedores();
     mostrarBannerAlertas();
+  }
+
+  callAPI('getObras', function(err, data) {
+    OBRAS = (!err && Array.isArray(data)) ? data : [{nombre:'ARCADI PLA ST ADRIA'},{nombre:'GRUP MAS ST JOAN DESPI'},{nombre:'LUIS PARES LLORET'},{nombre:'VOPI 4 CUNIT'},{nombre:'CORP ABRERA'}];
+    check();
+  });
+  callAPI('getFacturas', function(err, data) {
+    if (!err && Array.isArray(data)) {
+      facturas = data;
+      try { localStorage.setItem('sf_facturas', JSON.stringify(facturas)); } catch(e) {}
+    } else {
+      try { facturas = JSON.parse(localStorage.getItem('sf_facturas') || '[]'); } catch(e) { facturas = []; }
+    }
+    check();
+  });
+  callAPI('getGastos', function(err, data) {
+    if (!err && Array.isArray(data)) {
+      gastos = data;
+      try { localStorage.setItem('sf_gastos', JSON.stringify(gastos)); } catch(e) {}
+    } else {
+      try { gastos = JSON.parse(localStorage.getItem('sf_gastos') || '[]'); } catch(e) { gastos = []; }
+    }
+    check();
+  });
+  callAPI('getClientes', function(err, data) {
+    if (!err && Array.isArray(data)) {
+      clientes = data;
+      try { localStorage.setItem('sf_clientes', JSON.stringify(clientes)); } catch(e) {}
+    } else {
+      try { clientes = JSON.parse(localStorage.getItem('sf_clientes') || '[]'); } catch(e) { clientes = []; }
+    }
+    check();
+  });
+  callAPI('getProveedores', function(err, data) {
+    if (!err && Array.isArray(data)) {
+      proveedores = data;
+      try { localStorage.setItem('sf_proveedores', JSON.stringify(proveedores)); } catch(e) {}
+    } else {
+      try { proveedores = JSON.parse(localStorage.getItem('sf_proveedores') || '[]'); } catch(e) { proveedores = []; }
+    }
+    check();
+  });
+  callAPI('getGastosInt', function(err, data) {
+    if (!err && Array.isArray(data)) {
+      gastosInternos = data;
+      try { localStorage.setItem('sf_gastos_internos', JSON.stringify(gastosInternos)); } catch(e) {}
+    } else {
+      try { gastosInternos = JSON.parse(localStorage.getItem('sf_gastos_internos') || '[]'); } catch(e) { gastosInternos = []; }
+    }
+    check();
   });
 }
 
@@ -1193,9 +1180,11 @@ function guardarFactura(estado) {
     estado: estado,
     creada: new Date().toISOString()
   };
-  if (_facIdx >= 0) { facturas[_facIdx] = fac; }
+  if (!fac.id) fac.id = 'FAC-' + Date.now();
+  if (_facIdx >= 0) { fac.id = facturas[_facIdx].id || fac.id; facturas[_facIdx] = fac; }
   else { facturas.push(fac); }
   saveFacturas();
+  saveFacturaSheets(fac);
   cerrarModalFactura();
   renderFacturas();
   renderDashboard();
@@ -1238,6 +1227,7 @@ function marcarCobrada(idx) {
   facturas[idx].estado = 'cobrada';
   facturas[idx].fechaCobro = today;
   saveFacturas();
+  saveFacturaSheets(facturas[idx]);
   renderFacturas();
   renderDashboard();
   toast('✅ Factura marcada como cobrada');
@@ -1245,8 +1235,10 @@ function marcarCobrada(idx) {
 
 function eliminarFactura(idx) {
   if (!confirm('¿Eliminar esta factura? No se puede deshacer.')) return;
+  var facId = facturas[idx].id;
   facturas.splice(idx, 1);
   saveFacturas();
+  if (facId) deleteFacturaSheets(facId);
   renderFacturas();
   renderDashboard();
   toast('Factura eliminada');
@@ -1367,7 +1359,8 @@ function guardarGasto() {
   var iva = base * pctIva / 100;
   var btn = document.getElementById('btn-gas-guardar');
   btn.disabled = true; btn.textContent = 'Guardando...';
-  gastos.push({
+  var nuevoGasto = {
+    id: 'GAS-' + Date.now(),
     proveedor: prov,
     numFac: document.getElementById('gas-numfac').value.trim(),
     obra: document.getElementById('gas-obra').value,
@@ -1378,8 +1371,10 @@ function guardarGasto() {
     estado: document.getElementById('gas-estado').value,
     obs: document.getElementById('gas-obs').value.trim(),
     creado: new Date().toISOString()
-  });
+  };
+  gastos.push(nuevoGasto);
   saveGastos();
+  saveGastoSheets(nuevoGasto);
   btn.disabled = false; btn.textContent = '✅ Registrar gasto';
   cerrarModalGasto();
   renderGastos();
@@ -1425,6 +1420,7 @@ function marcarPagado(idx) {
   gastos[idx].estado = 'pagado';
   gastos[idx].fechaPago = today;
   saveGastos();
+  saveGastoSheets(gastos[idx]);
   renderGastos();
   renderDashboard();
   toast('✅ Gasto marcado como pagado');
@@ -1432,8 +1428,10 @@ function marcarPagado(idx) {
 
 function eliminarGasto(idx) {
   if (!confirm('¿Eliminar este gasto?')) return;
+  var gasId = gastos[idx].id;
   gastos.splice(idx, 1);
   saveGastos();
+  if (gasId) deleteGastoSheets(gasId);
   renderGastos();
   renderDashboard();
   toast('Gasto eliminado');
@@ -1775,8 +1773,10 @@ function guardarGastoInterno() {
     obs: document.getElementById('gi-obs').value.trim(),
     creado: new Date().toISOString()
   };
-  if (_giIdx >= 0) { gastosInternos[_giIdx] = g; } else { gastosInternos.push(g); }
+  if (!g.id) g.id = 'GI-' + Date.now();
+  if (_giIdx >= 0) { g.id = gastosInternos[_giIdx].id || g.id; gastosInternos[_giIdx] = g; } else { gastosInternos.push(g); }
   saveGastosInternos();
+  saveGastoInternoSheets(g);
   cerrarModalGastoInterno();
   renderGastosInternos();
   toast('✅ Gasto interno registrado');
@@ -2048,11 +2048,13 @@ function guardarCliente() {
     obs: document.getElementById('cli-obs').value.trim(),
     actualizado: new Date().toISOString()
   };
+  var nombreOriginal = _cliIdx >= 0 ? clientes[_cliIdx].nombre : null;
+  if (nombreOriginal) c.nombreOriginal = nombreOriginal;
   if (_cliIdx >= 0) { clientes[_cliIdx] = c; } else { clientes.push(c); }
   saveClientes();
+  saveClienteSheets(c);
   cerrarModalCliente();
   renderClientes();
-  // Actualizar select de clientes en facturas
   actualizarSelectClientes();
   toast('✅ Cliente guardado: ' + nombre);
 }
@@ -2173,8 +2175,11 @@ function guardarProveedor() {
     obs: document.getElementById('prov-obs').value.trim(),
     actualizado: new Date().toISOString()
   };
+  var nombreOrigProv = _provIdx >= 0 ? proveedores[_provIdx].nombre : null;
+  if (nombreOrigProv) p.nombreOriginal = nombreOrigProv;
   if (_provIdx >= 0) { proveedores[_provIdx] = p; } else { proveedores.push(p); }
   saveProveedores();
+  saveProveedorSheets(p);
   cerrarModalProveedor();
   renderProveedores();
   actualizarSelectProveedores();
@@ -2310,7 +2315,7 @@ function leerFacturaIA(file) {
     var apiKey = getApiKey();
     if (!apiKey) {
       document.getElementById('scan-status-txt').textContent = '⚠️ Configura tu API key en la pestaña ⚙️ Config';
-      document.getElementById('scan-status').style.display = 'flex';
+      document.getElementById('scan-status').style.display = 'block';
       return;
     }
     fetch('https://api.anthropic.com/v1/messages', {
@@ -2400,7 +2405,7 @@ function leerFacturaEmitidaIA(file) {
     var apiKey2 = getApiKey();
     if (!apiKey2) {
       document.getElementById('scan-status-fac-txt').textContent = '⚠️ Configura tu API key en la pestaña ⚙️ Config';
-      document.getElementById('scan-status-fac').style.display = 'flex';
+      document.getElementById('scan-status-fac').style.display = 'block';
       return;
     }
     fetch('https://api.anthropic.com/v1/messages', {
