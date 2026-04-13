@@ -843,7 +843,7 @@ function getOrCreateFolder(parent, name) {
 }
 
 function getCarpetaRaiz() {
-  return DriveApp.getFolderById('0AFRptXNPzpzQUk9PVA');
+  return DriveApp.getFolderById('1Cugq_7FKtzFj9_jiVeT16YVO-SNmf1h8'); // Carpeta ALMACEN en Drive compartido SEGUFIJA
 }
 
 function saveFileToDrive(data) {
