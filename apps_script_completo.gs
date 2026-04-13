@@ -834,47 +834,27 @@ function ocrFactura(data) {
 }
 
 // ══════════════════════════════════════════════════════
-// GOOGLE DRIVE — GUARDADO DE DOCUMENTOS (Shared Drive)
+// GOOGLE DRIVE — GUARDADO DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
 var CARPETA_RAIZ_ID = '1Cugq_7FKtzFj9_jiVeT16YVO-SNmf1h8'; // Carpeta ALMACEN en Drive compartido SEGUFIJA
 
-function getOrCreateFolder(parentId, name) {
-  var q = "mimeType='application/vnd.google-apps.folder' and title='" + name.replace(/'/g, "\\'") + "' and '" + parentId + "' in parents and trashed=false";
-  var res = Drive.Files.list({
-    q: q,
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-    fields: 'items(id)'
-  });
-  if (res.items && res.items.length > 0) return res.items[0].id;
-  var folder = Drive.Files.insert(
-    { title: name, mimeType: 'application/vnd.google-apps.folder', parents: [{ id: parentId }] },
-    null,
-    { supportsAllDrives: true }
-  );
-  return folder.id;
+function getOrCreateFolder(parent, name) {
+  var folders = parent.getFoldersByName(name);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(name);
 }
 
 function saveFileToDrive(data) {
   try {
-    var parentId = CARPETA_RAIZ_ID;
+    var current = DriveApp.getFolderById(CARPETA_RAIZ_ID);
     for (var i = 0; i < (data.carpeta || []).length; i++) {
-      parentId = getOrCreateFolder(parentId, data.carpeta[i]);
+      current = getOrCreateFolder(current, data.carpeta[i]);
     }
     var decoded = Utilities.base64Decode(data.base64);
     var blob = Utilities.newBlob(decoded, data.mimeType, data.fileName);
-    var file = Drive.Files.insert(
-      { title: data.fileName, parents: [{ id: parentId }] },
-      blob,
-      { supportsAllDrives: true }
-    );
-    Drive.Permissions.insert(
-      { role: 'reader', type: 'anyone' },
-      file.id,
-      { supportsAllDrives: true }
-    );
-    var url = 'https://drive.google.com/file/d/' + file.id + '/view';
-    return { ok: true, url: url, id: file.id, nombre: data.fileName };
+    var file = current.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return { ok: true, url: file.getUrl(), id: file.getId(), nombre: data.fileName };
   } catch(e) {
     return { ok: false, error: e.toString() };
   }
