@@ -836,7 +836,7 @@ function ocrFactura(data) {
 // ══════════════════════════════════════════════════════
 // GOOGLE DRIVE — GUARDADO DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
-var CARPETA_RAIZ_ID = '1Cugq_7FKtzFj9_jiVeT16YVO-SNmf1h8'; // Carpeta ALMACEN en Drive compartido SEGUFIJA
+var CARPETA_RAIZ_ID = '1VOzHctjI9aOeeQxxRXrpqB3caEIxu88l'; // Carpeta ALMACEN APP en Drive compartido SEGUFIJA
 
 function getOrCreateFolder(parent, name) {
   var folders = parent.getFoldersByName(name);
