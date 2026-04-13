@@ -2224,7 +2224,7 @@ function subirDocObra(){
       id:'DO-'+Date.now()
     },function(err,res){
       btn.disabled=false; btn.textContent='⬆️ Subir a Drive';
-      if(err||!res||!res.ok){toast('Error al subir el archivo',true);return;}
+      if(err||!res||!res.ok){toast('Error: '+(res&&res.error?res.error:err?err.message:'sin respuesta'),true);return;}
       document.getElementById('doc-obra-file').value='';
       document.getElementById('doc-obra-obs').value='';
       renderDocsObra();
