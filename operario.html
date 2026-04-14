@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SEGUFIJA — Almacén Operario</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#c4621a;--accent-light:#fdeede;--danger:#c0392b;--danger-light:#fce8e6;--success:#5a8a2e;--success-light:#eaf3de;--warn:#e67e22;--border:#e0d0c0;--text:#2b1a0e;--text2:#7a5c3e;--bg:#fff;--bg2:#f5f0eb}
+body{font-family:system-ui,sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;padding-bottom:72px}
+.topbar{background:#5c2d0e;padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.topbar h1{color:#fff;font-size:15px;font-weight:700;flex:1}
+.sync{font-size:11px;padding:3px 9px;border-radius:4px;background:rgba(255,255,255,.2);color:#fff;white-space:nowrap}
+.sync.ok{background:rgba(90,138,46,.4);color:#c8f0a0}
+.sync.err{background:rgba(192,57,43,.5);color:#ffcccc}
+.botnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid var(--border);display:flex;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.08)}
+.botnav button{flex:1;padding:9px 4px 7px;border:none;background:none;cursor:pointer;font-size:10px;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:2px}
+.botnav button .ico{font-size:21px;line-height:1}
+.botnav button.active{color:var(--accent);font-weight:700}
+.panel{display:none;padding:12px}
+.panel.active{display:block}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.fg label{font-size:12px;color:var(--text2);font-weight:500}
+.fg select,.fg input,.fg textarea{padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);width:100%}
+.fg select:focus,.fg input:focus{border-color:var(--accent);outline:none}
+.search-inp{padding:12px 14px;font-size:15px;border:1.5px solid var(--border);border-radius:12px;width:100%;background:var(--bg);margin-bottom:6px}
+.search-results{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);margin-bottom:8px}
+.sr-item{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.sr-item:last-child{border:none}
+.sr-item:active{background:var(--accent-light)}
+.item-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.item-row:last-child{border:none}
+.item-nombre{flex:1;font-size:13px;font-weight:500;line-height:1.3}
+.qty-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.qty-ctrl button{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:#f0ebe5;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-ctrl input{width:52px;text-align:center;padding:4px;font-size:16px;font-weight:700;border:1px solid var(--border);border-radius:8px}
+.del-btn{width:32px;height:32px;border:1px solid var(--danger);border-radius:8px;background:var(--danger-light);color:var(--danger);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-big{width:100%;padding:14px;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer;margin-top:8px}
+.btn-big.primary{background:var(--accent);color:#fff}
+.btn-big.primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-big.secondary{background:var(--bg);border:1.5px solid var(--border);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);color:var(--text)}
+.tipo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tipo-btn{padding:12px;font-size:13px;font-weight:600;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;text-align:center;background:var(--bg);color:var(--text)}
+.tipo-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.stock-item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:14px}
+.stock-item:last-child{border:none}
+.stock-num{font-weight:700;font-size:19px;text-align:right}
+.stock-num.ok{color:var(--success)}
+.stock-num.bajo{color:var(--warn)}
+.stock-num.cero{color:var(--danger)}
+.obra-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:8px}
+.obra-card-head{font-size:14px;font-weight:700;display:flex;justify-content:space-between;margin-bottom:6px}
+.obra-tags{display:flex;flex-wrap:wrap;gap:4px}
+.obra-tag{background:var(--accent-light);color:var(--accent);border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--accent);color:#fff;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;transition:all .2s;z-index:9999;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--danger)}
+.sec-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+.badge.ok{background:var(--success-light);color:var(--success)}
+.badge.warn{background:var(--accent-light);color:var(--accent)}
+.badge.danger{background:var(--danger-light);color:var(--danger)}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:2rem;text-align:center;color:var(--text2);font-size:14px}
+.warn-box{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#856404;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📦 Almacén SEGUFIJA</h1>
+  <button class="btn-sm" style="color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);font-size:11px" onclick="recargar()">🔄</button>
+  <span class="sync" id="sync-badge">Cargando...</span>
+</div>
+
+<!-- STOCK -->
+<div class="panel active" id="panel-stock">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="sec-title" style="margin:0">Stock del almacén</div>
+  </div>
+  <input type="text" class="search-inp" id="stock-buscar" placeholder="🔍 Filtrar material..." oninput="renderStock()">
+  <div class="card" id="stock-lista"><div class="empty">Cargando...</div></div>
+</div>
+
+<!-- SALIDA -->
+<div class="panel" id="panel-salida">
+  <p class="sec-title" style="margin-top:0">Sacar material del almacén a obra</p>
+  <div class="card">
+    <div class="fg">
+      <label>Obra destino *</label>
+      <select id="sal-obra"><option value="">Seleccionar obra...</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="fg"><label>Fecha</label><input type="date" id="sal-fecha"></div>
+      <div class="fg"><label>Responsable</label><input type="text" id="sal-resp" placeholder="Tu nombre..."></div>
+    </div>
+  </div>
+  <p class="sec-title">Buscar material</p>
+  <input type="text" class="search-inp" id="sal-buscar" placeholder="🔍 Escribe el nombre..." oninput="renderSearchSal()">
+  <div id="sal-search-res"></div>
+  <div class="card" id="sal-carrito-card" style="display:none">
+    <div class="card-title">Material seleccionado</div>
+    <div id="sal-items"></div>
+    <button class="btn-big secondary" onclick="limpiarSal()">🗑 Limpiar lista</button>
+    <button class="btn-big primary" id="btn-sal" onclick="registrarSalida()">⬆️ Registrar salida</button>
+  </div>
+</div>
+
+<!-- ENTRADA -->
+<div class="panel" id="panel-entrada">
+  <p class="sec-title" style="margin-top:0">¿De dónde viene el material?</p>
+  <div class="tipo-btns">
+    <button class="tipo-btn active" id="tipo-prov-btn" onclick="setTipoEntrada('proveedor')">🚚 De proveedor<br><span style="font-size:10px;font-weight:400">entra al almacén</span></button>
+    <button class="tipo-btn" id="tipo-obra-btn" onclick="setTipoEntrada('obra')">↩️ Desde obra<br><span style="font-size:10px;font-weight:400">devolución al almacén</span></button>
+  </div>
+
+  <div id="ent-prov-section">
+    <div class="card">
+      <div class="fg">
+        <label>Proveedor</label>
+        <select id="ent-prov">
+          <option value="">Seleccionar...</option>
+          <option>VISORNETS</option><option>LEON DE ORO</option>
+          <option>UNETRAMESAS</option><option>MULTIGARBEN</option>
+          <option>TORRES Y SAEZ</option><option>WURTH INDEXFIX</option>
+          <option>MARCELINO</option><option>INDE-K</option>
+          <option>CV TOOLS</option><option>AMAZON / BRICODEPOT</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label>Fecha</label><input type="date" id="ent-fecha"></div>
+        <div class="fg"><label>Nº Albarán</label><input type="text" id="ent-ref" placeholder="Referencia..."></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ent-obra-section" style="display:none">
+    <div class="card">
+      <div class="fg">
+        <label>Obra que devuelve material *</label>
+        <select id="ent-obra"><option value="">Seleccionar obra...</option></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg"><label>Fecha</label><input type="date" id="ent-obra-fecha"></div>
+        <div class="fg"><label>Responsable</label><input type="text" id="ent-obra-resp" placeholder="Nombre..."></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="sec-title">Buscar material</p>
+  <input type="text" class="search-inp" id="ent-buscar" placeholder="🔍 Escribe el nombre..." oninput="renderSearchEnt()">
+  <div id="ent-search-res"></div>
+  <div class="card" id="ent-carrito-card" style="display:none">
+    <div class="card-title">Material que entra al stock</div>
+    <div id="ent-items"></div>
+    <button class="btn-big secondary" onclick="limpiarEnt()">🗑 Limpiar lista</button>
+    <button class="btn-big primary" id="btn-ent" onclick="registrarEntrada()">📦 Registrar entrada</button>
+  </div>
+</div>
+
+<!-- TRASPASO -->
+<div class="panel" id="panel-traspaso">
+  <p class="sec-title" style="margin-top:0">Traspasar material entre obras</p>
+  <div class="warn-box">⚠️ El traspaso <strong>no modifica el stock del almacén</strong>. Solo queda anotado en el historial de ambas obras.</div>
+  <div class="card">
+    <div class="fg">
+      <label>Obra origen (de dónde sale) *</label>
+      <select id="trasp-origen"><option value="">Seleccionar...</option></select>
+    </div>
+    <div class="fg">
+      <label>Obra destino (a dónde va) *</label>
+      <select id="trasp-destino"><option value="">Seleccionar...</option></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="fg"><label>Fecha</label><input type="date" id="trasp-fecha"></div>
+      <div class="fg"><label>Responsable</label><input type="text" id="trasp-resp" placeholder="Nombre..."></div>
+    </div>
+  </div>
+  <p class="sec-title">Buscar material</p>
+  <input type="text" class="search-inp" id="trasp-buscar" placeholder="🔍 Escribe el nombre..." oninput="renderSearchTrasp()">
+  <div id="trasp-search-res"></div>
+  <div class="card" id="trasp-carrito-card" style="display:none">
+    <div class="card-title">Material a traspasar</div>
+    <div id="trasp-items"></div>
+    <button class="btn-big secondary" onclick="limpiarTrasp()">🗑 Limpiar lista</button>
+    <button class="btn-big primary" id="btn-trasp" onclick="registrarTraspaso()">↔️ Registrar traspaso</button>
+  </div>
+</div>
+
+<!-- POR OBRA -->
+<div class="panel" id="panel-obras">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div class="sec-title" style="margin:0">Material por obra</div>
+    <button class="btn-sm" onclick="renderObras()">🔄 Actualizar</button>
+  </div>
+  <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Material neto en cada obra activa (salidas menos devoluciones).</p>
+  <div id="obras-lista"><div class="empty">Cargando...</div></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="botnav">
+  <button class="active" id="nav-stock" onclick="showPanel('stock',this)">
+    <span class="ico">📊</span>Stock
+  </button>
+  <button id="nav-salida" onclick="showPanel('salida',this)">
+    <span class="ico">⬆️</span>Salida
+  </button>
+  <button id="nav-entrada" onclick="showPanel('entrada',this)">
+    <span class="ico">📦</span>Entrada
+  </button>
+  <button id="nav-traspaso" onclick="showPanel('traspaso',this)">
+    <span class="ico">↔️</span>Traspaso
+  </button>
+  <button id="nav-obras" onclick="showPanel('obras',this)">
+    <span class="ico">🏗️</span>Por obra
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API='https://script.google.com/macros/s/AKfycbzINF8297a8gaGlZimxb3rwu-gmRFWpZVzvOSP0ezucVS-kolHOA-3YkuUOAOwTUlIY/exec';
+var inventario=[],historial=[],OBRAS=[];
+var salItems=[],entItems=[],traspItems=[];
+var tipoEntrada='proveedor';
+var today=new Date().toISOString().split('T')[0];
+
+function callAPI(a,cb){fetch(API+'?action='+a).then(function(r){return r.json();}).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});}
+function postAPI(d,cb){fetch(API,{method:'POST',body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(x){cb(null,x);}).catch(function(e){cb(e,null);});}
+
+function toast(msg,err){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast'+(err?' err':'');
+  void t.offsetWidth;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.botnav button').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='obras')renderObras();
+  if(id==='stock')renderStock();
+}
+
+function setSyncBadge(estado,txt){
+  var el=document.getElementById('sync-badge');
+  el.className='sync'+(estado==='ok'?' ok':estado==='err'?' err':'');
+  el.textContent=txt;
+}
+
+function recargar(){
+  setSyncBadge('','Cargando...');
+  var p=3;
+  function check(){p--;if(p<=0){setSyncBadge('ok','✓ Conectado');renderStock();renderObras();populateSelects();}}
+  callAPI('getInventario',function(err,d){
+    if(!err&&Array.isArray(d))inventario=d;
+    else setSyncBadge('err','Sin conexión');
+    check();
+  });
+  callAPI('getHistorial',function(err,d){if(!err&&Array.isArray(d))historial=d;check();});
+  callAPI('getObras',function(err,d){if(!err&&Array.isArray(d))OBRAS=d;check();});
+}
+
+function populateSelects(){
+  var obras=OBRAS.filter(function(o){return o.estado!=='cerrada';});
+  var opts='<option value="">Seleccionar obra...</option>'+obras.map(function(o){
+    return '<option value="'+o.nombre+'">'+o.nombre+'</option>';
+  }).join('');
+  ['sal-obra','ent-obra','trasp-origen','trasp-destino'].forEach(function(id){
+    var s=document.getElementById(id);if(!s)return;
+    var v=s.value;s.innerHTML=opts;s.value=v;
+  });
+}
+
+/* ── STOCK ── */
+function renderStock(){
+  var q=(document.getElementById('stock-buscar').value||'').toLowerCase();
+  var lista=inventario.filter(function(i){return !q||i.nombre.toLowerCase().indexOf(q)!==-1;});
+  lista.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
+  var cont=document.getElementById('stock-lista');
+  if(!lista.length){cont.innerHTML='<div class="empty">Sin resultados</div>';return;}
+  cont.innerHTML=lista.map(function(i){
+    var cls=i.stock<=0?'cero':i.stock<=(i.stockMin||0)&&i.stockMin>0?'bajo':'ok';
+    var badge=i.stock<=0?'<span class="badge danger">Sin stock</span>':
+      (i.stockMin>0&&i.stock<=i.stockMin?'<span class="badge warn">Stock bajo</span>':'');
+    return '<div class="stock-item">'+
+      '<div><div style="font-size:14px">'+i.nombre+'</div>'+badge+'</div>'+
+      '<div class="stock-num '+cls+'">'+i.stock+' <span style="font-size:11px;font-weight:400">ud</span></div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── HELPER: BÚSQUEDA Y LISTA ── */
+function renderSearch(q,contId,addFn,showStock){
+  var cont=document.getElementById(contId);
+  if(!q||q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q.toLowerCase())!==-1;}).slice(0,8);
+  if(!res.length){cont.innerHTML='<div style="padding:12px;font-size:13px;color:var(--text2)">Sin resultados</div>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    var info=showStock?(i.stock>0?'<span style="color:var(--success);font-size:12px">'+i.stock+' ud</span>':'<span style="color:var(--danger);font-size:12px">Sin stock</span>'):'';
+    return '<div class="sr-item" onclick="'+addFn+'(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')" style="'+(showStock&&i.stock===0?'opacity:.55':'')+'">'+
+      '<span>'+i.nombre+'</span>'+info+'</div>';
+  }).join('')+'</div>';
+}
+
+function renderItemsList(items,contId,chgFn,delFn,cardId){
+  var cont=document.getElementById(contId);
+  var card=document.getElementById(cardId);
+  if(!items.length){if(cont)cont.innerHTML='';if(card)card.style.display='none';return;}
+  if(card)card.style.display='block';
+  cont.innerHTML=items.map(function(c,i){
+    return '<div class="item-row">'+
+      '<span class="item-nombre">'+c.nombre+'</span>'+
+      '<div class="qty-ctrl">'+
+        '<button onclick="'+chgFn+'('+i+',-1)">−</button>'+
+        '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="'+chgFn+'('+i+',0,this.value)">'+
+        '<button onclick="'+chgFn+'('+i+',1)">+</button>'+
+      '</div>'+
+      '<button class="del-btn" onclick="'+delFn+'('+i+')">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── SALIDA ── */
+document.getElementById('sal-fecha').value=today;
+function renderSearchSal(){renderSearch(document.getElementById('sal-buscar').value,'sal-search-res','addSal',true);}
+function addSal(n){
+  var ex=salItems.find(function(c){return c.nombre===n;});
+  if(ex){ex.qty++;}else{salItems.push({nombre:n,qty:1});}
+  renderItemsList(salItems,'sal-items','chgSal','delSal','sal-carrito-card');
+  document.getElementById('sal-buscar').value='';document.getElementById('sal-search-res').innerHTML='';
+}
+function chgSal(i,d,v){salItems[i].qty=Math.max(1,v!==undefined?parseInt(v)||1:salItems[i].qty+d);renderItemsList(salItems,'sal-items','chgSal','delSal','sal-carrito-card');}
+function delSal(i){salItems.splice(i,1);renderItemsList(salItems,'sal-items','chgSal','delSal','sal-carrito-card');}
+function limpiarSal(){salItems=[];renderItemsList(salItems,'sal-items','chgSal','delSal','sal-carrito-card');}
+
+function registrarSalida(){
+  var obra=document.getElementById('sal-obra').value;
+  var fecha=document.getElementById('sal-fecha').value;
+  var resp=document.getElementById('sal-resp').value;
+  if(!obra){toast('Selecciona una obra',true);return;}
+  if(!salItems.length){toast('Añade material primero',true);return;}
+  var btn=document.getElementById('btn-sal');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Guardando...';
+  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:salItems},function(err,data){
+    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='⬆️ Registrar salida';return;}
+    postAPI({action:'updateStock',items:salItems},function(){
+      salItems.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=Math.max(0,(it.stock||0)-c.qty);});
+      limpiarSal();renderStock();
+      document.getElementById('sal-obra').value='';document.getElementById('sal-resp').value='';
+      btn.disabled=false;btn.textContent='⬆️ Registrar salida';
+      toast('✅ Salida registrada');
+    });
+  });
+}
+
+/* ── ENTRADA / DEVOLUCIÓN ── */
+document.getElementById('ent-fecha').value=today;
+document.getElementById('ent-obra-fecha').value=today;
+
+function setTipoEntrada(tipo){
+  tipoEntrada=tipo;
+  document.getElementById('ent-prov-section').style.display=tipo==='proveedor'?'':'none';
+  document.getElementById('ent-obra-section').style.display=tipo==='obra'?'':'none';
+  document.getElementById('tipo-prov-btn').className='tipo-btn'+(tipo==='proveedor'?' active':'');
+  document.getElementById('tipo-obra-btn').className='tipo-btn'+(tipo==='obra'?' active':'');
+}
+
+function renderSearchEnt(){renderSearch(document.getElementById('ent-buscar').value,'ent-search-res','addEnt',false);}
+function addEnt(n){
+  var ex=entItems.find(function(c){return c.nombre===n;});
+  if(ex){ex.qty++;}else{entItems.push({nombre:n,qty:1});}
+  renderItemsList(entItems,'ent-items','chgEnt','delEnt','ent-carrito-card');
+  document.getElementById('ent-buscar').value='';document.getElementById('ent-search-res').innerHTML='';
+}
+function chgEnt(i,d,v){entItems[i].qty=Math.max(1,v!==undefined?parseInt(v)||1:entItems[i].qty+d);renderItemsList(entItems,'ent-items','chgEnt','delEnt','ent-carrito-card');}
+function delEnt(i){entItems.splice(i,1);renderItemsList(entItems,'ent-items','chgEnt','delEnt','ent-carrito-card');}
+function limpiarEnt(){entItems=[];renderItemsList(entItems,'ent-items','chgEnt','delEnt','ent-carrito-card');}
+
+function registrarEntrada(){
+  if(!entItems.length){toast('Añade material primero',true);return;}
+  var btn=document.getElementById('btn-ent');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Guardando...';
+  if(tipoEntrada==='proveedor'){
+    var prov=document.getElementById('ent-prov').value;
+    var fecha=document.getElementById('ent-fecha').value;
+    var ref=document.getElementById('ent-ref').value;
+    postAPI({action:'addHistorial',tipo:'entrada',fecha:fecha,obra:'ALMACEN',prov:prov,ref:ref,items:entItems},function(err,data){
+      if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='📦 Registrar entrada';return;}
+      postAPI({action:'restoreStock',items:entItems},function(){
+        entItems.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+c.qty;});
+        limpiarEnt();renderStock();
+        document.getElementById('ent-ref').value='';
+        btn.disabled=false;btn.textContent='📦 Registrar entrada';
+        toast('✅ Entrada de proveedor registrada');
+      });
+    });
+  } else {
+    var obra=document.getElementById('ent-obra').value;
+    var fecha2=document.getElementById('ent-obra-fecha').value;
+    var resp=document.getElementById('ent-obra-resp').value;
+    if(!obra){toast('Selecciona la obra que devuelve',true);btn.disabled=false;btn.textContent='📦 Registrar entrada';return;}
+    postAPI({action:'addHistorial',tipo:'devolucion',fecha:fecha2,obra:obra,resp:resp,items:entItems},function(err,data){
+      if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='📦 Registrar entrada';return;}
+      postAPI({action:'restoreStock',items:entItems},function(){
+        entItems.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+c.qty;});
+        limpiarEnt();renderStock();
+        document.getElementById('ent-obra').value='';document.getElementById('ent-obra-resp').value='';
+        btn.disabled=false;btn.textContent='📦 Registrar entrada';
+        toast('✅ Devolución registrada — stock actualizado');
+      });
+    });
+  }
+}
+
+/* ── TRASPASO ── */
+document.getElementById('trasp-fecha').value=today;
+function renderSearchTrasp(){renderSearch(document.getElementById('trasp-buscar').value,'trasp-search-res','addTrasp',false);}
+function addTrasp(n){
+  var ex=traspItems.find(function(c){return c.nombre===n;});
+  if(ex){ex.qty++;}else{traspItems.push({nombre:n,qty:1});}
+  renderItemsList(traspItems,'trasp-items','chgTrasp','delTrasp','trasp-carrito-card');
+  document.getElementById('trasp-buscar').value='';document.getElementById('trasp-search-res').innerHTML='';
+}
+function chgTrasp(i,d,v){traspItems[i].qty=Math.max(1,v!==undefined?parseInt(v)||1:traspItems[i].qty+d);renderItemsList(traspItems,'trasp-items','chgTrasp','delTrasp','trasp-carrito-card');}
+function delTrasp(i){traspItems.splice(i,1);renderItemsList(traspItems,'trasp-items','chgTrasp','delTrasp','trasp-carrito-card');}
+function limpiarTrasp(){traspItems=[];renderItemsList(traspItems,'trasp-items','chgTrasp','delTrasp','trasp-carrito-card');}
+
+function registrarTraspaso(){
+  var origen=document.getElementById('trasp-origen').value;
+  var destino=document.getElementById('trasp-destino').value;
+  var fecha=document.getElementById('trasp-fecha').value;
+  var resp=document.getElementById('trasp-resp').value;
+  if(!origen){toast('Selecciona la obra origen',true);return;}
+  if(!destino){toast('Selecciona la obra destino',true);return;}
+  if(origen===destino){toast('Origen y destino no pueden ser iguales',true);return;}
+  if(!traspItems.length){toast('Añade material primero',true);return;}
+  var btn=document.getElementById('btn-trasp');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Guardando...';
+  postAPI({action:'addHistorial',tipo:'traspaso',fecha:fecha,obra:origen,resp:resp,obs:'→ Enviado a: '+destino,items:traspItems},function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='↔️ Registrar traspaso';return;}
+    postAPI({action:'addHistorial',tipo:'traspaso',fecha:fecha,obra:destino,resp:resp,obs:'← Recibido de: '+origen,items:traspItems},function(){
+      limpiarTrasp();
+      document.getElementById('trasp-origen').value='';document.getElementById('trasp-destino').value='';document.getElementById('trasp-resp').value='';
+      btn.disabled=false;btn.textContent='↔️ Registrar traspaso';
+      toast('✅ Traspaso registrado en ambas obras');
+    });
+  });
+}
+
+/* ── POR OBRA ── */
+function renderObras(){
+  var cont=document.getElementById('obras-lista');
+  if(!OBRAS.length){cont.innerHTML='<div class="empty">Cargando obras...</div>';return;}
+  var obraMap={};
+  historial.forEach(function(h){
+    if(h.anulada===true||h.anulada==='true')return;
+    if(!h.obra||h.obra==='ALMACEN')return;
+    if(!obraMap[h.obra])obraMap[h.obra]={neto:{}};
+    var sign=0;
+    if(h.tipo==='salida'||h.tipo==='entrega')sign=1;
+    else if(h.tipo==='devolucion')sign=-1;
+    else if(h.tipo==='traspaso'){sign=(h.obs||'').indexOf('←')===0?1:-1;}
+    if(!sign)return;
+    (h.items||[]).forEach(function(it){
+      obraMap[h.obra].neto[it.nombre]=(obraMap[h.obra].neto[it.nombre]||0)+(sign*it.qty);
+    });
+  });
+  var obrasActivas=OBRAS.filter(function(o){return o.estado!=='cerrada'&&obraMap[o.nombre];});
+  if(!obrasActivas.length){
+    // Mostrar todas con movimientos
+    var keys=Object.keys(obraMap);
+    if(!keys.length){cont.innerHTML='<div class="empty">Sin movimientos registrados</div>';return;}
+    cont.innerHTML=keys.map(function(n){return buildObraCard(n,obraMap[n].neto);}).join('');
+    return;
+  }
+  cont.innerHTML=obrasActivas.map(function(o){
+    return buildObraCard(o.nombre,obraMap[o.nombre]?obraMap[o.nombre].neto:{});
+  }).join('');
+}
+
+function buildObraCard(nombre,neto){
+  var mats=Object.keys(neto).filter(function(k){return neto[k]>0;});
+  if(!mats.length)return '<div class="obra-card"><div class="obra-card-head"><span>🏗️ '+nombre+'</span></div><p style="font-size:12px;color:var(--text2)">Sin material pendiente</p></div>';
+  return '<div class="obra-card">'+
+    '<div class="obra-card-head"><span>🏗️ '+nombre+'</span><span style="font-size:11px;color:var(--text2)">'+mats.length+' materiales</span></div>'+
+    '<div class="obra-tags">'+mats.map(function(k){
+      return '<span class="obra-tag">'+k+': '+neto[k]+'</span>';
+    }).join('')+'</div>'+
+  '</div>';
+}
+
+recargar();
+</script>
+</body>
+</html>
