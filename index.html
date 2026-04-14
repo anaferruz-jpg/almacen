@@ -1938,10 +1938,12 @@ var _fichaEditIdx = -1;
 
 function loadFichas(cb){
   callAPI('getOperarios',function(err,data){
-    if(!err&&Array.isArray(data)&&data.length){
+    if(!err&&Array.isArray(data)){
+      // Siempre usar datos del servidor (aunque esté vacío) para sincronización real
       fichasTrabajadores=data;
       try{localStorage.setItem('sf_fichas_personal',JSON.stringify(data));}catch(e){}
     } else {
+      // Solo caer en localStorage si hay error de red
       try{fichasTrabajadores=JSON.parse(localStorage.getItem('sf_fichas_personal')||'[]');}catch(e){fichasTrabajadores=[];}
     }
     if(cb)cb();
