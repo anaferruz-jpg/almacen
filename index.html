@@ -152,6 +152,8 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
     <button class="tab" id="tab-btn-pedidos" onclick="showTab('pedidos',this);toggleMasTabs(document.getElementById('tab-btn-mas'),false)">🛒 Pedidos</button>
     <button class="tab" id="tab-btn-historial" onclick="showTab('historial',this);toggleMasTabs(document.getElementById('tab-btn-mas'),false)">📜 Historial</button>
     <button class="tab" id="tab-btn-precios" onclick="showTab('precios',this);toggleMasTabs(document.getElementById('tab-btn-mas'),false)">💶 Precios</button>
+    <button class="tab" id="tab-btn-devolucion" onclick="showTab('devolucion',this);toggleMasTabs(document.getElementById('tab-btn-mas'),false)">↩️ Devolución</button>
+    <button class="tab" id="tab-btn-traspaso" onclick="showTab('traspaso',this);toggleMasTabs(document.getElementById('tab-btn-mas'),false)">↔️ Traspaso</button>
   </div>
 </div>
 
@@ -787,6 +789,91 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- ══════════════ DEVOLUCIÓN OBRA→ALMACÉN ══════════════ -->
+<div id="tab-devolucion" class="panel">
+  <p class="section-title" style="margin-top:0">↩️ Devolver material de obra al almacén</p>
+  <div class="card" style="margin-bottom:10px">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Obra origen (que devuelve material) *</label>
+        <select id="dev-obra" style="padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;width:100%">
+          <option value="">Seleccionar obra...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="dev-fecha" style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group">
+        <label>Responsable</label>
+        <input type="text" id="dev-resp" placeholder="Nombre..." style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observaciones</label>
+        <textarea id="dev-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px;width:100%"></textarea>
+      </div>
+    </div>
+  </div>
+  <p class="section-title">Material que vuelve al almacén</p>
+  <div class="toolbar"><input type="text" id="buscar-dev" placeholder="Buscar material..." oninput="renderSearchDev()" style="flex:1;min-width:200px"></div>
+  <div id="search-dev-results"></div>
+  <div class="card">
+    <div class="card-title">Material a devolver (suma al stock)</div>
+    <div id="devolucion-items"><p style="font-size:13px;color:var(--text2)">Busca y añade el material que regresa</p></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="limpiarDevolucion()">Limpiar</button>
+      <button class="btn primary" id="btn-devolucion" onclick="registrarDevolucion()">✅ Registrar devolución</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TRASPASO ENTRE OBRAS ══════════════ -->
+<div id="tab-traspaso" class="panel">
+  <p class="section-title" style="margin-top:0">↔️ Traspasar material entre obras</p>
+  <div class="card" style="margin-bottom:10px">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Obra origen (de dónde sale) *</label>
+        <select id="trasp-obra-origen" style="padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;width:100%">
+          <option value="">Seleccionar obra...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Obra destino (a dónde va) *</label>
+        <select id="trasp-obra-destino" style="padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;width:100%">
+          <option value="">Seleccionar obra...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="trasp-fecha" style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group">
+        <label>Responsable</label>
+        <input type="text" id="trasp-resp" placeholder="Nombre..." style="padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Observaciones</label>
+        <textarea id="trasp-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px;width:100%"></textarea>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404">
+    ⚠️ El traspaso <strong>no modifica el stock del almacén</strong>. Solo queda registrado en el historial de ambas obras.
+  </div>
+  <p class="section-title">Material a traspasar</p>
+  <div class="toolbar"><input type="text" id="buscar-trasp" placeholder="Buscar material..." oninput="renderSearchTrasp()" style="flex:1;min-width:200px"></div>
+  <div id="search-trasp-results"></div>
+  <div class="card">
+    <div class="card-title">Material del traspaso</div>
+    <div id="traspaso-items"><p style="font-size:13px;color:var(--text2)">Busca y añade el material a traspasar</p></div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="limpiarTraspaso()">Limpiar</button>
+      <button class="btn primary" id="btn-traspaso" onclick="registrarTraspaso()">✅ Registrar traspaso</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ HISTORIAL ══════════════ -->
 <div id="tab-historial" class="panel">
   <!-- BANNER COMPRAS -->
@@ -808,6 +895,8 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <option value="salida">Salidas almacén</option>
       <option value="pedido">Pedidos obra</option>
       <option value="entrada">Entradas almacén</option>
+      <option value="devolucion">Devoluciones obra→almacén</option>
+      <option value="traspaso">Traspasos entre obras</option>
     </select>
     <select id="hist-obra" onchange="renderHist()">
       <option value="">Todas las obras</option>
@@ -1114,7 +1203,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 
 <script>
 var API='https://script.google.com/macros/s/AKfycbzINF8297a8gaGlZimxb3rwu-gmRFWpZVzvOSP0ezucVS-kolHOA-3YkuUOAOwTUlIY/exec';
-var inventario=[],historial=[],carrito=[],pedidoItems=[],entradaItems=[];
+var inventario=[],historial=[],carrito=[],pedidoItems=[],entradaItems=[],devolucionItems=[],traspasoItems=[];
 var today=new Date().toISOString().split('T')[0];
 var anularIdx=-1;
 var OBRAS=[];
@@ -1168,6 +1257,8 @@ function showTab(id,el){
   if(id==='obras')buildObrasGrid();
   if(id==='precios')renderPrecios();
   if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);}
+  if(id==='devolucion'){var df=document.getElementById('dev-fecha');if(df&&!df.value)df.value=today;}
+  if(id==='traspaso'){var tf=document.getElementById('trasp-fecha');if(tf&&!tf.value)tf.value=today;}
 }
 
 function toggleMasTabs(btn,forceClose){
@@ -1194,7 +1285,7 @@ function actualizarSelectsObras(){
   }).join('');
   var optsAll=todas.map(function(o){return '<option value="'+o.nombre+'">'+o.nombre+'</option>';}).join('');
   var base='<option value="">Seleccionar obra...</option>'+optsActivas;
-  ['sal-obra','ped-obra'].forEach(function(id){
+  ['sal-obra','ped-obra','dev-obra','trasp-obra-origen','trasp-obra-destino'].forEach(function(id){
     var sel=document.getElementById(id);if(!sel)return;
     var val=sel.value;sel.innerHTML=base;sel.value=val;
   });
@@ -1911,8 +2002,10 @@ function renderHistObra(){
     var realIdx=historial.indexOf(h);
     var est=h.tipo==='pedido'?getEstadoPedido(h):'';
     var tipoLabel=h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega manual':h.tipo==='entrada'?'📦 Entrada':
+      h.tipo==='devolucion'?'↩️ Devolución':h.tipo==='traspaso'?'↔️ Traspaso':
       est==='entregado'?'✅ Pedido entregado':est==='en_transito'?'🔵 Pedido en tránsito':'🟡 Pedido pendiente';
     var tipoClass=h.tipo==='salida'||h.tipo==='entrega'||h.tipo==='entrada'?'ok':
+      h.tipo==='devolucion'?'ok':h.tipo==='traspaso'?'info':
       est==='entregado'?'ok':est==='en_transito'?'':'falta';
     var tipoStyle=est==='en_transito'?'background:#d6eaf8;color:#1a5276':'';
     return '<div class="card" style="margin-bottom:8px;'+(an?'opacity:.5;':'')+'">'+
@@ -3465,6 +3558,127 @@ function chgEnt(i,d){entradaItems[i].qty=Math.max(1,entradaItems[i].qty+d);rende
 function setEnt(i,v){entradaItems[i].qty=Math.max(1,parseInt(v)||1);renderEntradaItems();}
 function delEnt(i){entradaItems.splice(i,1);renderEntradaItems();}
 function limpiarEntrada(){entradaItems=[];renderEntradaItems();}
+
+/* ── DEVOLUCIÓN OBRA → ALMACÉN ── */
+function renderSearchDev(){
+  var q=document.getElementById('buscar-dev').value.toLowerCase();
+  var cont=document.getElementById('search-dev-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    return '<div class="search-item" onclick="addDevolucion(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+
+      '<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">Stock actual: '+i.stock+' ud</span></div>';
+  }).join('')+'</div>';
+}
+function addDevolucion(nombre){
+  var ex=devolucionItems.find(function(c){return c.nombre===nombre;});
+  if(ex){ex.qty++;}else{devolucionItems.push({nombre:nombre,qty:1});}
+  renderDevolucionItems();
+  document.getElementById('buscar-dev').value='';
+  document.getElementById('search-dev-results').innerHTML='';
+}
+function renderDevolucionItems(){
+  var cont=document.getElementById('devolucion-items');
+  if(!devolucionItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Busca y añade el material que regresa</p>';return;}
+  cont.innerHTML=devolucionItems.map(function(c,i){
+    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
+      '<div class="qty-ctrl"><button onclick="chgDev('+i+',-1)">−</button>'+
+      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setDev('+i+',this.value)">'+
+      '<button onclick="chgDev('+i+',1)">+</button></div>'+
+      '<button onclick="delDev('+i+')" class="btn danger" style="padding:4px 8px;font-size:11px">✕</button></div>';
+  }).join('');
+}
+function chgDev(i,d){devolucionItems[i].qty=Math.max(1,devolucionItems[i].qty+d);renderDevolucionItems();}
+function setDev(i,v){devolucionItems[i].qty=Math.max(1,parseInt(v)||1);renderDevolucionItems();}
+function delDev(i){devolucionItems.splice(i,1);renderDevolucionItems();}
+function limpiarDevolucion(){devolucionItems=[];renderDevolucionItems();}
+
+function registrarDevolucion(){
+  var obra=document.getElementById('dev-obra').value;
+  var fecha=document.getElementById('dev-fecha').value;
+  var resp=document.getElementById('dev-resp').value;
+  var obs=document.getElementById('dev-obs').value;
+  if(!obra){toast('Selecciona la obra que devuelve el material',true);return;}
+  if(!devolucionItems.length){toast('Añade al menos un material',true);return;}
+  var btn=document.getElementById('btn-devolucion');
+  btn.disabled=true;btn.textContent='Guardando...';
+  postAPI({action:'addHistorial',tipo:'devolucion',fecha:fecha,obra:obra,resp:resp,obs:obs,items:devolucionItems},function(err,data){
+    if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar devolución';return;}
+    postAPI({action:'restoreStock',items:devolucionItems},function(){
+      devolucionItems.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=(it.stock||0)+c.qty;});
+      historial.unshift({tipo:'devolucion',fecha:fecha,obra:obra,resp:resp,obs:obs,items:devolucionItems.slice(),anulada:false});
+      limpiarDevolucion();renderInv();
+      document.getElementById('dev-resp').value='';document.getElementById('dev-obs').value='';
+      btn.disabled=false;btn.textContent='✅ Registrar devolución';
+      toast('✅ Devolución registrada — stock actualizado (+'+devolucionItems.reduce(function(a,c){return a+c.qty;},0)+' uds)');
+    });
+  });
+}
+
+/* ── TRASPASO ENTRE OBRAS ── */
+function renderSearchTrasp(){
+  var q=document.getElementById('buscar-trasp').value.toLowerCase();
+  var cont=document.getElementById('search-trasp-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    return '<div class="search-item" onclick="addTraspaso(\''+i.nombre.replace(/'/g,'&#39;').replace(/\\/g,'\\\\')+'\')">'+
+      '<span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">'+i.stock+' ud stock</span></div>';
+  }).join('')+'</div>';
+}
+function addTraspaso(nombre){
+  var ex=traspasoItems.find(function(c){return c.nombre===nombre;});
+  if(ex){ex.qty++;}else{traspasoItems.push({nombre:nombre,qty:1});}
+  renderTraspasoItems();
+  document.getElementById('buscar-trasp').value='';
+  document.getElementById('search-trasp-results').innerHTML='';
+}
+function renderTraspasoItems(){
+  var cont=document.getElementById('traspaso-items');
+  if(!traspasoItems.length){cont.innerHTML='<p style="font-size:13px;color:var(--text2)">Busca y añade el material a traspasar</p>';return;}
+  cont.innerHTML=traspasoItems.map(function(c,i){
+    return '<div class="pedido-row"><span class="pedido-nombre">'+c.nombre+'</span>'+
+      '<div class="qty-ctrl"><button onclick="chgTrasp('+i+',-1)">−</button>'+
+      '<input type="number" value="'+c.qty+'" min="1" inputmode="numeric" onchange="setTrasp('+i+',this.value)">'+
+      '<button onclick="chgTrasp('+i+',1)">+</button></div>'+
+      '<button onclick="delTrasp('+i+')" class="btn danger" style="padding:4px 8px;font-size:11px">✕</button></div>';
+  }).join('');
+}
+function chgTrasp(i,d){traspasoItems[i].qty=Math.max(1,traspasoItems[i].qty+d);renderTraspasoItems();}
+function setTrasp(i,v){traspasoItems[i].qty=Math.max(1,parseInt(v)||1);renderTraspasoItems();}
+function delTrasp(i){traspasoItems.splice(i,1);renderTraspasoItems();}
+function limpiarTraspaso(){traspasoItems=[];renderTraspasoItems();}
+
+function registrarTraspaso(){
+  var obraOrigen=document.getElementById('trasp-obra-origen').value;
+  var obraDestino=document.getElementById('trasp-obra-destino').value;
+  var fecha=document.getElementById('trasp-fecha').value;
+  var resp=document.getElementById('trasp-resp').value;
+  var obs=document.getElementById('trasp-obs').value;
+  if(!obraOrigen){toast('Selecciona la obra origen',true);return;}
+  if(!obraDestino){toast('Selecciona la obra destino',true);return;}
+  if(obraOrigen===obraDestino){toast('La obra origen y destino no pueden ser la misma',true);return;}
+  if(!traspasoItems.length){toast('Añade al menos un material',true);return;}
+  var btn=document.getElementById('btn-traspaso');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var obsOrigen='→ Enviado a: '+obraDestino+(obs?' | '+obs:'');
+  var obsDestino='← Recibido de: '+obraOrigen+(obs?' | '+obs:'');
+  // Guardar entrada en obra origen (salida)
+  postAPI({action:'addHistorial',tipo:'traspaso',fecha:fecha,obra:obraOrigen,resp:resp,obs:obsOrigen,items:traspasoItems},function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar traspaso';return;}
+    // Guardar entrada en obra destino (recepción)
+    postAPI({action:'addHistorial',tipo:'traspaso',fecha:fecha,obra:obraDestino,resp:resp,obs:obsDestino,items:traspasoItems},function(err2,d2){
+      historial.unshift({tipo:'traspaso',fecha:fecha,obra:obraOrigen,resp:resp,obs:obsOrigen,items:traspasoItems.slice(),anulada:false});
+      historial.unshift({tipo:'traspaso',fecha:fecha,obra:obraDestino,resp:resp,obs:obsDestino,items:traspasoItems.slice(),anulada:false});
+      limpiarTraspaso();buildObrasGrid();
+      document.getElementById('trasp-resp').value='';document.getElementById('trasp-obs').value='';
+      btn.disabled=false;btn.textContent='✅ Registrar traspaso';
+      toast('✅ Traspaso registrado en historial de ambas obras');
+    });
+  });
+}
 
 function registrarEntrada(){
   if(!entradaItems.length){toast('Añade al menos un material',true);return;}
