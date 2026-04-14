@@ -27,6 +27,7 @@ function doGet(e) {
   if (action === 'getDocsPersonal')  return json(getDocsPersonal(e.parameter.trabajador));
   if (action === 'getDocsGestoria')  return json(getDocsGestoria());
   if (action === 'getDocsObra')      return json(getDocsObra(e.parameter.obra));
+  if (action === 'getOperarios')     return json(getOperarios());
   return json({error: 'accion no valida'});
 }
 
@@ -64,6 +65,8 @@ function doPost(e) {
   if (data.action === 'deleteDocGestoria')      return json(deleteDocGestoria(data));
   if (data.action === 'saveDocObra')            return json(saveDocObra(data));
   if (data.action === 'deleteDocObra')          return json(deleteDocObra(data));
+  if (data.action === 'saveOperario')           return json(saveOperario(data));
+  if (data.action === 'deleteOperario')         return json(deleteOperario(data));
   return json({error: 'accion no valida'});
 }
 
@@ -965,6 +968,65 @@ function deleteDocGestoria(data) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.id) {
+      sheet.deleteRow(i+1);
+      return {ok:true};
+    }
+  }
+  return {ok:false};
+}
+
+// ── OPERARIOS ──
+function getOperarios() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Operarios');
+  if (!sheet) return [];
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  var result = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    result.push({
+      nombre:    rows[i][0] || '',
+      dni:       rows[i][1] || '',
+      categoria: rows[i][2] || '',
+      coste:     rows[i][3] || 0,
+      tel:       rows[i][4] || '',
+      email:     rows[i][5] || '',
+      alta:      rows[i][6] || '',
+      baja:      rows[i][7] || null,
+      obs:       rows[i][8] || ''
+    });
+  }
+  return result;
+}
+
+function saveOperario(data) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Operarios');
+  if (!sheet) {
+    sheet = ss.insertSheet('Operarios');
+    sheet.appendRow(['Nombre','DNI','Categoria','Coste','Tel','Email','Alta','Baja','Obs']);
+  }
+  var op = data.operario;
+  var rowData = [op.nombre||'', op.dni||'', op.categoria||'', op.coste||0, op.tel||'', op.email||'', op.alta||'', op.baja||'', op.obs||''];
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === op.nombre) {
+      sheet.getRange(i+1,1,1,9).setValues([rowData]);
+      return {ok:true};
+    }
+  }
+  sheet.appendRow(rowData);
+  return {ok:true};
+}
+
+function deleteOperario(data) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Operarios');
+  if (!sheet) return {ok:false};
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.nombre) {
       sheet.deleteRow(i+1);
       return {ok:true};
     }

@@ -1933,7 +1933,17 @@ function renderHistObra(){
 var fichasTrabajadores = [];
 var _fichaEditIdx = -1;
 
-function loadFichas(){ try{fichasTrabajadores=JSON.parse(localStorage.getItem('sf_fichas_personal')||'[]');}catch(e){fichasTrabajadores=[];} }
+function loadFichas(cb){
+  callAPI('getOperarios',function(err,data){
+    if(!err&&Array.isArray(data)&&data.length){
+      fichasTrabajadores=data;
+      try{localStorage.setItem('sf_fichas_personal',JSON.stringify(data));}catch(e){}
+    } else {
+      try{fichasTrabajadores=JSON.parse(localStorage.getItem('sf_fichas_personal')||'[]');}catch(e){fichasTrabajadores=[];}
+    }
+    if(cb)cb();
+  });
+}
 function saveFichas(){ try{localStorage.setItem('sf_fichas_personal',JSON.stringify(fichasTrabajadores));}catch(e){} }
 
 function perSubTab(id,el){
@@ -2338,7 +2348,6 @@ function abrirDocsOperario(){
 function guardarOperario(){
   var nombre=document.getElementById('op-nombre').value.trim();
   if(!nombre){toast('El nombre es obligatorio',true);return;}
-  loadFichas();
   var op={
     nombre:nombre,
     dni:document.getElementById('op-dni').value.trim(),
@@ -2357,6 +2366,7 @@ function guardarOperario(){
     if(existe>=0){fichasTrabajadores[existe]=op;}else{fichasTrabajadores.push(op);}
   }
   saveFichas();
+  postAPI({action:'saveOperario',operario:op},function(){});
   cerrarFormOperario();
   renderOperarios();
   renderStatsPersonal();
@@ -2364,9 +2374,9 @@ function guardarOperario(){
 }
 
 function eliminarOperario(idx){
-  loadFichas();
   var f=fichasTrabajadores[idx];
   if(!f||!confirm('¿Eliminar a '+f.nombre+'?'))return;
+  postAPI({action:'deleteOperario',nombre:f.nombre},function(){});
   fichasTrabajadores.splice(idx,1);
   saveFichas();
   renderOperarios();
@@ -2402,7 +2412,7 @@ function renderStatsPersonal(){
 }
 
 function renderOperarios(){
-  loadFichas();
+  loadFichas(function(){
   var q=(document.getElementById('buscar-op')&&document.getElementById('buscar-op').value||'').toLowerCase();
   var lista=fichasTrabajadores.filter(function(f){
     return !q||f.nombre.toLowerCase().indexOf(q)!==-1||(f.dni||'').toLowerCase().indexOf(q)!==-1;
@@ -2433,6 +2443,7 @@ function renderOperarios(){
       '</td>'+
     '</tr>';
   }).join('');
+  }); // fin loadFichas
 }
 
 /* ── PREVISIÓN PERSONAL EN OBRA ── */
