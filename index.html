@@ -899,7 +899,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
       <div class="card-title" style="margin:0">Operarios registrados</div>
-      <input type="text" id="buscar-op" placeholder="Buscar..." oninput="renderOperarios()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;width:180px">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="buscar-op" placeholder="Buscar..." oninput="renderOperarios()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;width:160px">
+        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="renderOperarios();loadFichas(renderStatsPersonal);toast('Actualizando...')">🔄 Sincronizar</button>
+      </div>
     </div>
     <div class="tbl-wrap">
       <table><thead><tr>
@@ -1164,7 +1167,7 @@ function showTab(id,el){
   if(id==='historial')cargarHistorial();
   if(id==='obras')buildObrasGrid();
   if(id==='precios')renderPrecios();
-  if(id==='personal'){loadFichas();renderOperarios();renderStatsPersonal();}
+  if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);}
 }
 
 function toggleMasTabs(btn,forceClose){
@@ -2366,7 +2369,9 @@ function guardarOperario(){
     if(existe>=0){fichasTrabajadores[existe]=op;}else{fichasTrabajadores.push(op);}
   }
   saveFichas();
-  postAPI({action:'saveOperario',operario:op},function(){});
+  postAPI({action:'saveOperario',operario:op},function(err,res){
+    if(err||!res||!res.ok)toast('⚠️ Error al guardar en servidor: '+JSON.stringify(err||res),true);
+  });
   cerrarFormOperario();
   renderOperarios();
   renderStatsPersonal();
@@ -2376,7 +2381,9 @@ function guardarOperario(){
 function eliminarOperario(idx){
   var f=fichasTrabajadores[idx];
   if(!f||!confirm('¿Eliminar a '+f.nombre+'?'))return;
-  postAPI({action:'deleteOperario',nombre:f.nombre},function(){});
+  postAPI({action:'deleteOperario',nombre:f.nombre},function(err,res){
+    if(err||!res||!res.ok)toast('⚠️ Error al eliminar en servidor',true);
+  });
   fichasTrabajadores.splice(idx,1);
   saveFichas();
   renderOperarios();
@@ -2385,10 +2392,12 @@ function eliminarOperario(idx){
 }
 
 function darDeBajaOperario(idx){
-  loadFichas();
   var f=fichasTrabajadores[idx];if(!f)return;
   if(f.baja){f.baja=null;toast(f.nombre+' reactivado');}
   else{f.baja=today||new Date().toISOString().slice(0,10);toast(f.nombre+' dado de baja');}
+  postAPI({action:'saveOperario',operario:f},function(err){
+    if(err)toast('Error al guardar baja en servidor',true);
+  });
   saveFichas();
   renderOperarios();
   renderStatsPersonal();
