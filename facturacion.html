@@ -3855,9 +3855,23 @@ function presAbrirEditor(p) {
   document.getElementById('pres-editor-subtitulo').textContent=p.proyecto?' — '+p.proyecto:'';
   presRenderMedicion(p.medicion||null);
   presSetPlanning(p.planning||null);
-  presRenderVenta(p.ventaItems||JSON.parse(JSON.stringify(PRES_DEF_VENTA)));
-  presRenderAlquiler(p.alquilerItems||JSON.parse(JSON.stringify(PRES_DEF_ALQUILER)));
-  presRenderMO(p.moItems||JSON.parse(JSON.stringify(PRES_DEF_MO)));
+  // Merge saved items with current defaults: keep medicion/precio from saved, add new partidas
+  function mergeItems(saved, defs) {
+    var merged = JSON.parse(JSON.stringify(defs));
+    merged.forEach(function(def) {
+      var s = (saved||[]).find(function(it){ return it.desc===def.desc; });
+      if (s) { def.medicion=s.medicion; if(s.precio) def.precio=s.precio; }
+    });
+    // Keep any custom partidas not in defs
+    (saved||[]).forEach(function(s){
+      var inDef = merged.find(function(d){ return d.desc===s.desc; });
+      if (!inDef) merged.push(s);
+    });
+    return merged;
+  }
+  presRenderVenta(mergeItems(p.ventaItems, PRES_DEF_VENTA));
+  presRenderAlquiler(mergeItems(p.alquilerItems, PRES_DEF_ALQUILER));
+  presRenderMO(mergeItems(p.moItems, PRES_DEF_MO));
   presCalcTotales();
 }
 
