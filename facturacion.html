@@ -3865,7 +3865,13 @@ function presAbrirEditor(p) {
     var merged = JSON.parse(JSON.stringify(defs));
     merged.forEach(function(def) {
       var s = (saved||[]).find(function(it){ return it.desc===def.desc; });
-      if (s) { def.medicion=s.medicion; if(s.precio) def.precio=s.precio; }
+      if (s) {
+        if (s.medicion!==undefined)  def.medicion  = s.medicion;
+        if (s.precio!==undefined)    def.precio     = s.precio;
+        if (s.dias!==undefined)      def.dias       = s.dias;
+        if (s.meses!==undefined)     def.meses      = s.meses;
+        if (s.operarios!==undefined) def.operarios  = s.operarios;
+      }
     });
     // Keep any custom partidas not in defs
     (saved||[]).forEach(function(s){
