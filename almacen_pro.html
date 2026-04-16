@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlmacénPro 🏗️</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#0A0F1E;color:#F8FAFC;min-height:100vh;}
+  input,select,button,textarea{font-family:'Inter',sans-serif;}
+
+  /* LOGIN */
+  #login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .login-box{background:#1E293B;border-radius:16px;padding:32px;width:100%;max-width:400px;border:1px solid #334155;}
+  .login-title{text-align:center;margin-bottom:32px;}
+  .login-emoji{font-size:52px;display:block;margin-bottom:10px;}
+  .login-title h1{font-size:28px;font-weight:800;color:#F8FAFC;}
+  .login-title p{color:#475569;font-size:14px;margin-top:6px;}
+  .rol-btn{width:100%;background:#0F172A;border:2px solid #1E3A5F;border-radius:12px;padding:16px 20px;cursor:pointer;color:#F8FAFC;text-align:left;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:border-color .2s;}
+  .rol-btn:hover{border-color:#334155;}
+  .rol-emoji{font-size:28px;}
+  .rol-name{font-weight:700;font-size:15px;}
+  .rol-desc{font-size:12px;color:#64748B;margin-top:2px;}
+
+  /* APP */
+  #app{display:none;}
+  .header{background:#1E293B;border-bottom:1px solid #263350;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  .header-left{display:flex;align-items:center;gap:10px;}
+  .header-title{font-weight:800;font-size:18px;}
+  .header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .pill{display:inline-block;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .pill-sm{padding:2px 8px;font-size:10px;}
+
+  .tabs{display:flex;gap:2px;padding:12px 20px 0;overflow-x:auto;border-bottom:1px solid #1A2540;background:#0A0F1E;}
+  .tab-btn{padding:9px 16px;background:transparent;border:none;border-radius:8px 8px 0 0;color:#64748B;font-weight:500;cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s;}
+  .tab-btn.active{background:#1E293B;font-weight:700;border-bottom-color:var(--role-color);}
+  .tab-btn.active{color:var(--role-color);}
+
+  .content{padding:20px;}
+  .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .section-title{font-size:19px;font-weight:800;margin:0;}
+  .section-sub{color:#475569;font-size:12px;margin-top:3px;}
+
+  .btn{padding:10px 20px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;border:1.5px solid transparent;transition:opacity .15s;}
+  .btn:hover{opacity:.85;}
+  .btn-primary{background:var(--role-color);color:#0F172A;border-color:var(--role-color);}
+  .btn-outline{background:transparent;color:#64748B;border-color:#334155;}
+  .btn-sm{padding:7px 14px;font-size:12px;}
+
+  /* CARDS */
+  .mov-list{display:flex;flex-direction:column;gap:8px;}
+  .mov-card{background:#1E293B;border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .mov-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .mov-info{flex:1;min-width:140px;}
+  .mov-nombre{font-weight:700;font-size:14px;}
+  .mov-desc{color:#64748B;font-size:12px;margin-top:2px;}
+  .mov-cant{text-align:center;}
+  .mov-cant-num{font-weight:800;font-size:20px;}
+  .mov-cant-lbl{color:#475569;font-size:10px;}
+  .mov-meta{text-align:right;min-width:110px;}
+  .mov-user{color:#94A3B8;font-size:12px;font-weight:600;}
+  .mov-date{color:#475569;font-size:11px;}
+
+  .stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+  .stock-card{background:#1E293B;border-radius:12px;padding:15px;border:1px solid #1E3A5F;cursor:pointer;transition:border-color .15s;}
+  .stock-card:hover{border-color:#334155;}
+  .stock-card.bajo{border-color:#EF444433;}
+  .stock-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .stock-nombre{font-weight:700;font-size:13px;margin-bottom:8px;line-height:1.3;}
+  .stock-cant{font-size:28px;font-weight:800;}
+  .stock-unit{font-size:12px;color:#64748B;font-weight:400;}
+  .stock-min{color:#475569;font-size:11px;margin-top:4px;}
+  .stock-hint{color:#2D3F5F;font-size:10px;margin-top:6px;}
+
+  .obras-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+  .obra-card{background:#1E293B;border-radius:12px;padding:18px;border:1px solid #1E3A5F;}
+  .obra-nombre{font-weight:700;font-size:15px;margin-bottom:6px;}
+  .obra-dir{color:#64748B;font-size:12px;margin-bottom:10px;}
+  .obra-stats{color:#475569;font-size:12px;}
+  .obra-author{color:#334155;font-size:11px;margin-top:3px;}
+
+  .alert-list{display:flex;flex-direction:column;gap:9px;}
+  .alert-card{background:#1E293B;border-radius:12px;padding:14px 18px;border-left:3px solid #EF4444;display:flex;align-items:center;gap:16px;}
+
+  /* EMPTY */
+  .empty{text-align:center;color:#475569;padding:60px 20px;background:#1E293B;border-radius:14px;}
+  .empty-icon{font-size:44px;margin-bottom:10px;}
+  .empty p{margin:0;}
+  .empty-sub{margin-top:8px!important;font-size:13px;}
+
+  /* FILTERS */
+  .filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .search-inp{flex:1;min-width:180px;padding:9px 14px;background:#1E293B;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:13px;outline:none;}
+  .search-inp::placeholder{color:#475569;}
+  .cat-sel{padding:9px 14px;background:#1E293B;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:13px;}
+
+  /* MODAL */
+  .overlay{display:none;position:fixed;inset:0;background:#000000bb;z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .overlay.open{display:flex;}
+  .modal{background:#1E293B;border-radius:16px;padding:28px;width:100%;max-width:460px;border:1px solid #334155;max-height:90vh;overflow-y:auto;}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+  .modal-title{font-size:17px;font-weight:800;}
+  .modal-close{background:transparent;border:none;color:#64748B;font-size:22px;cursor:pointer;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;color:#94A3B8;font-size:12px;margin-bottom:5px;font-weight:600;}
+  .field input,.field select,.field textarea{width:100%;padding:10px 14px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:14px;font-family:'Inter',sans-serif;outline:none;}
+  .field textarea{resize:vertical;min-height:70px;}
+  .tipo-btns{display:flex;gap:8px;margin-bottom:16px;}
+  .tipo-btn{flex:1;padding:10px;border:none;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;background:#0F172A;color:#64748B;transition:all .15s;}
+  .modal-actions{display:flex;gap:10px;margin-top:4px;}
+  .modal-actions .btn{flex:1;}
+  .modal-actions .btn-primary{flex:2;}
+
+  .warn-box{background:#EF444411;border:1px solid #EF444433;border-radius:8px;padding:10px 14px;font-size:12px;color:#EF4444;margin-bottom:14px;}
+  .info-box{background:#0F172A;border-radius:10px;padding:12px 16px;margin-bottom:16px;}
+  .info-box .nombre{font-weight:700;font-size:14px;}
+  .info-box .sub{color:#64748B;font-size:12px;margin-top:2px;}
+
+  /* SYNC */
+  .sync-bar{background:#1E293B;border-top:1px solid #263350;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#475569;}
+  .sync-actions{display:flex;gap:8px;}
+
+  /* NOTIF */
+  #notif{display:none;position:fixed;top:16px;right:16px;z-index:999;background:#1E293B;border:1px solid #334155;border-radius:10px;padding:12px 18px;max-width:340px;box-shadow:0 8px 32px #00000088;font-size:13px;}
+
+  @media(max-width:600px){
+    .header{padding:10px 14px;}
+    .content{padding:14px;}
+    .stock-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+    .mov-meta{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- NOTIFICACIÓN -->
+<div id="notif"></div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div style="text-align:center;margin-bottom:32px;">
+    <span class="login-emoji">🏗️</span>
+    <h1 style="font-size:28px;font-weight:800;color:#F8FAFC;">AlmacénPro</h1>
+    <p style="color:#475569;font-size:14px;margin-top:6px;">Control de almacén · Abre y usa sin instalaciones</p>
+  </div>
+  <div class="login-box" id="step-nombre">
+    <p style="color:#94A3B8;font-size:13px;margin-bottom:14px;font-weight:600;">¿Cómo te llamas?</p>
+    <div class="field"><input id="inp-nombre" type="text" placeholder="Escribe tu nombre..." style="width:100%;padding:11px 14px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:15px;outline:none;" /></div>
+    <button class="btn btn-primary" style="width:100%;background:#F59E0B;border-color:#F59E0B;color:#0F172A;" onclick="confirmarNombre()">Continuar →</button>
+  </div>
+  <div class="login-box" id="step-rol" style="display:none;">
+    <p style="color:#94A3B8;font-size:13px;margin-bottom:16px;font-weight:600;">Selecciona tu rol:</p>
+    <button class="rol-btn" onclick="entrar('compras')" style="border-color:#F59E0B33;">
+      <span class="rol-emoji">🛒</span>
+      <div><div class="rol-name" style="color:#F59E0B;">Compras</div><div class="rol-desc">Gestión completa del almacén</div></div>
+    </button>
+    <button class="rol-btn" onclick="entrar('operario')" style="border-color:#3B82F633;">
+      <span class="rol-emoji">🔧</span>
+      <div><div class="rol-name" style="color:#3B82F6;">Operario</div><div class="rol-desc">Registrar entradas y salidas</div></div>
+    </button>
+    <button class="rol-btn" onclick="entrar('produccion')" style="border-color:#10B98133;">
+      <span class="rol-emoji">🏭</span>
+      <div><div class="rol-name" style="color:#10B981;">Producción</div><div class="rol-desc">Consulta y seguimiento</div></div>
+    </button>
+    <p style="text-align:center;margin-top:14px;"><button onclick="document.getElementById('step-rol').style.display='none';document.getElementById('step-nombre').style.display='block';" style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;">← Cambiar nombre</button></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <span style="font-size:22px;">🏗️</span>
+      <span class="header-title">AlmacénPro</span>
+      <span id="alerta-badge" style="display:none;" class="pill pill-sm" style="background:#EF444422;color:#EF4444;border:1px solid #EF444444;"></span>
+    </div>
+    <div class="header-right">
+      <span id="user-pill" class="pill"></span>
+      <button class="btn btn-sm btn-outline" onclick="salir()">Salir</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="content" id="content"></div>
+
+  <div class="sync-bar">
+    <span id="sync-info">💾 Datos guardados en este dispositivo</span>
+    <div class="sync-actions">
+      <button class="btn btn-sm btn-outline" onclick="exportarDatos()">📤 Exportar datos</button>
+      <button class="btn btn-sm btn-outline" onclick="document.getElementById('inp-import').click()">📥 Importar datos</button>
+      <input type="file" id="inp-import" accept=".json" style="display:none;" onchange="importarDatos(event)">
+    </div>
+  </div>
+</div>
+
+<!-- MODALES -->
+<div class="overlay" id="modal-mov" onclick="cerrarModal('modal-mov')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Registrar movimiento</span>
+      <button class="modal-close" onclick="cerrarModal('modal-mov')">✕</button>
+    </div>
+    <div class="tipo-btns">
+      <button class="tipo-btn" id="btn-entrada" onclick="setTipo('entrada')">📦 Entrada</button>
+      <button class="tipo-btn" id="btn-salida" onclick="setTipo('salida')">📤 Salida</button>
+    </div>
+    <div class="field"><label>Material</label>
+      <select id="mov-material"></select>
+    </div>
+    <div class="field"><label>Cantidad</label>
+      <input type="number" id="mov-cantidad" min="1" value="1">
+    </div>
+    <div id="mov-obra-section" class="field" style="display:none;"><label>Obra de destino</label>
+      <select id="mov-obra"></select>
+    </div>
+    <div id="mov-sin-obras" class="warn-box" style="display:none;">Sin obras registradas. Ve a la pestaña Obras y añade una primero.</div>
+    <div class="field"><label>Nota (opcional)</label>
+      <input type="text" id="mov-nota" placeholder="Observaciones...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-mov')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarMovimiento()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-obra" onclick="cerrarModal('modal-obra')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Nueva obra</span>
+      <button class="modal-close" onclick="cerrarModal('modal-obra')">✕</button>
+    </div>
+    <div class="field"><label>Nombre de la obra</label>
+      <input type="text" id="obra-nombre" placeholder="Ej: Edificio Calle Mayor 12">
+    </div>
+    <div class="field"><label>Dirección (opcional)</label>
+      <input type="text" id="obra-dir" placeholder="Ej: C/ Mayor 12, Barcelona">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-obra')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarObra()">Añadir obra</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-ajuste" onclick="cerrarModal('modal-ajuste')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Ajustar cantidad</span>
+      <button class="modal-close" onclick="cerrarModal('modal-ajuste')">✕</button>
+    </div>
+    <div class="info-box" id="ajuste-info"></div>
+    <div class="field"><label id="ajuste-cant-lbl">Nueva cantidad</label>
+      <input type="number" id="ajuste-cant" min="0">
+    </div>
+    <div class="field"><label>Motivo del ajuste</label>
+      <input type="text" id="ajuste-nota" placeholder="Ej: Recuento físico, corrección de error...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-ajuste')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAjuste()">Guardar ajuste</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-edit" onclick="cerrarModal('modal-edit')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Editar material</span>
+      <button class="modal-close" onclick="cerrarModal('modal-edit')">✕</button>
+    </div>
+    <div class="field"><label>Nombre</label><input type="text" id="edit-nombre"></div>
+    <div class="field"><label>Categoría</label>
+      <select id="edit-cat">
+        <option>Materiales</option><option>Maquinaria</option><option>EPIs</option><option>Equipos</option>
+      </select>
+    </div>
+    <div class="field"><label>Unidad</label><input type="text" id="edit-unidad" placeholder="ud, m, kg, m2..."></div>
+    <div class="field"><label>Stock mínimo (alerta)</label><input type="number" id="edit-min" min="0"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-edit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-mat" onclick="cerrarModal('modal-mat')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Añadir material</span>
+      <button class="modal-close" onclick="cerrarModal('modal-mat')">✕</button>
+    </div>
+    <div class="field"><label>Nombre</label><input type="text" id="mat-nombre" placeholder="Ej: CUERDA 10KN/50M"></div>
+    <div class="field"><label>Categoría</label>
+      <select id="mat-cat"><option>Materiales</option><option>Maquinaria</option><option>EPIs</option><option>Equipos</option></select>
+    </div>
+    <div class="field"><label>Unidad</label><input type="text" id="mat-unidad" value="ud" placeholder="ud, m, kg, m2..."></div>
+    <div class="field"><label>Stock mínimo (alerta)</label><input type="number" id="mat-min" min="0" value="0"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-mat')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarMat()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CATÁLOGO INICIAL (de tus Excel)
+// ═══════════════════════════════════════════════
+const CATALOGO = [
+  "ABRAZADERAS 20","ACCESORIO RED INTERMEDIA","ANCLAJE C-50 C/ARGOLLA","ANCLAJE ARGOLLA M 8X60 BRO10","ANCLAJE ARGOLLA M 10X70 BRO12","ANCLAJE INF. 0,56M","ANCLAJE LATERAL EN13374","ANCLAJE M 10X100 D/12 TORNILLO (TACO D12 M10x100) 50UDS","ANCLAJE M 10X70 D/12 TORNILLO (TACO D12 M10x70)","ANCLAJE M 8X60 (ref 28.689)","ANCLAJE RG HORIZONTAL","ESLINGA ANCLAJE VERTICAL DE TECHO 1,5MTS","ANCLAJE PILARES CM 300 - 2,5m","ANCLAJE VIGA MARQUESINA EN1263","ARANDELA CONECTOR","BARANDILLA D/35 100-150 EN 13374","BARANDILLA D/35 200-250 EN 13374","BARANDILLA D/40 2500mm UNE EN13374","BARRA RIOSTRA D48 2M","BASCULANTE AUTORREGUL. PARA RG (TIPO CORTA)","BASE GUARDACUERPO","BASE PERDIDA PARA POSTE","BASE POSTE EXTERIOR","BASE Y TAPA DEL PACK","BASQUIT NO ALSINA (bolsa 400 uds)","BRIDA 4,8X200 (PLASTICO)","BRIDA RIOSTRA FIJA 48X48","BULON","CABLE ACERO D/8 ML","CAPSULAS ALTAS CARGAS","CUERDA 20 KN/100M","CUERDA 7,5 KN/100M","CUERDA UNION 15KN/100M EN 1263.1","CUERDA 8ML","CUERDA SEMIEST. UNE EN1891 TRENZ. 30KN","ESLABON RAPIDO N9","ESLINGA A86 1,5M","EXTENS. 2000 PESCANTE 60X60X3","EXTENS. 4000 PESCANTE 60X60X3","GANCHO RED BAJO FORJADO 8MM (ganfor)","GANCHO RED INTERMEDIA","GARRA HORCA","GRAPA EXTENSIBLE ALSINA","GUARDACUERPO 1,2M EN13374","GUARDACUERPO 1,5M EN13374","GUARDACUERPO RED/40 120 EN 13374","GUARDACUERPO RED/40 150 EN 13374","GUIA DE 500","GUIAS DE 1250","GUIAS DE 3000 + KIT CONECTOR","KIT FUNDA CONEXION EXTERIOR 70X30","LAMAS 2M","LINEA ANCL.FLEX.HORIZ. 50MM 20M","LINEA VIDA VERTICAL CUERDA EN353-2 + bloqueador 40mt","LINEA VIDA VERTICAL cinta anillada 40 mt","LINEA VIDA VERTICAL cinta anillada 25mt","LUISA 300 LINEA VIDA HORIZONTAL 2p CON MOCHILA","LUISA 300 LINEA VIDA HORIZONTAL 2p SIN MOCHILA","MALLA OCULTACION 65% 1x100ML","MALLA CORPORATIVA 60% OCULTACION 2x50ml","MARQUESINA 2,00 - 60x1,00","MASTIL 3M 60X30X3 PARA BASCULANTE","MASTIL DE 3 LAMAS","MATERIAL ANCLAJE Varillas inox y resina epoxi","MOSQUETON SEG. C/ROSCA 18MM","MOSQUETON CONECTOR ACERO 19mm-25KN (MGB_01)","MOSQUETON SEGURIDAD CON ROSCA 18MM TRACTEL","MOSQUITERA MALLA 90GR/M2 1x100ML","MOSQUITERA MALLA 90GR/M2 3x20ML","MOSQUITERA MALLA 90GR/M2 0,50x100ML","PANO DE RED COMPLETO 4X1,50","PANO DE RED COMPLETO 3X1,50","PANO DE RED COMPLETO 2X1,50","PASADOR","PESCANTE ABATIBLE 60X60X3","PESCANTE HORCA FIJO 60X60X3","PIE HORMIGON MONTAJE VALLA","PIE RECTO","PIE RECTO BALAUSTRE EN13374","POLEAS","POSTE 2M UNE 795B","PUNTO ANCLAJE A1 CESAR 1,5M ESLINGA","PUNTO ANCLAJE LDV074","RAFIA ZOCALO H 50 CMS 100M","RED PP - 2X1,5M","RED PP - 3X1,5M","RED PP - 4X1,5M","RED 1X10 PP BAJO FORJADO UNE 81652 Q100","RED 2X10 PP EN1263 SA2 Q100 (azul)","RED 2X10 PP EN1263 UA2 Q100 (verde)","RED 2,10X10 PP EN1263-1 UA2AQ100 (azul)","RED 3,5X10 PP EN1263 SA2 Q100 (azul)","RED 3,5X10 PP EN1263 UA2 D100 (verde)","RED 5X10 PP EN1263-1 SA2 Q100 (azul)","RED 5X10 PP EN1263,1 UA2 Q100 (verde)","RED PP EN1263-1 1,10X10 BAJO FORJADO","RED PP EN1263-1 2,10X10 BAJO FORJADO","RED PP EN1263-1 VA2 Q100 5X10M (HORCA)","RETENCION 60","RG EXTERIOR PARA BASCULANTE (TIPO CORTA)","RODAPIE 2,5M. EN 13374","SETA PROTECTORA 12-20 MM ESPECIAL AVINTIA","SETA PROTECTORA 12-24","SOPORTE DE 160 EN L PARA GUARDACUERPO","SOPORTE GUARDACUERPO 1,2-1,5 Per.","SOPORTE GUARDACUERPO SP-ALM-REFO","SOPORTE MENSULA 1250","SOPORTE MENSULA 2450","SPTE. GUARDACUERPO 1,2-1,5 PER RED/40 EN 13374","SPTE. GUARDACUERPO SP ALM REFOR. RED/40 EN 13374","SUJETACABLE GALV. 5/16 (CABLE D8)","TACO ARGOLLA D10 M 8X60 ABIERTO","TACO ARGOLLA D10 M-8x60","TACO ARGOLLA D12 M 10X70","TACO ARGOLLA D8 M 6X45","TACO D10 M 8X60","TACO D12 M-10X70","TACO D16 M 12X110","TACO D16 M 12X80","TELA MOSQUITERA VERDE 3X20","TELA ONIX SENALIZACION 1,20X1,00 M2","TENSOR ABIERTO GALV. 5/8 (CABLE D8)","TORNAPUNTAS","TORNILLO ANC. AUTORROS 6X60","TORNILLO AUTORR. 8X60","TORNILLO CONECTOR","TORNILLO M12X100 DIN933","TRINQETES","TUBO 2M","TUBO 3M","TUBO 4M","TUERCA CON PLACA FIJA D10","TUERCA CONECTOR","TUERCA HEXAG. M 12/175 DIN934","VALLA TIPO RIVISA 3.5 m/ud","VARILLA DW 0,5","BRIDA NYKLON NEGRO INDEX 4,8X200 B-100","CINTA SENALIZACION ROJA/BLANCA 200MTS X 7CM","PUNTO DE ANCLAJE ESTELA CA02 (3 US)","PUNTO DE ANCLAJE ESTELA AC02 (2 US)"
+].map((n,i)=>({id:'m'+(i+1),nombre:n,unidad:'ud',categoria:'Materiales',cantidad:0,stockMinimo:0}));
+
+const CAT_MAQUINARIA = [
+  "AMOLADORA XR 18V 125mm REF. DCG405NT-XJ","BATERIA CARRIL XR 18V LI.ION REF. DCB184-XJ","CARGADOR DE BATERIA REF. DCB115","LLAVE IMPACTO SIN ESCOBILLAS XR 18V 1/2 REF. DCF921N-XJ","MARTILLO ELECTRICO XR SDS-PLUS 18V REF. DCH133NT-X","TALADRO XRP 18V REF. DCD996NT","CAJAS ALMACENAJE DEWALT"
+].map((n,i)=>({id:'q'+(i+1),nombre:n,unidad:'ud',categoria:'Maquinaria',cantidad:0,stockMinimo:0}));
+
+const CAT_EPIS = [
+  "ARNES ANTICAIDA MGB_02 PLUS","ARNES ANTICAIDA MGB_HT-315 DORSAL Y PECTORAL","ARNES+CUERDA+2MOSQUE+BO ELBRUS 50","ARNES KIT STEELSAFE-2 CON ENGANCHE DORSAL Y FRONTAL","ARNES STEELSAFE-2 CON ENGANCHE DORSAL Y FRONTAL","BARBUQUEJO 4 PTOS FIJACION","BOTA MASTIA 1688BENE","CASCO PROTECCION CON RUEDA BLANCO","CHALECO TRAFICO AV AMARILLO T-XL","CINA EN Y CON ABSORBEDOR Y MOSQUETONES","CUERDA PARA ARNES 1,5M","DOBLE CUERDA+ABSOR+2 MOSQUE 1M 80227BJ","GAFA ARTY OCULAR CLARO 11100","GUANTE NYLON-NITRILO GRIS 7287-T9","GUANTE NYLON NEGRO (caja 120 uds)","GUANTE POLIESTER GRIS RECUBRIMIENTO POLIURETANO (caja 120ud)","GUANTE POLIESTER BLANCO/NEGRO (caja 120ud)","PANTALON MULTIBOLSILLOS MARINO T-44","POLO AV AMARILLO M/LARGA T-L","SETA PROTECTORA (10 a 20MM) 300 pzs","TAPON REUTILIZABLE 20DB auditivo","ZAPATO NEW TIGRI S1P SRC T-40"
+].map((n,i)=>({id:'e'+(i+1),nombre:n,unidad:'ud',categoria:'EPIs',cantidad:0,stockMinimo:0}));
+
+const CATALOGO_COMPLETO = [...CATALOGO,...CAT_MAQUINARIA,...CAT_EPIS];
+
+// ═══════════════════════════════════════════════
+// ESTADO & STORAGE
+// ═══════════════════════════════════════════════
+const ROLES_INFO = {
+  compras:    {label:'Compras',   color:'#F59E0B',icon:'🛒'},
+  operario:   {label:'Operario',  color:'#3B82F6',icon:'🔧'},
+  produccion: {label:'Producción',color:'#10B981',icon:'🏭'},
+};
+const CAT_COLORS = {Materiales:'#3B82F6',Maquinaria:'#F59E0B',EPIs:'#10B981',Equipos:'#8B5CF6'};
+
+let estado = {
+  usuario: '', rol: '', tab: 'movimientos',
+  movimientos: [], stock: [], obras: [],
+  editingId: null, ajusteId: null, movTipo: 'salida',
+  busqueda: '', catFiltro: 'Todo'
+};
+
+function cargar() {
+  try {
+    const raw = localStorage.getItem('almacenpro-v3');
+    if (raw) {
+      const d = JSON.parse(raw);
+      estado.movimientos = d.movimientos || [];
+      estado.stock       = d.stock && d.stock.length ? d.stock : CATALOGO_COMPLETO.map(x=>({...x}));
+      estado.obras       = d.obras || [];
+    } else {
+      estado.stock = CATALOGO_COMPLETO.map(x=>({...x}));
+    }
+  } catch { estado.stock = CATALOGO_COMPLETO.map(x=>({...x})); }
+}
+
+function guardar() {
+  localStorage.setItem('almacenpro-v3', JSON.stringify({
+    movimientos: estado.movimientos,
+    stock: estado.stock,
+    obras: estado.obras,
+    savedAt: new Date().toISOString()
+  }));
+  document.getElementById('sync-info').textContent = '💾 Guardado: ' + new Date().toLocaleTimeString('es-ES');
+}
+
+// ═══════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════
+function confirmarNombre() {
+  const n = document.getElementById('inp-nombre').value.trim();
+  if (!n) { alert('Escribe tu nombre'); return; }
+  estado.usuario = n;
+  document.getElementById('step-nombre').style.display = 'none';
+  document.getElementById('step-rol').style.display = 'block';
+}
+document.getElementById('inp-nombre').addEventListener('keydown', e => e.key === 'Enter' && confirmarNombre());
+
+function entrar(rol) {
+  estado.rol = rol;
+  const ri = ROLES_INFO[rol];
+  document.documentElement.style.setProperty('--role-color', ri.color);
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-pill').textContent = ri.icon+' '+ri.label+' · '+estado.usuario;
+  document.getElementById('user-pill').style.cssText = `background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;`;
+  cargar();
+  renderTabs();
+  renderTab();
+}
+
+function salir() {
+  estado.usuario='';estado.rol='';estado.tab='movimientos';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login').style.display='flex';
+  document.getElementById('step-nombre').style.display='block';
+  document.getElementById('step-rol').style.display='none';
+  document.getElementById('inp-nombre').value='';
+}
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+function renderTabs() {
+  const tabs = [
+    {key:'movimientos',label:'📋 Movimientos'},
+    {key:'stock',      label:'📦 Inventario'},
+    {key:'obras',      label:'🏢 Obras'},
+    ...(estado.rol!=='operario'?[{key:'alertas',label:'⚠️ Alertas'}]:[]),
+  ];
+  const bajo = estado.stock.filter(s=>s.stockMinimo>0&&s.cantidad<=s.stockMinimo);
+  const badge = document.getElementById('alerta-badge');
+  if (bajo.length > 0) {
+    badge.style.display='inline-block';
+    badge.textContent='⚠️ '+bajo.length+' bajo mínimo';
+    badge.style.cssText+='background:#EF444422;color:#EF4444;border:1px solid #EF444444;';
+  } else badge.style.display='none';
+
+  document.getElementById('tabs').innerHTML = tabs.map(t=>`
+    <button class="tab-btn ${estado.tab===t.key?'active':''}" onclick="cambiarTab('${t.key}')">${t.label}</button>
+  `).join('');
+}
+
+function cambiarTab(t) { estado.tab=t; renderTabs(); renderTab(); }
+
+function renderTab() {
+  const c = document.getElementById('content');
+  if      (estado.tab==='movimientos') c.innerHTML = renderMovimientos();
+  else if (estado.tab==='stock')       c.innerHTML = renderStock();
+  else if (estado.tab==='obras')       c.innerHTML = renderObras();
+  else if (estado.tab==='alertas')     c.innerHTML = renderAlertas();
+}
+
+// ═══════════════════════════════════════════════
+// MOVIMIENTOS
+// ═══════════════════════════════════════════════
+function renderMovimientos() {
+  const canWrite = estado.rol==='compras'||estado.rol==='operario';
+  let html = `<div class="section-header">
+    <div><h2 class="section-title">Movimientos</h2><p class="section-sub">Historial de entradas y salidas</p></div>
+    ${canWrite?`<button class="btn btn-primary" onclick="abrirMov()">+ Registrar movimiento</button>`:''}
+  </div>`;
+  if (!estado.movimientos.length) {
+    html += `<div class="empty"><div class="empty-icon">📭</div><p>Sin movimientos registrados</p>${canWrite?'<p class="empty-sub">Pulsa el botón para registrar el primer movimiento</p>':''}</div>`;
+    return html;
+  }
+  html += '<div class="mov-list">' + estado.movimientos.map(m => {
+    const c = m.tipo==='entrada'?'#10B981':m.tipo==='ajuste'?'#8B5CF6':'#F59E0B';
+    const ic = m.tipo==='entrada'?'📦':m.tipo==='ajuste'?'✏️':'📤';
+    const desc = m.tipo==='entrada'?'Entrada al almacén':m.tipo==='ajuste'?`Ajuste manual (antes: ${m.cantidadAntes})`:`Salida → ${m.obraNombre||''}`;
+    const sign = m.tipo==='entrada'?'+':m.tipo==='ajuste'?'=':'-';
+    return `<div class="mov-card" style="border-left:3px solid ${c}">
+      <div class="mov-icon" style="background:${c}22">${ic}</div>
+      <div class="mov-info">
+        <div class="mov-nombre">${esc(m.materialNombre)}</div>
+        <div class="mov-desc">${esc(desc)}${m.nota?` · <em>${esc(m.nota)}</em>`:''}</div>
+      </div>
+      <div class="mov-cant"><div class="mov-cant-num" style="color:${c}">${sign}${m.cantidad}</div><div class="mov-cant-lbl">unidades</div></div>
+      <div class="mov-meta"><div class="mov-user">${esc(m.usuario)}</div><div class="mov-date">${ROLES_INFO[m.rol]?.label||m.rol} · ${fmt(m.fecha)}</div></div>
+    </div>`;
+  }).join('') + '</div>';
+  return html;
+}
+
+function abrirMov() {
+  const mat = document.getElementById('mov-material');
+  mat.innerHTML = '<option value="">Seleccionar material...</option>';
+  ['Materiales','Maquinaria','EPIs','Equipos'].forEach(cat => {
+    const items = estado.stock.filter(s=>s.categoria===cat);
+    if (!items.length) return;
+    const og = document.createElement('optgroup');
+    og.label = '─── '+cat+' ───';
+    items.forEach(s=>{
+      const o=document.createElement('option');
+      o.value=s.id;
+      o.textContent=s.nombre+' ('+s.cantidad+' '+s.unidad+')';
+      og.appendChild(o);
+    });
+    mat.appendChild(og);
+  });
+  const obrasSel = document.getElementById('mov-obra');
+  const obrasSec = document.getElementById('mov-obra-section');
+  const sinObras = document.getElementById('mov-sin-obras');
+  obrasSel.innerHTML = '<option value="">Seleccionar obra...</option>';
+  estado.obras.forEach(o=>{
+    const op=document.createElement('option');
+    op.value=o.id;
+    op.textContent=o.nombre+(o.direccion?' – '+o.direccion:'');
+    obrasSel.appendChild(op);
+  });
+  document.getElementById('mov-nota').value='';
+  document.getElementById('mov-cantidad').value=1;
+  setTipo(estado.movTipo);
+  abrirModal('modal-mov');
+}
+
+function setTipo(t) {
+  estado.movTipo=t;
+  const ec='#10B981',sc='#F59E0B';
+  const be=document.getElementById('btn-entrada'),bs=document.getElementById('btn-salida');
+  be.style.background=t==='entrada'?ec:'#0F172A'; be.style.color=t==='entrada'?'#0F172A':'#64748B';
+  bs.style.background=t==='salida'?sc:'#0F172A'; bs.style.color=t==='salida'?'#0F172A':'#64748B';
+  const obrasSec=document.getElementById('mov-obra-section');
+  const sinObras=document.getElementById('mov-sin-obras');
+  if (t==='salida') {
+    if (estado.obras.length) { obrasSec.style.display='block'; sinObras.style.display='none'; }
+    else { obrasSec.style.display='none'; sinObras.style.display='block'; }
+  } else { obrasSec.style.display='none'; sinObras.style.display='none'; }
+}
+
+function guardarMovimiento() {
+  const matId = document.getElementById('mov-material').value;
+  const cant = parseInt(document.getElementById('mov-cantidad').value);
+  const nota = document.getElementById('mov-nota').value.trim();
+  const obraId = document.getElementById('mov-obra').value;
+  const mat = estado.stock.find(s=>s.id===matId);
+  if (!mat) return alert('Selecciona un material');
+  if (!cant||cant<=0) return alert('Cantidad no válida');
+  if (estado.movTipo==='salida'&&mat.cantidad<cant) return alert('Stock insuficiente (hay '+mat.cantidad+' '+mat.unidad+')');
+  if (estado.movTipo==='salida'&&!obraId) return alert('Selecciona la obra de destino');
+  const obra = estado.obras.find(o=>o.id===obraId);
+  estado.movimientos.unshift({
+    id:'mv'+Date.now(),tipo:estado.movTipo,materialId:mat.id,materialNombre:mat.nombre,
+    cantidad:cant,obraId,obraNombre:obra?.nombre||'',nota,usuario:estado.usuario,rol:estado.rol,fecha:new Date().toISOString()
+  });
+  const idx = estado.stock.findIndex(s=>s.id===matId);
+  estado.stock[idx].cantidad += estado.movTipo==='entrada'?cant:-cant;
+  guardar(); cerrarModal('modal-mov'); renderTabs(); renderTab();
+}
+
+// ═══════════════════════════════════════════════
+// INVENTARIO
+// ═══════════════════════════════════════════════
+function renderStock() {
+  const canWrite = estado.rol==='compras'||estado.rol==='operario';
+  const canManage = estado.rol==='compras';
+  const cats = ['Todo',...new Set(estado.stock.map(s=>s.categoria))];
+  const filt = estado.stock.filter(s=>{
+    const q=estado.busqueda.toLowerCase();
+    return(!q||s.nombre.toLowerCase().includes(q))&&(estado.catFiltro==='Todo'||s.categoria===estado.catFiltro);
+  });
+  let html=`<div class="section-header">
+    <div><h2 class="section-title">Inventario</h2><p class="section-sub">${estado.stock.length} materiales · ${filt.length} mostrados</p></div>
+    ${canManage?`<button class="btn btn-primary" onclick="abrirModal('modal-mat')">+ Añadir material</button>`:''}
+  </div>
+  <div class="filters">
+    <input class="search-inp" placeholder="🔍 Buscar material..." value="${esc(estado.busqueda)}" oninput="estado.busqueda=this.value;renderTab()">
+    <select class="cat-sel" onchange="estado.catFiltro=this.value;renderTab()">
+      ${cats.map(c=>`<option ${estado.catFiltro===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+  </div>`;
+  if (!filt.length) {
+    html+=`<div class="empty"><div class="empty-icon">🔍</div><p>Sin resultados para tu búsqueda</p></div>`;
+    return html;
+  }
+  html+='<div class="stock-grid">'+filt.map(s=>{
+    const bajo=s.stockMinimo>0&&s.cantidad<=s.stockMinimo;
+    const cc=CAT_COLORS[s.categoria]||'#64748B';
+    const clickable=canWrite?`onclick="abrirAjuste('${s.id}')"`:''
+    return `<div class="stock-card ${bajo?'bajo':''}" ${clickable}>
+      <div class="stock-card-top">
+        <span class="pill pill-sm" style="background:${cc}22;color:${cc};border:1px solid ${cc}44;">${s.categoria}</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          ${bajo?'<span title="Stock bajo">⚠️</span>':''}
+          ${canManage?`<button onclick="event.stopPropagation();abrirEdit('${s.id}')" style="background:transparent;border:none;color:#475569;cursor:pointer;font-size:13px;padding:0 2px;" title="Editar">✏️</button>`:''}
+        </div>
+      </div>
+      <div class="stock-nombre" style="color:${bajo?'#FBBF24':'#F8FAFC'}">${esc(s.nombre)}</div>
+      <div class="stock-cant" style="color:${bajo?'#EF4444':'#F8FAFC'}">${s.cantidad}<span class="stock-unit"> ${s.unidad}</span></div>
+      ${s.stockMinimo>0?`<div class="stock-min">Mínimo: ${s.stockMinimo} ${s.unidad}</div>`:''}
+      ${canWrite?`<div class="stock-hint">Toca para ajustar cantidad</div>`:''}
+    </div>`;
+  }).join('')+'</div>';
+  return html;
+}
+
+function abrirAjuste(id) {
+  const s=estado.stock.find(x=>x.id===id);
+  estado.ajusteId=id;
+  document.getElementById('ajuste-info').innerHTML=`<div class="nombre">${esc(s.nombre)}</div><div class="sub">Stock actual: <strong style="color:#F8FAFC">${s.cantidad} ${s.unidad}</strong></div>`;
+  document.getElementById('ajuste-cant-lbl').textContent=`Nueva cantidad (${s.unidad})`;
+  document.getElementById('ajuste-cant').value=s.cantidad;
+  document.getElementById('ajuste-nota').value='';
+  abrirModal('modal-ajuste');
+}
+
+function guardarAjuste() {
+  const cant=parseInt(document.getElementById('ajuste-cant').value);
+  const nota=document.getElementById('ajuste-nota').value.trim();
+  if(isNaN(cant)||cant<0) return alert('Cantidad no válida');
+  const idx=estado.stock.findIndex(s=>s.id===estado.ajusteId);
+  const antes=estado.stock[idx].cantidad;
+  estado.stock[idx].cantidad=cant;
+  estado.movimientos.unshift({id:'mv'+Date.now(),tipo:'ajuste',materialId:estado.ajusteId,materialNombre:estado.stock[idx].nombre,cantidad:cant,cantidadAntes:antes,nota:nota||'Ajuste manual',usuario:estado.usuario,rol:estado.rol,fecha:new Date().toISOString()});
+  guardar();cerrarModal('modal-ajuste');renderTabs();renderTab();
+}
+
+function abrirEdit(id) {
+  const s=estado.stock.find(x=>x.id===id);
+  estado.editingId=id;
+  document.getElementById('edit-nombre').value=s.nombre;
+  document.getElementById('edit-cat').value=s.categoria;
+  document.getElementById('edit-unidad').value=s.unidad;
+  document.getElementById('edit-min').value=s.stockMinimo;
+  abrirModal('modal-edit');
+}
+
+function guardarEdit() {
+  const idx=estado.stock.findIndex(s=>s.id===estado.editingId);
+  estado.stock[idx].nombre=document.getElementById('edit-nombre').value.trim()||estado.stock[idx].nombre;
+  estado.stock[idx].categoria=document.getElementById('edit-cat').value;
+  estado.stock[idx].unidad=document.getElementById('edit-unidad').value.trim()||estado.stock[idx].unidad;
+  estado.stock[idx].stockMinimo=parseInt(document.getElementById('edit-min').value)||0;
+  guardar();cerrarModal('modal-edit');renderTabs();renderTab();
+}
+
+function guardarMat() {
+  const nombre=document.getElementById('mat-nombre').value.trim();
+  if(!nombre) return alert('Escribe el nombre del material');
+  estado.stock.push({id:'u'+Date.now(),nombre,categoria:document.getElementById('mat-cat').value,unidad:document.getElementById('mat-unidad').value.trim()||'ud',cantidad:0,stockMinimo:parseInt(document.getElementById('mat-min').value)||0});
+  guardar();cerrarModal('modal-mat');renderTab();
+}
+
+// ═══════════════════════════════════════════════
+// OBRAS
+// ═══════════════════════════════════════════════
+function renderObras() {
+  const canManage=estado.rol==='compras';
+  let html=`<div class="section-header">
+    <div><h2 class="section-title">Obras</h2><p class="section-sub">Destinos de material</p></div>
+    ${canManage?`<button class="btn btn-primary" onclick="abrirModal('modal-obra')">+ Nueva obra</button>`:''}
+  </div>`;
+  if(!estado.obras.length){
+    html+=`<div class="empty"><div class="empty-icon">🏢</div><p>Sin obras registradas</p>${canManage?'<p class="empty-sub">Añade obras para poder registrar salidas de material</p>':''}</div>`;
+    return html;
+  }
+  html+='<div class="obras-grid">'+estado.obras.map(o=>{
+    const movO=estado.movimientos.filter(m=>m.obraId===o.id&&m.tipo==='salida');
+    return `<div class="obra-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div class="obra-nombre">🏢 ${esc(o.nombre)}</div>
+        <span class="pill pill-sm" style="background:#10B98122;color:#10B981;border:1px solid #10B98144;">Activa</span>
+      </div>
+      ${o.direccion?`<div class="obra-dir">📍 ${esc(o.direccion)}</div>`:''}
+      <div class="obra-stats">${movO.length} salida${movO.length!==1?'s':''} registrada${movO.length!==1?'s':''}</div>
+      <div class="obra-author">Creada por ${esc(o.creadoPor)}</div>
+    </div>`;
+  }).join('')+'</div>';
+  return html;
+}
+
+function guardarObra() {
+  const nombre=document.getElementById('obra-nombre').value.trim();
+  if(!nombre) return alert('Escribe el nombre de la obra');
+  estado.obras.push({id:'ob'+Date.now(),nombre,direccion:document.getElementById('obra-dir').value.trim(),activa:true,creadoPor:estado.usuario,creadoEn:new Date().toISOString()});
+  guardar();cerrarModal('modal-obra');renderTab();
+}
+
+// ═══════════════════════════════════════════════
+// ALERTAS
+// ═══════════════════════════════════════════════
+function renderAlertas() {
+  const bajo=estado.stock.filter(s=>s.stockMinimo>0&&s.cantidad<=s.stockMinimo);
+  let html=`<h2 class="section-title" style="margin-bottom:18px;">Alertas de stock</h2>`;
+  if(!bajo.length){
+    html+=`<div class="empty"><div class="empty-icon">✅</div><p style="color:#10B981;font-weight:600;">Todo el stock está por encima del mínimo</p></div>`;
+    return html;
+  }
+  html+='<div class="alert-list">'+bajo.map(s=>`
+    <div class="alert-card">
+      <span style="font-size:26px;">⚠️</span>
+      <div style="flex:1;"><div style="font-weight:700;">${esc(s.nombre)}</div><div style="color:#64748B;font-size:12px;">${s.categoria}</div></div>
+      <div style="text-align:right;"><div style="color:#EF4444;font-weight:800;font-size:22px;">${s.cantidad} <span style="font-size:12px;">${s.unidad}</span></div><div style="color:#64748B;font-size:11px;">Mínimo: ${s.stockMinimo}</div></div>
+    </div>`).join('')+'</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════
+// EXPORTAR / IMPORTAR (sincronización entre personas)
+// ═══════════════════════════════════════════════
+function exportarDatos() {
+  const datos={movimientos:estado.movimientos,stock:estado.stock,obras:estado.obras,exportadoPor:estado.usuario,exportadoEn:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='AlmacenPro-datos-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarDatos(e) {
+  const file=e.target.files[0];
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try {
+      const d=JSON.parse(ev.target.result);
+      if(!d.stock) return alert('Archivo no válido');
+      if(!confirm('¿Importar los datos?\nEsto reemplazará el inventario, movimientos y obras actuales.\n\nExportado por: '+(d.exportadoPor||'desconocido')+'\nFecha: '+(d.exportadoEn?new Date(d.exportadoEn).toLocaleString('es-ES'):'desconocida'))) return;
+      estado.movimientos=d.movimientos||[];
+      estado.stock=d.stock||[];
+      estado.obras=d.obras||[];
+      guardar();renderTabs();renderTab();
+      mostrarNotif('✅ Datos importados correctamente');
+    } catch { alert('Error al leer el archivo'); }
+    e.target.value='';
+  };
+  r.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function abrirModal(id){document.getElementById(id).classList.add('open');}
+function cerrarModal(id){document.getElementById(id).classList.remove('open');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(iso){return new Date(iso).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function mostrarNotif(msg){const n=document.getElementById('notif');n.textContent=msg;n.style.display='block';setTimeout(()=>n.style.display='none',4000);}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.overlay.open').forEach(el=>el.classList.remove('open'));}});
+</script>
+</body>
+</html>
