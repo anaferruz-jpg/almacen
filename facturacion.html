@@ -3628,31 +3628,89 @@ var PRES_KEY = 'segufija_presupuestos';
 var _presIdx = -1;
 
 var PRES_DEF_VENTA = [
-  {ud:'Ud',  desc:'Protección de esperas - Setas',                  medicion:0, precio:0.70,  detalle:'Suministro de protector de esperas de PVC.'},
-  {ud:'m2',  desc:'Red bajo forjado',                                      medicion:0, precio:3.50,  detalle:'Provisión de sistema de red de protección horizontal destinado a la colocación de tableros de encofrado en forjados. El conjunto está compuesto por paños de red anclados a los puntales mediante ganchos especiales, cuya curvatura de 270° en la zona inferior garantiza una fijación segura y evita desprendimientos accidentales.'},
-  {ud:'ml',  desc:'Protección perimetral INDEK fase estructura',      medicion:0, precio:11.77, detalle:'Suministro PROTECCIÓN PERIMETRAL de borde para fase de estructura, con instalación inicial en cota P1.'},
-  {ud:'m2',  desc:'Mosquitera protección caída objetos',        medicion:0, precio:0.95,  detalle:'Suministro de mosquitera para protección de caída de objetos en perímetros planta bajo cornisa.'},
-  {ud:'m2',  desc:'Protección red huecos horizontales > 1m²',  medicion:0, precio:6.95,  detalle:'Suministro de red horizontal de protección de huecos inferiores de forjados, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido y huecos mayores a 1m².'},
-  {ud:'m2',  desc:'Protección red huecos verticales',               medicion:0, precio:7.80,  detalle:'Suministro de red vertical de protección de huecos, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
-  {ud:'m2',  desc:'Protección vertical escalera con red',           medicion:0, precio:4.60,  detalle:'Suministro de red vertical de protección de ojos de escalera y laterales en caso de ser necesario, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
-  {ud:'m2',  desc:'Red protección de fachada',                      medicion:0, precio:3.50,  detalle:'Suministro de redes verticales de protección para fase de paletería. Se incluye todo el material de anclaje, así como cuerdas de atado, cosido y zócalo de rafia. Las medidas de las redes serán en función de la altura entre forjados.'},
-  {ud:'ml',  desc:'Material fungible barandilla perimetral forjado',    medicion:0, precio:0.80,  detalle:'Suministro de basquits o tornejería para sujeción de postes de barandilla de forjado y huecos.'},
-  {ud:'ml',  desc:'Protección perimetral codos y mástil 2m con red', medicion:0, precio:7.53, detalle:'Suministro de red vertical de protección de perímetros de forjado mediante anclaje a canto de forjado y postes de 2m de altura, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
-  {ud:'ml',  desc:'Líneas de vida provisionales horizontales',      medicion:0, precio:6.90,  detalle:'Suministro de líneas de vida horizontales, conformadas por anclajes y cinchas certificadas según normativa vigente, diseñadas para garantizar la protección anticarídas en trabajos en altura.'},
-  {ud:'ml',  desc:'Líneas de vida provisionales verticales',        medicion:0, precio:2.00,  detalle:'Suministro de líneas de vida verticales con cuerda semiestática certificada y anclajes homologados según UNE 795.'},
-  {ud:'ud',  desc:'Eslingas para plataformas descarga 1,5m',            medicion:0, precio:20.00, detalle:'Suministro de eslingas de 1,5m para plataformas de descarga. Se incluye los puntos de anclaje A1 y la tornejería correspondiente.'}
+  // ── FUNGIBLES COMUNES ────────────────────────────────────────────────────
+  {ud:'Ud', desc:'Protecci\u00f3n de esperas - Setas',
+   precio:0.70, medicion:0,
+   detalle:'Suministro de protector de esperas de PVC.'},
+  {ud:'m2', desc:'Red bajo forjado',
+   precio:3.50, medicion:0,
+   detalle:'Provisi\u00f3n de sistema de red de protecci\u00f3n horizontal destinado a la colocaci\u00f3n de tableros de encofrado en forjados. El conjunto est\u00e1 compuesto por pa\u00f1os de red anclados a los puntales mediante ganchos especiales, cuya curvatura de 270\u00b0 en la zona inferior garantiza una fijaci\u00f3n segura y evita desprendimientos accidentales.'},
+  {ud:'ml', desc:'Sistema de protecci\u00f3n: PROTECCION PERIMETRAL (INDEK)',
+   precio:14.31, medicion:0,
+   detalle:'Suministro material fungible PROTECCI\u00d3N PERIMETRAL de borde para fase de estructura, con instalaci\u00f3n inicial en cota P1.'},
+  {ud:'m2', desc:'Mosquitera protecci\u00f3n',
+   precio:0.95, medicion:0,
+   detalle:'Suministro de mosquitera para protecci\u00f3n de ca\u00edda de objetos en per\u00edmetros planta bajo cornisa.'},
+  {ud:'m2', desc:'Protecci\u00f3n red huecos horizontales > 1 m2',
+   precio:6.95, medicion:0,
+   detalle:'Suministro de red horizontal de protecci\u00f3n de huecos inferiores de forjados, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido y huecos mayores a 1m\u00b2.'},
+  {ud:'m2', desc:'Protecci\u00f3n red huecos verticales',
+   precio:7.80, medicion:0,
+   detalle:'Suministro de red vertical de protecci\u00f3n de huecos, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, as\u00ed como la rafia a modo de z\u00f3calo con sus respectivas bridas.'},
+  {ud:'m2', desc:'Protecci\u00f3n vertical escalera con red',
+   precio:4.60, medicion:0,
+   detalle:'Suministro de red vertical de protecci\u00f3n de ojos de escalera y laterales en caso de ser necesario, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, as\u00ed como la rafia a modo de z\u00f3calo con sus respectivas bridas.'},
+  {ud:'m2', desc:'Red protecci\u00f3n de fachada',
+   precio:3.50, medicion:0,
+   detalle:'Suministro de redes verticales de protecci\u00f3n para fase de paleter\u00eda. Se incluye todo el material de anclaje, as\u00ed como cuerdas de atado, cosido y z\u00f3calo de rafia. Las medidas de las redes ser\u00e1n en funci\u00f3n de la altura entre forjados.'},
+  {ud:'ml', desc:'Material fungible para barandilla perimetral forjado',
+   precio:0.80, medicion:0,
+   detalle:'Suministro de basquits o torner\u00eda para sujeci\u00f3n de postes de barandilla de forjado y huecos.'},
+  {ud:'ml', desc:'Protecci\u00f3n perimetral codos y m\u00e1stil 2m con red',
+   precio:7.53, medicion:0,
+   detalle:'Suministro de red vertical de protecci\u00f3n de per\u00edmetros de forjado mediante anclaje a canto de forjado y postes de 2m de altura, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, as\u00ed como la rafia a modo de z\u00f3calo con sus respectivas bridas.'},
+  {ud:'ml', desc:'L\u00edneas de vida provisionales horizontales',
+   precio:6.90, medicion:0,
+   detalle:'Suministro de l\u00edneas de vida horizontales, conformadas por anclajes y cinchas certificadas seg\u00fan normativa vigente, dise\u00f1adas para garantizar la protecci\u00f3n anticar\u00eddas en trabajos en altura.'},
+  {ud:'ml', desc:'L\u00edneas de vida provisionales verticales',
+   precio:2.00, medicion:0,
+   detalle:'Mediante cuerdas semiestáticas norma EN1891A, puntos de anclaje met\u00e1licos, conectores y dispositivos deslizantes de freno.'},
+  {ud:'ud', desc:'Eslingas para plataformas descarga 1,5m',
+   precio:20.00, medicion:0,
+   detalle:'Suministro de eslingas de 1,5m para plataformas de descarga. Se incluye los puntos de anclaje A1 y la torner\u00eda correspondiente.'},
+  // ── SISTEMAS ADICIONALES ─────────────────────────────────────────────────
+  {ud:'m2', desc:'Protecci\u00f3n de taludes',
+   precio:0, medicion:0,
+   detalle:'Suministro de red PP EN1263-1 VA2 Q100 para protecci\u00f3n de taludes y bordes de excavaci\u00f3n.'},
+  {ud:'ml', desc:'Se\u00f1alizaci\u00f3n malla naranja 120cm',
+   precio:0, medicion:0,
+   detalle:'Suministro de malla de se\u00f1alizaci\u00f3n naranja de 1,20m de altura, anclada con bridas a postes o estructura existente.'},
+  {ud:'ml', desc:'Sistema de protecci\u00f3n tipo RSA \u0026 ALSINA',
+   precio:0, medicion:0,
+   detalle:'Suministro de material fungible para sistema de protecci\u00f3n perimetral RSA/ALSINA compuesto por poleas, trinquetes, abrazaderas, cuerdas y torniller\u00eda de anclaje.'},
+  {ud:'ml', desc:'Sistema de protecci\u00f3n tipo HORCA',
+   precio:0, medicion:0,
+   detalle:'Suministro de material fungible para sistema de protecci\u00f3n tipo HORCA: red VA2, cuerdas de atado y anclajes.'},
+  {ud:'ml', desc:'Sistema de protecci\u00f3n tipo CORTA',
+   precio:0, medicion:0,
+   detalle:'Suministro de material fungible para sistema de protecci\u00f3n tipo CORTA con anclaje RG horizontal, redes y cuerdas.'},
+  {ud:'ml', desc:'Postes 2m para l\u00edneas de vida horizontales',
+   precio:0, medicion:0,
+   detalle:'Suministro de postes de 2m con base perdida para soporte de l\u00edneas de vida horizontales en cubiertas o voladizos.'},
+  {ud:'ml', desc:'Marquesina de red y mosquitera',
+   precio:0, medicion:0,
+   detalle:'Suministro de marquesina de protecci\u00f3n compuesta por red y mosquitera ancladas a estructura, para protecci\u00f3n contra ca\u00edda de objetos en accesos y zonas de tr\u00e1nsito.'}
 ];
 var PRES_DEF_ALQUILER = [
-  {ud:'ml', desc:'Barandilla provisional en encofrado',                    medicion:0, precio:0.15, dias:90,  detalle:'Suministro de protección de perímetro de encofrado, mediante postes de 1,5m de altura tubulares, triple barandilla y rodapié. Todo el sistema es metálico.'},
-  {ud:'ml', desc:'Sistema protección perimetral fase estructura (INDEK)', medicion:0, precio:1.20, dias:120, detalle:'Suministro de material recuperable del sistema de INDEK o similar compuesto por soportes, guías, tubos y demás material recuperable.'},
-  {ud:'ml', desc:'Barandilla perimetral forjado',                          medicion:0, precio:0.08, dias:120, detalle:'Suministro de protección de perímetro de forjado mediante postes de 1,2m de altura tubulares, doble barandilla y rodapié. Todo el sistema es metálico. Se incluyen en caso de ser necesario los soportes exteriores para ir taladrados.'},
-  {ud:'ml', desc:'Protección perimetral codos y mástiles 2m con red', medicion:0, precio:0.10, dias:60,  detalle:'Suministro de protección de perímetro de forjados mediante red vertical, con anclaje según sea el caso, a forjado, y postes de 2m de altura.'}
+  {ud:'ml', desc:'Barandilla provisional en encofrado',
+   precio:0.15, dias:90, medicion:0,
+   detalle:'Suministro de protecci\u00f3n de per\u00edmetro de encofrado, mediante postes de 1,5m de altura tubulares, triple barandilla y rodapi\u00e9. Todo el sistema es met\u00e1lico.'},
+  {ud:'ml', desc:'Sistema de protecci\u00f3n perimetral para fase de estructura (INDEK)',
+   precio:1.20, dias:120, medicion:0,
+   detalle:'Suministro de material recuperable del sistema de INDEK o similar compuesto por soportes, gu\u00edas, tubos y dem\u00e1s material recuperable.'},
+  {ud:'ml', desc:'Barandilla perimetral forjado',
+   precio:0.08, dias:120, medicion:0,
+   detalle:'Suministro de protecci\u00f3n de per\u00edmetro de forjado mediante postes de 1,2m de altura tubulares, doble barandilla y rodapi\u00e9. Todo el sistema es met\u00e1lico. Se incluyen en caso de ser necesario los soportes exteriores para ir taladrados.'},
+  {ud:'ml', desc:'Protecci\u00f3n perimetral codos y m\u00e1stiles 2m con red',
+   precio:0.10, dias:60, medicion:0,
+   detalle:'Suministro de protecci\u00f3n de per\u00edmetro de forjados mediante red vertical, con anclaje seg\u00fan sea el caso, a forjado, y postes de 2m de altura.'}
 ];
 var PRES_DEF_MO = [
-  {desc:'OPERARIO PROTECCIONES MES', precio:3950, meses:0, operarios:1},
-  {desc:'OPERARIO DÍA',          precio:245,  meses:0, operarios:1},
-  {desc:'HORA EXTRA ENTRE SEMANA',   precio:28,   meses:0, operarios:1},
-  {desc:'HORA EXTRA FIN DE SEMANA',  precio:35,   meses:0, operarios:1}
+  {desc:'OPERARIO PROTECCIONES MES',  precio:3950, meses:0, operarios:1},
+  {desc:'OPERARIO D\u00cdA',           precio:245,  meses:0, operarios:1},
+  {desc:'HORA EXTRA ENTRE SEMANA',    precio:28,   meses:0, operarios:1},
+  {desc:'HORA EXTRA FIN DE SEMANA',   precio:35,   meses:0, operarios:1},
+  {desc:'PERSONAL FASE CIMENTACI\u00d3N', precio:0, meses:0, operarios:1}
 ];
 
 var PRES_ESTADO_BADGE = {
@@ -3869,7 +3927,7 @@ function presGenerarPDF() {
   (PRES_DEF_VENTA||[]).concat(PRES_DEF_ALQUILER||[]).forEach(function(it){ if(it.detalle) _det[it.desc]=it.detalle; });
   function _getDetalle(it){ return it.detalle || _det[it.desc] || ''; }
 
-  // Filtered items
+  // Filtered items (no medición section in PDF - only partidas with qty)
   var _vFlt  = (p.ventaItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
   var _aFlt  = (p.alquilerItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
   var _mFlt  = (p.moItems||[]).filter(function(it){return it.meses>0&&it.precio>0;});
@@ -4243,7 +4301,7 @@ var LOGO_B64="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgUAAAHjCAYAAACzaWwP
 var PRES_MED_FIELDS = [
   {id:'barEncof', label:'Bar. Encofrado (ml)',      unit:'ml', tipo:'alquiler', desc:'Barandilla provisional en encofrado'},
   {id:'barForj',  label:'Bar. Forjado (ml)',         unit:'ml', tipo:'alquiler', desc:'Barandilla perimetral forjado'},
-  {id:'hueAsc',   label:'Hue.+Asc./INDEK (ml)',     unit:'ml', tipo:'alquiler', desc:'Sistema protección perimetral fase estructura (INDEK)'},
+  {id:'hueAsc',   label:'Hue.+Asc./INDEK (ml)',     unit:'ml', tipo:'alquiler', desc:'Sistema de protección perimetral para fase de estructura (INDEK)'},
   {id:'redHor',   label:'Red Hor. Huecos (m²)',     unit:'m²', tipo:'venta',    desc:'Protección red huecos horizontales > 1m²'},
   {id:'redVer',   label:'Red Ver. Huecos (m²)',     unit:'m²', tipo:'venta',    desc:'Protección red huecos verticales'},
   {id:'redEscl',  label:'Red Escalera (m²)',         unit:'m²', tipo:'venta',    desc:'Protección vertical escalera con red'},
