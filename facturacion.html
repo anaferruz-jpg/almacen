@@ -3628,29 +3628,31 @@ var PRES_KEY = 'segufija_presupuestos';
 var _presIdx = -1;
 
 var PRES_DEF_VENTA = [
-  {ud:'Ud', desc:'Protección de esperas - Setas', medicion:0, precio:0.0945},
-  {ud:'m2', desc:'Red bajo forjado', medicion:0, precio:3.50},
-  {ud:'ml', desc:'Protección perimetral INDEK fase estructura', medicion:0, precio:0},
-  {ud:'m2', desc:'Mosquitera protección caída objetos', medicion:0, precio:0.95},
-  {ud:'m2', desc:'Protección red huecos horizontales > 1m²', medicion:0, precio:6.95},
-  {ud:'m2', desc:'Protección red huecos verticales', medicion:0, precio:7.80},
-  {ud:'m2', desc:'Protección vertical escalera con red', medicion:0, precio:4.60},
-  {ud:'m2', desc:'Red protección de fachada', medicion:0, precio:3.50},
-  {ud:'ml', desc:'Material fungible barandilla perimetral forjado', medicion:0, precio:0.80},
-  {ud:'ml', desc:'Protección perimetral codos y mástil 2m con red', medicion:0, precio:7.53},
-  {ud:'ml', desc:'Líneas de vida provisionales horizontales', medicion:0, precio:6.90},
-  {ud:'ml', desc:'Líneas de vida provisionales verticales', medicion:0, precio:2.00},
-  {ud:'ud', desc:'Eslingas para plataformas descarga 1,5m', medicion:0, precio:20.00}
+  {ud:'Ud',  desc:'Protección de esperas - Setas',                  medicion:0, precio:0.70,  detalle:'Suministro de protector de esperas de PVC.'},
+  {ud:'m2',  desc:'Red bajo forjado',                                      medicion:0, precio:3.50,  detalle:'Provisión de sistema de red de protección horizontal destinado a la colocación de tableros de encofrado en forjados. El conjunto está compuesto por paños de red anclados a los puntales mediante ganchos especiales, cuya curvatura de 270° en la zona inferior garantiza una fijación segura y evita desprendimientos accidentales.'},
+  {ud:'ml',  desc:'Protección perimetral INDEK fase estructura',      medicion:0, precio:11.77, detalle:'Suministro PROTECCIÓN PERIMETRAL de borde para fase de estructura, con instalación inicial en cota P1.'},
+  {ud:'m2',  desc:'Mosquitera protección caída objetos',        medicion:0, precio:0.95,  detalle:'Suministro de mosquitera para protección de caída de objetos en perímetros planta bajo cornisa.'},
+  {ud:'m2',  desc:'Protección red huecos horizontales > 1m²',  medicion:0, precio:6.95,  detalle:'Suministro de red horizontal de protección de huecos inferiores de forjados, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido y huecos mayores a 1m².'},
+  {ud:'m2',  desc:'Protección red huecos verticales',               medicion:0, precio:7.80,  detalle:'Suministro de red vertical de protección de huecos, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
+  {ud:'m2',  desc:'Protección vertical escalera con red',           medicion:0, precio:4.60,  detalle:'Suministro de red vertical de protección de ojos de escalera y laterales en caso de ser necesario, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
+  {ud:'m2',  desc:'Red protección de fachada',                      medicion:0, precio:3.50,  detalle:'Suministro de redes verticales de protección para fase de paletería. Se incluye todo el material de anclaje, así como cuerdas de atado, cosido y zócalo de rafia. Las medidas de las redes serán en función de la altura entre forjados.'},
+  {ud:'ml',  desc:'Material fungible barandilla perimetral forjado',    medicion:0, precio:0.80,  detalle:'Suministro de basquits o tornejería para sujeción de postes de barandilla de forjado y huecos.'},
+  {ud:'ml',  desc:'Protección perimetral codos y mástil 2m con red', medicion:0, precio:7.53, detalle:'Suministro de red vertical de protección de perímetros de forjado mediante anclaje a canto de forjado y postes de 2m de altura, se incluyen todos los anclajes tipo argolla y cuerdas de atado y cosido, así como la rafia a modo de zócalo con sus respectivas bridas.'},
+  {ud:'ml',  desc:'Líneas de vida provisionales horizontales',      medicion:0, precio:6.90,  detalle:'Suministro de líneas de vida horizontales, conformadas por anclajes y cinchas certificadas según normativa vigente, diseñadas para garantizar la protección anticarídas en trabajos en altura.'},
+  {ud:'ml',  desc:'Líneas de vida provisionales verticales',        medicion:0, precio:2.00,  detalle:'Suministro de líneas de vida verticales con cuerda semiestática certificada y anclajes homologados según UNE 795.'},
+  {ud:'ud',  desc:'Eslingas para plataformas descarga 1,5m',            medicion:0, precio:20.00, detalle:'Suministro de eslingas de 1,5m para plataformas de descarga. Se incluye los puntos de anclaje A1 y la tornejería correspondiente.'}
 ];
 var PRES_DEF_ALQUILER = [
-  {ud:'ml', desc:'Barandilla provisional en encofrado', medicion:0, precio:0.15, dias:90},
-  {ud:'ml', desc:'Sistema protección perimetral fase estructura (INDEK)', medicion:0, precio:0, dias:120},
-  {ud:'ml', desc:'Barandilla perimetral forjado', medicion:0, precio:0.08, dias:120},
-  {ud:'ml', desc:'Protección perimetral codos y mástiles 2m con red', medicion:0, precio:0.15, dias:60}
+  {ud:'ml', desc:'Barandilla provisional en encofrado',                    medicion:0, precio:0.15, dias:90,  detalle:'Suministro de protección de perímetro de encofrado, mediante postes de 1,5m de altura tubulares, triple barandilla y rodapié. Todo el sistema es metálico.'},
+  {ud:'ml', desc:'Sistema protección perimetral fase estructura (INDEK)', medicion:0, precio:1.20, dias:120, detalle:'Suministro de material recuperable del sistema de INDEK o similar compuesto por soportes, guías, tubos y demás material recuperable.'},
+  {ud:'ml', desc:'Barandilla perimetral forjado',                          medicion:0, precio:0.08, dias:120, detalle:'Suministro de protección de perímetro de forjado mediante postes de 1,2m de altura tubulares, doble barandilla y rodapié. Todo el sistema es metálico. Se incluyen en caso de ser necesario los soportes exteriores para ir taladrados.'},
+  {ud:'ml', desc:'Protección perimetral codos y mástiles 2m con red', medicion:0, precio:0.10, dias:60,  detalle:'Suministro de protección de perímetro de forjados mediante red vertical, con anclaje según sea el caso, a forjado, y postes de 2m de altura.'}
 ];
 var PRES_DEF_MO = [
   {desc:'OPERARIO PROTECCIONES MES', precio:3950, meses:0, operarios:1},
-  {desc:'OPERARIO DÍA', precio:245, meses:0, operarios:1}
+  {desc:'OPERARIO DÍA',          precio:245,  meses:0, operarios:1},
+  {desc:'HORA EXTRA ENTRE SEMANA',   precio:28,   meses:0, operarios:1},
+  {desc:'HORA EXTRA FIN DE SEMANA',  precio:35,   meses:0, operarios:1}
 ];
 
 var PRES_ESTADO_BADGE = {
@@ -3859,135 +3861,375 @@ function presDelPartida(tipo,idx) {
 }
 
 function presGenerarPDF() {
-  var p=presRecoger();
-  var fecha=p.fecha?p.fecha.split('-').reverse().join('/'):'\u2014';
-  var thS='background:#4a2400;color:#fff;padding:7px 10px;font-size:11px;text-align:left;font-family:Georgia,serif;';
-  var tdS='padding:6px 10px;border-bottom:1px solid #ede5d8;font-size:11px;';
-  var med=p.medicion||{};
-  var medLineas=PRES_MED_FIELDS.filter(function(f){return med[f.id]>0;});
-  var medHasDatos=medLineas.length>0;
-  var medRows=medLineas.map(function(f){
-    return '<tr><td style="'+tdS+'font-size:10px">'+f.label+'</td><td style="'+tdS+'text-align:right;font-size:10px;font-weight:600">'+presFmtN(med[f.id])+' '+f.unit+'</td></tr>';
-  }).join('');
-  var plan=p.planning||{fases:[],ops:[],notas:''};
-  var planHasDatos=(plan.fases&&plan.fases.some(function(f){return f;})) || (plan.ops&&plan.ops.some(function(o){return o>0;}));
-  var planHTML='';
-  if(planHasDatos){
-    var meses=['Mes 1','Mes 2','Mes 3','Mes 4','Mes 5','Mes 6'];
-    planHTML='<div class="sec-title">&#x1F4C5; PLANNING DE OBRA</div>'+
-    '<table><thead><tr><th style="'+thS+'width:120px">Concepto</th>'+meses.map(function(m){return '<th style="'+thS+'text-align:center;width:60px">'+m+'</th>';}).join('')+'</tr></thead>'+
-    '<tbody><tr><td style="'+tdS+'font-weight:600">Fase</td>'+meses.map(function(_,i){return '<td style="'+tdS+'text-align:center">'+(plan.fases[i]||'-')+'</td>';}).join('')+'</tr>'+
-    '<tr><td style="'+tdS+'font-weight:600">Operarios</td>'+meses.map(function(_,i){return '<td style="'+tdS+'text-align:center;font-weight:700">'+(plan.ops[i]||0)+'</td>';}).join('')+'</tr></tbody></table>'+
-    (plan.notas?'<p style="font-size:10px;margin-top:6px;color:#7a5c3e;padding:0 4px">'+plan.notas+'</p>':'');
+  var p = presRecoger();
+  var fecha = p.fecha ? p.fecha.split('-').reverse().join('/') : '\u2014';
+
+  // Lookup table: desc → detalle (fallback for saved presupuestos without detalle)
+  var _det = {};
+  (PRES_DEF_VENTA||[]).concat(PRES_DEF_ALQUILER||[]).forEach(function(it){ if(it.detalle) _det[it.desc]=it.detalle; });
+  function _getDetalle(it){ return it.detalle || _det[it.desc] || ''; }
+
+  // Filtered items
+  var _vFlt  = (p.ventaItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
+  var _aFlt  = (p.alquilerItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
+  var _mFlt  = (p.moItems||[]).filter(function(it){return it.meses>0&&it.precio>0;});
+
+  // Totals (NO IVA)
+  var _pdfV  = _vFlt.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-(p.descuentoVenta||0)/100);
+  var _pdfA  = _aFlt.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-(p.descuentoAlquiler||0)/100);
+  var _pdfMO = _mFlt.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
+  var _pdfBase = _pdfV + _pdfA + _pdfMO;
+
+  // Formatters
+  function fmtN(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fmtE(n){ return fmtN(n)+' \u20ac'; }
+
+  // ── CSS ──────────────────────────────────────────────────────────────────
+  var css =
+    'body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a1a;margin:0;padding:0}'+
+    '.page{max-width:800px;margin:0 auto;padding:30px 40px}'+
+    // Header
+    '.hdr{display:flex;align-items:center;gap:20px;padding-bottom:16px;border-bottom:3px solid #5c2d0e;margin-bottom:20px}'+
+    '.hdr-logo{height:68px;width:auto}'+
+    '.hdr-co{flex:1}'+
+    '.hdr-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5c2d0e;margin-bottom:4px}'+
+    '.hdr-empresa{font-size:18px;font-weight:700;font-family:Georgia,serif;color:#2b1400;line-height:1}'+
+    '.hdr-sub{font-size:9px;color:#7a5c3e;margin-top:3px;text-transform:uppercase;letter-spacing:.08em}'+
+    '.hdr-datos{font-size:9px;color:#7a5c3e;margin-top:6px;line-height:1.7}'+
+    '.hdr-ref{text-align:right;min-width:150px}'+
+    '.hdr-ref-label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#a07040}'+
+    '.hdr-ref-num{font-size:20px;font-weight:700;font-family:Georgia,serif;color:#5c2d0e}'+
+    '.hdr-ref-fecha{font-size:10px;color:#7a5c3e;margin-top:3px}'+
+    // Doc title
+    '.doc-title{font-family:Georgia,serif;font-size:14px;font-weight:700;color:#2b1400;text-align:center;text-transform:uppercase;letter-spacing:.06em;border:1px solid #d4b896;border-radius:6px;padding:10px;margin-bottom:16px;background:#fdf8f2}'+
+    // Meta grid
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d4b896;border-radius:8px;overflow:hidden;margin-bottom:18px}'+
+    '.meta-item{padding:8px 14px;border-right:1px solid #d4b896;border-bottom:1px solid #d4b896}'+
+    '.meta-item:nth-child(2n){border-right:none}'+
+    '.meta-item:nth-last-child(-n+2){border-bottom:none}'+
+    '.meta-item label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#a07040;display:block;margin-bottom:2px;font-weight:700}'+
+    '.meta-item span{font-size:12px;font-weight:700;color:#2b1400}'+
+    // Sections
+    '.sec{margin-bottom:18px}'+
+    '.sec-title{font-family:Georgia,serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#5c2d0e;padding:7px 14px;border-radius:4px;margin-bottom:0}'+
+    '.blq{background:#fdf8f2;border:1px solid #d4b896;border-radius:0 0 6px 6px;padding:12px 16px;margin-bottom:0}'+
+    '.blq p{font-size:10px;line-height:1.75;margin:0 0 8px;color:#2b1400}'+
+    '.blq ul{margin:6px 0 0 16px;padding:0}'+
+    '.blq li{font-size:10px;line-height:1.75;color:#2b1400;margin-bottom:4px}'+
+    // Tables
+    'table{width:100%;border-collapse:collapse;font-size:10px}'+
+    'thead tr{background:#5c2d0e;color:#fff}'+
+    'thead th{padding:6px 10px;text-align:left;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.05em}'+
+    'tbody tr{border-bottom:1px solid #ede5d8}'+
+    'tbody tr:last-child{border-bottom:none}'+
+    'tbody td{padding:5px 10px;vertical-align:top}'+
+    'tbody tr:nth-child(even){background:#fdf8f2}'+
+    '.td-desc{font-weight:600;font-size:10px;color:#2b1400}'+
+    '.td-detalle{font-size:9px;color:#7a5c3e;margin-top:2px;line-height:1.5}'+
+    '.td-r{text-align:right;white-space:nowrap}'+
+    'tfoot td{padding:6px 10px;font-weight:700;font-size:11px;text-align:right;border-top:2px solid #5c2d0e;background:#fdf8f2}'+
+    // Totals summary
+    '.totales{margin:16px 0;display:flex;justify-content:flex-end}'+
+    '.tot-box{border:1px solid #d4b896;border-radius:8px;overflow:hidden;min-width:300px}'+
+    '.tot-row{display:flex;justify-content:space-between;padding:7px 16px;font-size:11px;border-bottom:1px solid #ede5d8}'+
+    '.tot-row:last-child{background:#5c2d0e;color:#fff;font-weight:700;font-size:13px;border:none;font-family:Georgia,serif}'+
+    '.tot-row.sub{font-weight:400;font-size:10px;color:#7a5c3e;background:#fdf8f2}'+
+    // Planning table
+    '.plan-tbl th{background:#5c2d0e;color:#fff;padding:5px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}'+
+    '.plan-tbl td{padding:5px 8px;text-align:center;border-bottom:1px solid #ede5d8;font-size:10px}'+
+    '.plan-tbl td:first-child{text-align:left;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#7a5c3e;white-space:nowrap}'+
+    // Firmas
+    '.firmas{display:flex;gap:24px;margin-top:24px}'+
+    '.firma-box{flex:1;border:1px solid #d4b896;border-radius:8px;padding:12px 14px}'+
+    '.firma-box label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#a07040;display:block;margin-bottom:4px;font-weight:700}'+
+    '.firma-box span{font-size:12px;font-weight:700;color:#2b1400}'+
+    '.firma-line{margin-top:44px;border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#a07040}'+
+    // Footer
+    '.footer{text-align:center;font-size:9px;color:#a07040;margin-top:20px;padding-top:10px;border-top:1px solid #ede5d8;line-height:1.8}'+
+    // Print
+    '@page{margin:20mm 15mm}'+
+    '@media print{body{background:#fff}.page{padding:0;max-width:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+
+  // ── HEADER ────────────────────────────────────────────────────────────────
+  var hdrHtml =
+    '<div class="hdr">'+
+      '<img src="'+LOGO_B64+'" class="hdr-logo" alt="SEGUFIJA">'+
+      '<div class="hdr-co">'+
+        '<div class="hdr-title">Propuesta T&eacute;cnico-Econ&oacute;mica</div>'+
+        '<div class="hdr-empresa">SEGUFIJA S.L.</div>'+
+        '<div class="hdr-sub">Seguridad Colectiva Innovadora</div>'+
+        '<div class="hdr-datos">Calle Granollers, 47 &nbsp;&middot;&nbsp; 08173 Sant Cugat del Vall&egrave;s<br>623&nbsp;782&nbsp;259 &nbsp;&middot;&nbsp; segufija@gmail.com &nbsp;&middot;&nbsp; B22898712</div>'+
+      '</div>'+
+      '<div class="hdr-ref">'+
+        '<div class="hdr-ref-label">N.&ordm; Propuesta</div>'+
+        '<div class="hdr-ref-num">'+(p.numOferta||'&mdash;')+'</div>'+
+        '<div class="hdr-ref-fecha">'+fecha+'</div>'+
+      '</div>'+
+    '</div>';
+
+  // ── DOC TITLE + META ──────────────────────────────────────────────────────
+  var metaHtml =
+    '<div class="doc-title">PROPUESTA T&Eacute;CNICO-ECON&Oacute;MICA: IMPLANTACI&Oacute;N INTEGRAL DE SEGURIDAD</div>'+
+    '<div class="meta">'+
+      '<div class="meta-item"><label>Proyecto</label><span>'+(p.proyecto||'&mdash;')+'</span></div>'+
+      '<div class="meta-item"><label>Cliente</label><span>'+(p.cliente||'&mdash;')+'</span></div>'+
+      '<div class="meta-item"><label>Fecha</label><span>'+fecha+'</span></div>'+
+      '<div class="meta-item"><label>Att.</label><span>'+(p.att||'&mdash;')+'</span></div>'+
+    '</div>';
+
+  // ── PRESENTACIÓN ──────────────────────────────────────────────────────────
+  var presentHtml =
+    '<div class="sec">'+
+      '<div class="sec-title">PRESENTACI&Oacute;N DE SEGUFIJA S.L.</div>'+
+      '<div class="blq">'+
+        '<p>Somos una organizaci&oacute;n joven y din&aacute;mica, creada con el prop&oacute;sito de aportar soluciones de seguridad colectiva innovadoras y efectivas. Apostamos por la cercan&iacute;a con el cliente y por un enfoque t&eacute;cnico que nos permite dise&ntilde;ar, instalar e implementar sistemas adaptados a cada necesidad.</p>'+
+        '<p>Nuestro objetivo es ofrecer alternativas seguras, &aacute;giles y competitivas para dar respuesta a cualquier riesgo del proyecto, trabajando con materiales y productos certificados y realizando las instalaciones bajo normativa.</p>'+
+        '<ul>'+
+          '<li><strong>Sistemas Innovadores:</strong> Especialistas en protecci&oacute;n perimetral ligera que no requiere uso de gr&uacute;a, eliminando interferencias cr&iacute;ticas en el planning de obra.</li>'+
+          '<li><strong>Direcci&oacute;n T&eacute;cnica Directa:</strong> Supervisi&oacute;n realizada directamente por T&eacute;cnico de Prevenci&oacute;n competente, asegurando una interlocuci&oacute;n directa y resolutiva.</li>'+
+          '<li><strong>Control de Producto:</strong> Todos nuestros sistemas cumplen estrictamente con las normativas UNE-EN&nbsp;13374, UNE&nbsp;1263 y UNE&nbsp;795.</li>'+
+        '</ul>'+
+      '</div>'+
+    '</div>';
+
+  // ── ENFOQUE INTEGRAL ──────────────────────────────────────────────────────
+  var enfoqueHtml =
+    '<div class="sec">'+
+      '<div class="sec-title">ENFOQUE EN SOLUCI&Oacute;N INTEGRAL</div>'+
+      '<div class="blq">'+
+        '<p>Para la construcci&oacute;n del proyecto mencionado, se requiere la implantaci&oacute;n de protecciones colectivas que cumplan con los est&aacute;ndares de calidad para las fases de estructura y cerramientos.</p>'+
+        '<p>Ofrecemos un presupuesto de Gesti&oacute;n Integral con los datos proporcionados por el cliente, garantizando:</p>'+
+        '<ul>'+
+          '<li><strong>1. Estudio T&eacute;cnico:</strong> An&aacute;lisis previo de los riesgos espec&iacute;ficos de la obra.</li>'+
+          '<li><strong>2. Instalaci&oacute;n y Mantenimiento:</strong> Montaje por cuadrillas especializadas con procedimientos recogidos en manuales de buenas pr&aacute;cticas.</li>'+
+          '<li><strong>3. Asistencia T&eacute;cnica y Certificaci&oacute;n:</strong> Realizaci&oacute;n peri&oacute;dica de checklists de aseguramiento de calidad y emisi&oacute;n de Certificados de Montaje mensual.</li>'+
+        '</ul>'+
+      '</div>'+
+    '</div>';
+
+  // ── MATERIAL FUNGIBLE (VENTA) ─────────────────────────────────────────────
+  var ventaHtml = '';
+  if (_vFlt.length) {
+    var rows = _vFlt.map(function(it){
+      var tot = it.medicion*it.precio;
+      var det = _getDetalle(it);
+      return '<tr>'+
+        '<td style="width:40px;vertical-align:middle" class="td-r">'+it.ud+'</td>'+
+        '<td><div class="td-desc">'+it.desc+'</div>'+(det?'<div class="td-detalle">'+det+'</div>':'')+'</td>'+
+        '<td class="td-r" style="width:70px;vertical-align:middle">'+fmtN(it.medicion)+'</td>'+
+        '<td class="td-r" style="width:80px;vertical-align:middle">'+fmtE(it.precio)+'</td>'+
+        '<td class="td-r" style="width:90px;font-weight:700;vertical-align:middle">'+fmtE(tot)+'</td>'+
+      '</tr>';
+    }).join('');
+    var footer = p.descuentoVenta>0
+      ? '<tfoot><tr><td colspan="4" style="text-align:right;font-size:10px;color:#7a5c3e">Descuento '+p.descuentoVenta+'%</td><td style="text-align:right;font-weight:700">'+fmtE(_pdfV)+'</td></tr></tfoot>'
+      : '';
+    ventaHtml =
+      '<div class="sec">'+
+        '<div class="sec-title">MATERIAL FUNGIBLE (Venta)</div>'+
+        '<table><thead><tr>'+
+          '<th style="width:40px">Ud</th><th>Descripci\u00f3n</th>'+
+          '<th class="td-r" style="width:70px">Medici\u00f3n</th>'+
+          '<th class="td-r" style="width:80px">Precio Ud</th>'+
+          '<th class="td-r" style="width:90px">Total</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody>'+footer+'</table>'+
+        '<div style="text-align:right;padding:7px 14px;font-size:11px;font-weight:700;color:#5c2d0e;border:1px solid #d4b896;border-top:none;border-radius:0 0 4px 4px;background:#fdf8f2">'+
+          'TOTAL MATERIAL A VENTA &nbsp; '+fmtE(_pdfV)+
+        '</div>'+
+      '</div>';
   }
-  var _vFlt=(p.ventaItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
-  var _aFlt=(p.alquilerItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
-  var _mFlt=(p.moItems||[]).filter(function(it){return it.meses>0&&it.precio>0;});
-  var _pdfV=_vFlt.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-(p.descuentoVenta||0)/100);
-  var _pdfA=_aFlt.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-(p.descuentoAlquiler||0)/100);
-  var _pdfMO=_mFlt.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
-  var _pdfBase=_pdfV+_pdfA+_pdfMO, _pdfIva=_pdfBase*0.21, _pdfTotal=_pdfBase*1.21;
-  var rowsV=_vFlt.map(function(it){var tot=it.medicion*it.precio;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
-  var rowsA=_aFlt.map(function(it){var tot=it.medicion*it.precio*it.dias;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.dias+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
-  var rowsMO=_mFlt.map(function(it){var tot=it.precio*it.meses*it.operarios;return '<tr><td style="'+tdS+'" colspan="2">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+presFmtN(it.meses)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.operarios+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
 
-  var css='body{font-family:Arial,sans-serif;font-size:11px;color:#1e1008;margin:0;padding:0;background:#f7f3ee}'
-    +'h1,h2,h3{font-family:Georgia,serif}'
-    +'.page{padding:28px 36px;max-width:820px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 20px rgba(0,0,0,.08)}'
-    +'.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 0 18px;border-bottom:3px solid #7a3a00;margin-bottom:20px}'
-    +'.hdr-logo{height:70px;width:auto}'
-    +'.hdr-info{flex:1;padding:0 18px}'
-    +'.hdr-empresa{font-size:20px;font-weight:700;font-family:Georgia,serif;color:#4a2400;line-height:1.1}'
-    +'.hdr-slogan{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#a07040;margin-top:3px}'
-    +'.hdr-datos{font-size:9px;color:#7a5c3e;margin-top:7px;line-height:1.7}'
-    +'.hdr-num{text-align:right;min-width:140px}'
-    +'.hdr-num-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#a07040}'
-    +'.hdr-num-val{font-size:22px;font-weight:700;font-family:Georgia,serif;color:#4a2400;line-height:1.1}'
-    +'.hdr-num-fecha{font-size:10px;color:#7a5c3e;margin-top:4px}'
-    +'.meta-box{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border:1px solid #ddd0bb;border-radius:8px;overflow:hidden;margin-bottom:18px}'
-    +'.meta-item{padding:10px 14px;border-right:1px solid #ddd0bb}'
-    +'.meta-item:last-child{border-right:none}'
-    +'.meta-item label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#a07040;display:block;margin-bottom:3px;font-weight:600}'
-    +'.meta-item span{font-size:12px;font-weight:700;color:#2b1a0e}'
-    +'.sec-title{background:linear-gradient(90deg,#4a2400,#7a3a00);color:#fff;padding:7px 14px;font-size:11px;font-weight:700;border-radius:6px;margin:16px 0 8px;font-family:Georgia,serif;letter-spacing:.04em}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:11px}'
-    +'.blq{margin-bottom:14px;padding:12px 16px;background:#faf6f0;border-left:3px solid #7a3a00;border-radius:0 6px 6px 0}'
-    +'.blq h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4a2400;margin-bottom:8px}'
-    +'.blq p,.blq li{font-size:10px;line-height:1.7;color:#2b1a0e;margin-bottom:3px}'
-    +'.blq ul{margin-left:14px;padding:0}'
-    +'.totales-wrap{display:flex;justify-content:flex-end;margin-top:16px}'
-    +'.tot-box{border:1px solid #ddd0bb;border-radius:8px;overflow:hidden;min-width:300px}'
-    +'.tot-row{display:flex;justify-content:space-between;padding:7px 16px;font-size:11px;border-bottom:1px solid #ede5d8}'
-    +'.tot-row:last-child{background:linear-gradient(90deg,#4a2400,#7a3a00);color:#fff;font-weight:700;font-size:14px;border:none;font-family:Georgia,serif}'
-    +'.tot-sub{background:#faf6f0;font-weight:600}'
-    +'.firmas{display:flex;gap:24px;margin-top:28px;padding-top:18px;border-top:2px solid #ede5d8}'
-    +'.firma-box{flex:1;padding:12px 14px;border:1px solid #ddd0bb;border-radius:8px}'
-    +'.firma-box label{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#a07040;display:block;margin-bottom:4px;font-weight:600}'
-    +'.firma-box span{font-size:12px;font-weight:700;color:#2b1a0e}'
-    +'.firma-line{margin-top:44px;border-top:1px solid #bbb;padding-top:6px;font-size:9px;color:#a07040}'
-    +'.footer-bar{margin-top:20px;padding-top:10px;border-top:1px solid #ede5d8;text-align:center;font-size:9px;color:#a07040;line-height:1.8}'
-    +'@media print{body{background:#fff}.page{box-shadow:none;padding:20px}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+  // ── MATERIAL DE ALQUILER ──────────────────────────────────────────────────
+  var alquilerHtml = '';
+  if (_aFlt.length) {
+    var rows = _aFlt.map(function(it){
+      var tot = it.medicion*it.precio*it.dias;
+      var det = _getDetalle(it);
+      return '<tr>'+
+        '<td style="width:40px;vertical-align:middle" class="td-r">'+it.ud+'</td>'+
+        '<td><div class="td-desc">'+it.desc+'</div>'+(det?'<div class="td-detalle">'+det+'</div>':'')+'</td>'+
+        '<td class="td-r" style="width:70px;vertical-align:middle">'+fmtN(it.medicion)+'</td>'+
+        '<td class="td-r" style="width:70px;vertical-align:middle">'+fmtE(it.precio)+'</td>'+
+        '<td class="td-r" style="width:50px;vertical-align:middle">'+it.dias+'</td>'+
+        '<td class="td-r" style="width:90px;font-weight:700;vertical-align:middle">'+fmtE(tot)+'</td>'+
+      '</tr>';
+    }).join('');
+    var footer = p.descuentoAlquiler>0
+      ? '<tfoot><tr><td colspan="5" style="text-align:right;font-size:10px;color:#7a5c3e">Descuento '+p.descuentoAlquiler+'%</td><td style="text-align:right;font-weight:700">'+fmtE(_pdfA)+'</td></tr></tfoot>'
+      : '';
+    alquilerHtml =
+      '<div class="sec">'+
+        '<div class="sec-title">MATERIAL DE ALQUILER</div>'+
+        '<table><thead><tr>'+
+          '<th style="width:40px">Ud</th><th>Descripci\u00f3n</th>'+
+          '<th class="td-r" style="width:70px">Medici\u00f3n</th>'+
+          '<th class="td-r" style="width:70px">&euro;/Ud/D&iacute;a</th>'+
+          '<th class="td-r" style="width:50px">D&iacute;as</th>'+
+          '<th class="td-r" style="width:90px">Total</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody>'+footer+'</table>'+
+        '<div style="text-align:right;padding:7px 14px;font-size:11px;font-weight:700;color:#5c2d0e;border:1px solid #d4b896;border-top:none;border-radius:0 0 4px 4px;background:#fdf8f2">'+
+          'TOTAL MATERIAL ALQUILER &nbsp; '+fmtE(_pdfA)+
+        '</div>'+
+      '</div>';
+  }
 
-  var body='<div class="hdr">'
-    +'<img src="'+LOGO_B64+'" class="hdr-logo" alt="SEGUFIJA S.L.">'
-    +'<div class="hdr-info">'
-      +'<div class="hdr-empresa">SEGUFIJA S.L.</div>'
-      +'<div class="hdr-slogan">Seguridad Colectiva Innovadora</div>'
-      +'<div class="hdr-datos">C/ Granollers, 47 &nbsp;&middot;&nbsp; 08173 Sant Cugat del Vall&egrave;s<br>623&nbsp;782&nbsp;259 &nbsp;&middot;&nbsp; info@segufija.com</div>'
-    +'</div>'
-    +'<div class="hdr-num">'
-      +'<div class="hdr-num-label">Propuesta n.&ordm;</div>'
-      +'<div class="hdr-num-val">'+(p.numOferta||'\u2014')+'</div>'
-      +'<div class="hdr-num-fecha">'+fecha+'</div>'
-    +'</div>'
-  +'</div>'
-  +'<div class="meta-box">'
-    +'<div class="meta-item"><label>Proyecto</label><span>'+(p.proyecto||'\u2014')+'</span></div>'
-    +'<div class="meta-item"><label>Cliente</label><span>'+(p.cliente||'\u2014')+'</span></div>'
-    +'<div class="meta-item"><label>A / att.</label><span>'+(p.att||'\u2014')+'</span></div>'
-    +'<div class="meta-item"><label>Fecha</label><span>'+fecha+'</span></div>'
-  +'</div>'
-  +'<div class="blq"><h3>Por qu&eacute; SEGUFIJA S.L.</h3>'
-  +'<p>En SEGUFIJA S.L. dise&ntilde;amos, suministramos e instalamos sistemas de seguridad colectiva para la construcci&oacute;n. Nuestra especialidad son las soluciones t&eacute;cnicas propias que <strong>no interfieren en el proceso constructivo</strong>, eliminando riesgos de ca&iacute;da sin paralizar la obra.</p>'
-  +'<ul>'
-  +'<li><strong>Protecci&oacute;n perimetral sin gr&uacute;a:</strong> Barandillas, redes de seguridad, sistema INDEK, l&iacute;neas de vida y soluciones a medida para cada fase de obra.</li>'
-  +'<li><strong>Respuesta &aacute;gil y soporte t&eacute;cnico:</strong> T&eacute;cnico de Prevenci&oacute;n competente disponible durante toda la obra. Montaje y desmontaje con medios propios.</li>'
-  +'<li><strong>Alquiler y venta:</strong> Sistema flexible que optimiza el coste global — solo pagas por el tiempo y el material que realmente necesitas.</li>'
-  +'<li><strong>M&aacute;xima garant&iacute;a normativa:</strong> Todos los sistemas cumplen UNE-EN&nbsp;13374, UNE-EN&nbsp;1263 y UNE&nbsp;795. Certificados y homologados.</li>'
-  +'</ul></div>'
-  +(medHasDatos?'<div class="sec-title">&#x1F4D0; MEDICIÓN DE OBRA</div><table><thead><tr><th style="'+thS+'">Concepto</th><th style="'+thS+'text-align:right;width:120px">Cantidad</th></tr></thead><tbody>'+medRows+'</tbody></table>':'')
-  +(planHasDatos?planHTML:'')
-  +(rowsV?'<div class="sec-title">&#x1F4E6; MATERIAL FUNGIBLE &mdash; Venta</div><table><thead><tr><th style="'+thS+'width:40px">Ud</th><th style="'+thS+'">Descripción</th><th style="'+thS+'text-align:right;width:70px">Medición</th><th style="'+thS+'text-align:right;width:80px">Precio Ud</th><th style="'+thS+'text-align:right;width:90px">Total (&euro;)</th></tr></thead><tbody>'+rowsV+'</tbody>'+(p.descuentoVenta>0?'<tfoot><tr><td colspan="4" style="'+tdS+'text-align:right;font-size:10px;color:#7a5c3e">Descuento '+p.descuentoVenta+'%</td><td style="'+tdS+'text-align:right;font-weight:700">'+presFmtN(p.totalVenta)+' &euro;</td></tr></tfoot>':'')+'</table>':'')
-  +(rowsA?'<div class="sec-title">&#x1F504; MATERIAL DE ALQUILER</div><table><thead><tr><th style="'+thS+'width:40px">Ud</th><th style="'+thS+'">Descripción</th><th style="'+thS+'text-align:right;width:70px">Medición</th><th style="'+thS+'text-align:right;width:70px">&euro;/Ud/D&iacute;a</th><th style="'+thS+'text-align:right;width:60px">D&iacute;as</th><th style="'+thS+'text-align:right;width:90px">Total (&euro;)</th></tr></thead><tbody>'+rowsA+'</tbody>'+(p.descuentoAlquiler>0?'<tfoot><tr><td colspan="5" style="'+tdS+'text-align:right;font-size:10px;color:#7a5c3e">Descuento '+p.descuentoAlquiler+'%</td><td style="'+tdS+'text-align:right;font-weight:700">'+presFmtN(p.totalAlquiler)+' &euro;</td></tr></tfoot>':'')+'</table>':'')
-  +(rowsMO?'<div class="sec-title">&#x1F477; MANO DE OBRA</div><table><thead><tr><th style="'+thS+'" colspan="2">Descripción</th><th style="'+thS+'text-align:right;width:80px">Precio (&euro;)</th><th style="'+thS+'text-align:right;width:60px">Meses</th><th style="'+thS+'text-align:right;width:60px">N.&ordm; Op.</th><th style="'+thS+'text-align:right;width:90px">Total (&euro;)</th></tr></thead><tbody>'+rowsMO+'</tbody></table>':'')
-  +'<div class="totales-wrap"><div class="tot-box">'
-    +'<div class="tot-row"><span>Material Venta</span><span>'+presFmtE(_pdfV)+'</span></div>'
-    +'<div class="tot-row"><span>Material Alquiler</span><span>'+presFmtE(_pdfA)+'</span></div>'
-    +'<div class="tot-row"><span>Mano de Obra</span><span>'+presFmtE(_pdfMO)+'</span></div>'
-    +'<div class="tot-row tot-sub"><span>TOTAL SIN IVA</span><span>'+presFmtE(_pdfBase)+'</span></div>'
-    +'<div class="tot-row"><span>IVA (21%)</span><span>'+presFmtE(_pdfIva)+'</span></div>'
-    +'<div class="tot-row"><span>TOTAL CON IVA</span><span>'+presFmtE(_pdfTotal)+'</span></div>'
-  +'</div></div>'
-  +'<div class="blq" style="margin-top:16px"><h3>Condiciones generales</h3><ul>'
-  +'<li>La facturaci&oacute;n se realizar&aacute; en funci&oacute;n de las partidas realmente instaladas, seg&uacute;n las mediciones efectuadas in situ.</li>'
-  +'<li>Forma de pago: confirming 60 d&iacute;as.</li>'
-  +'<li>Los materiales suministrados son propiedad de SEGUFIJA S.L.</li>'
-  +'<li>Cualquier material deteriorado, roto o quemado ser&aacute; facturado aparte.</li>'
-  +'<li>Los medios de elevaci&oacute;n necesarios ser&aacute;n aportados por el CLIENTE.</li>'
-  +'<li>Las horas extraordinarias tendr&aacute;n un coste de 35&nbsp;&euro;.</li>'
-  +'<li>El material de madera para huecos inferiores a 1&nbsp;m&sup2; ser&aacute; proporcionado por la obra.</li>'
-  +'<li>Nuestra actividad no est&aacute; sujeta a retenci&oacute;n por garant&iacute;a.</li>'
-  +'</ul></div>'
-  +'<div class="firmas">'
-    +'<div class="firma-box"><label>Aprobado por el Cliente</label><span>'+(p.cliente||'')+'</span><div class="firma-line">Firma &nbsp;&middot;&nbsp; Nombre &nbsp;&middot;&nbsp; Cargo &nbsp;&middot;&nbsp; Fecha</div></div>'
-    +'<div class="firma-box"><label>Firmado por SEGUFIJA S.L.</label><span>Ana Ferruz</span><div class="firma-line">Firma &nbsp;&middot;&nbsp; Fecha</div></div>'
-  +'</div>'
-  +'<div class="footer-bar">SEGUFIJA S.L. &nbsp;&middot;&nbsp; C/ Granollers, 47 &nbsp;&middot;&nbsp; 08173 Sant Cugat del Vall&egrave;s &nbsp;&middot;&nbsp; 623&nbsp;782&nbsp;259 &nbsp;&middot;&nbsp; info@segufija.com</div>';
+  // ── MANO DE OBRA ──────────────────────────────────────────────────────────
+  var moHtml = '';
+  if (_mFlt.length) {
+    var rows = _mFlt.map(function(it){
+      var tot = it.precio*it.meses*it.operarios;
+      return '<tr>'+
+        '<td class="td-desc">'+it.desc+'</td>'+
+        '<td class="td-r" style="width:80px">'+fmtE(it.precio)+'</td>'+
+        '<td class="td-r" style="width:60px">'+fmtN(it.meses)+'</td>'+
+        '<td class="td-r" style="width:80px">'+it.operarios+'</td>'+
+        '<td class="td-r" style="width:90px;font-weight:700">'+fmtE(tot)+'</td>'+
+      '</tr>';
+    }).join('');
+    moHtml =
+      '<div class="sec">'+
+        '<div class="sec-title">MANO DE OBRA</div>'+
+        '<table><thead><tr>'+
+          '<th>Descripci\u00f3n</th>'+
+          '<th class="td-r" style="width:80px">Precio (&euro;)</th>'+
+          '<th class="td-r" style="width:60px">Meses</th>'+
+          '<th class="td-r" style="width:80px">N&uacute;m. Operarios</th>'+
+          '<th class="td-r" style="width:90px">Total</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody></table>'+
+        '<div style="text-align:right;padding:7px 14px;font-size:11px;font-weight:700;color:#5c2d0e;border:1px solid #d4b896;border-top:none;border-radius:0 0 4px 4px;background:#fdf8f2">'+
+          'TOTAL MANO DE OBRA &nbsp; '+fmtE(_pdfMO)+
+        '</div>'+
+      '</div>';
+  }
 
-  var html='<html><head><meta charset="UTF-8"><style>'+css+'</style></head><body><div class="page">'+body+'</div></body></html>';
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var burl=URL.createObjectURL(blob);
-  var win=window.open(burl,'_blank','width=960,height=900');
+  // ── PLANNING ──────────────────────────────────────────────────────────────
+  var planHtml = '';
+  var plan = p.planning||{};
+  var planFases = plan.fases||[]; var planOps = plan.ops||[]; var nMeses = plan.meses||planFases.length||0;
+  if (nMeses>0 && (planFases.some(function(f){return f;}) || planOps.some(function(o){return o>0;}))) {
+    var thCols = '<th style="min-width:120px;text-align:left">MESES</th>';
+    for (var m=1; m<=nMeses; m++) thCols += '<th style="width:42px">'+m+'</th>';
+    var fasRow = '<tr><td>FASES</td>';
+    for (var m=0; m<nMeses; m++) fasRow += '<td>'+(planFases[m]||'')+'</td>';
+    fasRow += '</tr>';
+    var opsRow = '<tr style="background:#fdf8f2"><td>PERSONAL</td>';
+    for (var m=0; m<nMeses; m++) opsRow += '<td style="font-weight:700">'+(planOps[m]||0)+'</td>';
+    opsRow += '</tr>';
+    planHtml =
+      '<div class="sec">'+
+        '<div class="sec-title">PLANNING DE OBRA</div>'+
+        '<div style="overflow-x:auto;border:1px solid #d4b896;border-top:none;border-radius:0 0 4px 4px;background:#fff">'+
+        '<table class="plan-tbl"><thead><tr>'+thCols+'</tr></thead><tbody>'+fasRow+opsRow+'</tbody></table></div>'+
+        (plan.notas?'<div style="padding:6px 14px;font-size:9px;color:#7a5c3e;background:#fdf8f2;border:1px solid #d4b896;border-top:none;border-radius:0 0 4px 4px">'+plan.notas+'</div>':'')+
+      '</div>';
+  }
+
+  // ── TOTALES RESUMEN (SIN IVA) ─────────────────────────────────────────────
+  var totalesHtml =
+    '<div class="totales"><div class="tot-box">'+
+      '<div class="tot-row sub"><span>Total material venta</span><span>'+fmtN(_pdfV)+'</span></div>'+
+      '<div class="tot-row sub"><span>Total material alquiler</span><span>'+fmtN(_pdfA)+'</span></div>'+
+      '<div class="tot-row sub"><span>Total mano de obra</span><span>'+fmtN(_pdfMO)+'</span></div>'+
+      '<div class="tot-row"><span>TOTAL OBRA</span><span>'+fmtN(_pdfBase)+' &euro;</span></div>'+
+    '</div></div>';
+
+  // ── NOTAS ─────────────────────────────────────────────────────────────────
+  var notasHtml =
+    '<div class="sec" style="margin-top:20px">'+
+      '<div class="sec-title">NOTAS DEL PRESUPUESTO</div>'+
+      '<div class="blq"><ul>'+
+        '<li>Con los datos aportados, SEGUFIJA estima que permanecer&aacute; en obra un operario especializado durante el tiempo que se detalla en el apartado MANO DE OBRA. Se facturar&aacute;n las jornadas que sean necesarias en la obra.</li>'+
+        '<li>Los materiales suministrados son propiedad de SEGUFIJA.</li>'+
+        '<li>Cualquier material que resulte deteriorado, roto o quemado ser&aacute; facturado aparte.</li>'+
+        '<li>Los medios de elevaci&oacute;n necesarios para la ejecuci&oacute;n de los trabajos ser&aacute;n aportados por el CLIENTE.</li>'+
+        '<li>La facturaci&oacute;n se realizar&aacute; en funci&oacute;n de las partidas realmente instaladas, seg&uacute;n las mediciones efectuadas in situ.</li>'+
+        '<li>Nuestra actividad no est&aacute; sujeta a retenci&oacute;n por garant&iacute;a.</li>'+
+        '<li>Los salarios de nuestros operarios se rigen por el Convenio de la Construcci&oacute;n, en cumplimiento de la normativa vigente.</li>'+
+        '<li>Las horas extraordinarias tendr&aacute;n un coste de 35&nbsp;&euro;.</li>'+
+        '<li>El material de madera para huecos inferiores a 1&nbsp;m&sup2; ser&aacute; proporcionado por la obra.</li>'+
+      '</ul></div>'+
+    '</div>';
+
+  // ── CONDICIONES GENERALES ─────────────────────────────────────────────────
+  var condHtml =
+    '<div class="sec" style="page-break-before:always">'+
+      '<div class="sec-title">CONDICIONES GENERALES DE VENTA</div>'+
+      '<div class="blq">'+
+        '<p><strong>1. Precios y duraci&oacute;n del alquiler</strong></p>'+
+        '<ul>'+
+          '<li>Los equipos se arriendan a precios unitarios por d&iacute;a natural.</li>'+
+          '<li>La tarifa ofertada contempla una estancia m&iacute;nima de 30 d&iacute;as en obra (o la que se establezca en el contrato).</li>'+
+          '<li>Cualquier ampliaci&oacute;n de material devengar&aacute; un alquiler proporcional.</li>'+
+        '</ul>'+
+        '<p><strong>2. Responsabilidad del cliente</strong></p>'+
+        '<ul>'+
+          '<li>El cliente act&uacute;a como depositario de los equipos, comprometi&eacute;ndose a mantenerlos en perfecto estado.</li>'+
+          '<li>Los materiales perdidos o deteriorados se facturar&aacute;n al precio de reposici&oacute;n indicado en la oferta.</li>'+
+          '<li>Queda prohibido cambiar el destino del material, cederlo a terceros o subarrendarlo sin consentimiento escrito de SEGUFIJA, S.L.</li>'+
+        '</ul>'+
+        '<p><strong>3. Entrega y devoluci&oacute;n</strong></p>'+
+        '<ul>'+
+          '<li>El material se entregar&aacute; en obra con albar&aacute;n de entrega en alquiler o venta, que deber&aacute; ser firmado e incluir nombre y DNI del responsable de la recepci&oacute;n.</li>'+
+          '<li>La recepci&oacute;n y clasificaci&oacute;n del material devuelto se realizar&aacute; en los almacenes de SEGUFIJA, S.L.</li>'+
+          '<li>El alquiler inicia y finaliza seg&uacute;n las fechas de entrada y salida del material en almac&eacute;n.</li>'+
+        '</ul>'+
+        '<p><strong>4. Facturaci&oacute;n y reclamaciones</strong></p>'+
+        '<ul>'+
+          '<li>El cliente dispondr&aacute; de 30 d&iacute;as desde la fecha de factura para presentar reclamaciones.</li>'+
+          '<li>Los dep&oacute;sitos de fianza se devolver&aacute;n en un m&aacute;ximo de 30 d&iacute;as, una vez revisados los materiales devueltos.</li>'+
+        '</ul>'+
+        '<p><strong>5. Transporte y carga</strong></p>'+
+        '<ul>'+
+          '<li>Tanto el transporte de entrega como el de devoluci&oacute;n, as&iacute; como la carga y descarga en obra, ser&aacute;n por cuenta del cliente.</li>'+
+          '<li>Para devoluciones, el cliente deber&aacute; solicitar la recogida por email con 48 horas de antelaci&oacute;n.</li>'+
+        '</ul>'+
+        '<p><strong>6. Resoluci&oacute;n del contrato</strong></p>'+
+        '<ul>'+
+          '<li>El contrato podr&aacute; resolverse anticipadamente si la obra queda paralizada, el arrendatario entra en concurso o se produce impago.</li>'+
+          '<li>En estos casos, SEGUFIJA, S.L. podr&aacute; retirar directamente el material de la obra o facturarlo a precio de venta seg&uacute;n tarifa vigente.</li>'+
+        '</ul>'+
+        '<p><strong>7. Limitaciones</strong></p>'+
+        '<ul>'+
+          '<li>SEGUFIJA, S.L. no interviene en la direcci&oacute;n de obra ni en el montaje de los elementos, quedando exenta de responsabilidad por su utilizaci&oacute;n.</li>'+
+          '<li>Queda terminantemente prohibido realizar perforaciones en tableros fen&oacute;licos. En caso de producirse, se facturar&aacute;n a raz&oacute;n de 40&nbsp;&euro;/m&sup2;.</li>'+
+        '</ul>'+
+        '<p><strong>8. Condiciones legales</strong></p>'+
+        '<ul>'+
+          '<li>Para la entrega de material ser&aacute; indispensable disponer del pedido o contrato debidamente firmado.</li>'+
+          '<li>Solo tendr&aacute;n validez las condiciones reflejadas por escrito y firmadas por ambas partes.</li>'+
+        '</ul>'+
+      '</div>'+
+    '</div>';
+
+  // ── FIRMAS ────────────────────────────────────────────────────────────────
+  var firmasHtml =
+    '<div class="firmas">'+
+      '<div class="firma-box">'+
+        '<label>Firmado por SEGUFIJA S.L.</label>'+
+        '<span>Ana Ferruz</span>'+
+        '<div class="firma-line">Firma &nbsp;&middot;&nbsp; Fecha</div>'+
+      '</div>'+
+      '<div class="firma-box">'+
+        '<label>Aprobaci&oacute;n Cliente &mdash; '+(p.cliente||'EMPRESA')+'</label>'+
+        '<span style="display:block;margin-bottom:4px">&nbsp;</span>'+
+        '<div class="firma-line">Firma &nbsp;&middot;&nbsp; Nombre &nbsp;&middot;&nbsp; Cargo &nbsp;&middot;&nbsp; Fecha</div>'+
+      '</div>'+
+    '</div>';
+
+  // ── FOOTER ────────────────────────────────────────────────────────────────
+  var footerHtml =
+    '<div class="footer">SEGUFIJA S.L. &nbsp;&middot;&nbsp; Calle Granollers, 47 &nbsp;&middot;&nbsp; 08173 Sant Cugat del Vall&egrave;s &nbsp;&middot;&nbsp; 623&nbsp;782&nbsp;259 &nbsp;&middot;&nbsp; segufija@gmail.com</div>';
+
+  // ── ASSEMBLE ──────────────────────────────────────────────────────────────
+  var body = hdrHtml + metaHtml + presentHtml + enfoqueHtml +
+             ventaHtml + alquilerHtml + moHtml + planHtml +
+             totalesHtml + notasHtml + condHtml + firmasHtml + footerHtml;
+
+  var fullHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Presupuesto '+(p.numOferta||'')+'</title><style>'+css+'</style></head><body><div class="page">'+body+'</div></body></html>';
+
+  var blob = new Blob([fullHtml],{type:'text/html;charset=utf-8'});
+  var burl = URL.createObjectURL(blob);
+  var win = window.open(burl,'_blank','width=980,height=900');
   setTimeout(function(){try{win.print();}catch(e){} URL.revokeObjectURL(burl);},900);
 }
 
