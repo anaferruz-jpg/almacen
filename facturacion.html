@@ -688,8 +688,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <div class="form-group"><label>Eslingas (ud)</label><input type="number" id="pmed-eslingas" value="0" min="0" step="1" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Taludes (m²)</label><input type="number" id="pmed-taludes" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Malla naranja (ml)</label><input type="number" id="pmed-mallaOrg" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
-        <div class="form-group"><label>RSA &amp; ALSINA (ml)</label><input type="number" id="pmed-rsa" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
-        <div class="form-group"><label>HORCA (ml)</label><input type="number" id="pmed-horca" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
+<div class="form-group"><label>HORCA (ml)</label><input type="number" id="pmed-horca" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>CORTA (ml)</label><input type="number" id="pmed-corta" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Postes 2m LdV (ml)</label><input type="number" id="pmed-postes2m" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Marquesina (ml)</label><input type="number" id="pmed-marquesina" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
@@ -3684,10 +3683,7 @@ var PRES_DEF_VENTA = [
   {ud:'ml', desc:'Se\u00f1alizaci\u00f3n malla naranja 120cm',
    precio:0, medicion:0,
    detalle:'Suministro de malla de se\u00f1alizaci\u00f3n naranja de 1,20m de altura, anclada con bridas a postes o estructura existente.'},
-  {ud:'ml', desc:'Sistema de protecci\u00f3n tipo RSA \u0026 ALSINA',
-   precio:0, medicion:0,
-   detalle:'Suministro de material fungible para sistema de protecci\u00f3n perimetral RSA/ALSINA compuesto por poleas, trinquetes, abrazaderas, cuerdas y torniller\u00eda de anclaje.'},
-  {ud:'ml', desc:'Sistema de protecci\u00f3n tipo HORCA',
+{ud:'ml', desc:'Sistema de protecci\u00f3n tipo HORCA',
    precio:0, medicion:0,
    detalle:'Suministro de material fungible para sistema de protecci\u00f3n tipo HORCA: red VA2, cuerdas de atado y anclajes.'},
   {ud:'ml', desc:'Sistema de protecci\u00f3n tipo CORTA',
@@ -4340,8 +4336,7 @@ var PRES_MED_FIELDS = [
   {id:'eslingas', label:'Eslingas (ud)',              unit:'ud', tipo:'venta',    desc:'Eslingas para plataformas descarga 1,5m'},
   {id:'taludes',  label:'Taludes (m²)',               unit:'m²', tipo:'venta',    desc:'Protección de taludes'},
   {id:'mallaOrg', label:'Malla naranja (ml)',         unit:'ml', tipo:'venta',    desc:'Señalización malla naranja 120cm'},
-  {id:'rsa',      label:'RSA & ALSINA (ml)',          unit:'ml', tipo:'venta',    desc:'Sistema de protección tipo RSA & ALSINA'},
-  {id:'horca',    label:'HORCA (ml)',                 unit:'ml', tipo:'venta',    desc:'Sistema de protección tipo HORCA'},
+{id:'horca',    label:'HORCA (ml)',                 unit:'ml', tipo:'venta',    desc:'Sistema de protección tipo HORCA'},
   {id:'corta',    label:'CORTA (ml)',                 unit:'ml', tipo:'venta',    desc:'Sistema de protección tipo CORTA'},
   {id:'postes2m', label:'Postes 2m LdV (ml)',        unit:'ml', tipo:'venta',    desc:'Postes 2m para líneas de vida horizontales'},
   {id:'marquesina',label:'Marquesina (ml)',           unit:'ml', tipo:'venta',    desc:'Marquesina de red y mosquitera'}
