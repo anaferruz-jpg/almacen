@@ -146,11 +146,34 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   .factura-info{text-align:left}
   .tabs-bar .tab-btn{padding:6px 10px;font-size:12px}
 }
+
+/* GLOBAL NAV */
+.global-nav{background:var(--brand-dark);border-radius:var(--radius-lg);padding:0 16px;margin-bottom:10px;display:flex;align-items:center;gap:0;overflow:hidden}
+.global-nav-logo{display:flex;align-items:center;gap:8px;padding:10px 16px 10px 0;border-right:1px solid rgba(255,255,255,.15);margin-right:8px;flex-shrink:0}
+.global-nav .logo-diamond{width:30px;height:30px;background:var(--brand2);transform:rotate(45deg);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.global-nav .logo-diamond span{transform:rotate(-45deg);font-family:Playfair Display,serif;font-weight:700;font-size:12px;color:#fff}
+.global-nav-logo h1{font-size:14px;color:#fff;font-weight:600;font-family:Playfair Display,serif}
+.global-nav a{padding:14px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,.65);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.global-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.global-nav a.active{color:#fff;border-bottom-color:var(--brand2);background:rgba(255,255,255,.06)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 <div style="max-width:1100px;margin:0 auto;padding:0.5rem 0">
+
+<!-- GLOBAL NAV -->
+<nav class="global-nav">
+  <div class="global-nav-logo">
+    <div class="logo-diamond"><span>SF</span></div>
+    <h1>SEGUFIJA SL</h1>
+  </div>
+  <a href="facturacion.html" class="active">📄 Facturación</a>
+  <a href="presupuestos.html">📋 Presupuestos</a>
+  <a href="index.html">📦 Almacén</a>
+  <a href="gestion_obra.html">🏗️ Obras</a>
+  <a href="operario.html">👷 Personal</a>
+</nav>
 
 <!-- TOP BAR -->
 <div class="top-bar">
