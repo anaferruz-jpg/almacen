@@ -3904,9 +3904,9 @@ function presGenerarPDF() {
     '<tr><td style="'+tdS+'font-weight:600">Operarios</td>'+meses.map(function(_,i){return '<td style="'+tdS+'text-align:center;font-weight:700">'+(plan.ops[i]||0)+'</td>';}).join('')+'</tr></tbody></table>'+
     (plan.notas?'<p style="font-size:10px;margin-top:6px;color:#7a5c3e;padding:0 4px">'+plan.notas+'</p>':'');
   }
-  var rowsV=(p.ventaItems||[]).filter(function(it){return it.medicion>0;}).map(function(it){var tot=it.medicion*it.precio;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
-  var rowsA=(p.alquilerItems||[]).filter(function(it){return it.medicion>0;}).map(function(it){var tot=it.medicion*it.precio*it.dias;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.dias+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
-  var rowsMO=(p.moItems||[]).filter(function(it){return it.meses>0;}).map(function(it){var tot=it.precio*it.meses*it.operarios;return '<tr><td style="'+tdS+'" colspan="2">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+presFmtN(it.meses)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.operarios+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var rowsV=(p.ventaItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.medicion>0?it.medicion*it.precio:0;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+(it.medicion>0?presFmtN(it.medicion):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
+  var rowsA=(p.alquilerItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.medicion>0?it.medicion*it.precio*it.dias:0;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+(it.medicion>0?presFmtN(it.medicion):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.dias+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
+  var rowsMO=(p.moItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.meses>0?it.precio*it.meses*it.operarios:0;return '<tr><td style="'+tdS+'" colspan="2">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+(it.meses>0?presFmtN(it.meses):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.operarios+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
 
   var css='body{font-family:Arial,sans-serif;font-size:11px;color:#1e1008;margin:0;padding:0;background:#f7f3ee}'
     +'h1,h2,h3{font-family:Georgia,serif}'
@@ -4001,9 +4001,10 @@ function presGenerarPDF() {
   +'<div class="footer-bar">SEGUFIJA S.L. &nbsp;&middot;&nbsp; C/ Granollers, 47 &nbsp;&middot;&nbsp; 08173 Sant Cugat del Vall&egrave;s &nbsp;&middot;&nbsp; 623&nbsp;782&nbsp;259 &nbsp;&middot;&nbsp; info@segufija.com</div>';
 
   var html='<html><head><meta charset="UTF-8"><style>'+css+'</style></head><body><div class="page">'+body+'</div></body></html>';
-  var win=window.open('','_blank','width=960,height=900');
-  win.document.write(html); win.document.close();
-  setTimeout(function(){win.print();},700);
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var burl=URL.createObjectURL(blob);
+  var win=window.open(burl,'_blank','width=960,height=900');
+  setTimeout(function(){try{win.print();}catch(e){} URL.revokeObjectURL(burl);},900);
 }
 
 
