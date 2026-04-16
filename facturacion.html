@@ -177,6 +177,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <button class="tab-btn" onclick="showTab('proveedores',this)">🏭 Proveedores</button>
   <button class="tab-btn" onclick="showTab('gastos_internos',this)">🏢 Gastos internos</button>
   <button class="tab-btn" onclick="showTab('contabilidad',this)">📊 Contabilidad</button>
+  <button class="tab-btn" onclick="showTab('crm',this)">🏗️ CRM Obras</button>
   <button class="tab-btn" onclick="showTab('config',this)">⚙️ Config</button>
 </div>
 
@@ -453,6 +454,103 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <div id="cont-desglose" style="margin-top:16px"></div>
   <!-- Comparativa mensual -->
   <div id="cont-comparativa" style="margin-top:16px"></div>
+</div>
+
+<!-- ══════ CRM OBRAS ══════ -->
+<div id="tab-crm" class="panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <p style="font-size:15px;font-weight:600;font-family:Playfair Display,serif;margin:0">🏗️ CRM — Seguimiento de Obras</p>
+    <button class="btn primary" onclick="abrirModalObra()">+ Nueva Obra</button>
+  </div>
+  <div id="crm-stats" class="stats-row" style="margin-bottom:14px"></div>
+  <div class="card" style="padding:10px 14px;margin-bottom:12px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="crm-buscar" placeholder="🔍 Buscar obra, constructora..." style="flex:1;min-width:180px" oninput="renderTablaObras()">
+      <select id="crm-filtro-estado" onchange="renderTablaObras()" style="min-width:160px">
+        <option value="">Todos los estados</option>
+        <option value="ADJUDICADA">✅ Adjudicada</option>
+        <option value="EN NEGOCIACIÓN">🔶 En Negociación</option>
+        <option value="OFERTA ENVIADA">📨 Oferta Enviada</option>
+        <option value="PROSPECTO">📍 Prospecto</option>
+        <option value="PERDIDA">❌ Perdida</option>
+      </select>
+      <select id="crm-filtro-prioridad" onchange="renderTablaObras()" style="min-width:140px">
+        <option value="">Todas las prioridades</option>
+        <option value="ALTA">⭐ Alta</option>
+        <option value="MEDIA">Media</option>
+        <option value="BAJA">Baja</option>
+      </select>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--bg2);border-bottom:2px solid var(--border)">
+          <th style="padding:10px 12px;text-align:left;white-space:nowrap">Nº Oferta</th>
+          <th style="padding:10px 12px;text-align:left">Constructora</th>
+          <th style="padding:10px 12px;text-align:left">Obra</th>
+          <th style="padding:10px 12px;text-align:left;white-space:nowrap">Estado</th>
+          <th style="padding:10px 12px;text-align:left">Prio.</th>
+          <th style="padding:10px 12px;text-align:right;white-space:nowrap">Importe Est.</th>
+          <th style="padding:10px 12px;text-align:left">Contacto</th>
+          <th style="padding:10px 12px;text-align:left">Última Acción</th>
+          <th style="padding:10px 12px"></th>
+        </tr>
+      </thead>
+      <tbody id="crm-tbody"></tbody>
+    </table>
+  </div>
+  <!-- Modal -->
+  <div id="crm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow:auto">
+    <div style="background:var(--bg);border-radius:12px;max-width:640px;margin:40px auto;padding:24px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <p style="font-size:15px;font-weight:700;margin:0" id="crm-modal-titulo">Nueva Obra</p>
+        <button class="btn" onclick="cerrarModalObra()" style="padding:4px 10px">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nº Oferta</label><input type="text" id="cm-oferta" placeholder="ej. 26-0063"></div>
+        <div class="form-group"><label>Constructora</label><input type="text" id="cm-constructora"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Obra / Descripción</label><input type="text" id="cm-obra"></div>
+        <div class="form-group">
+          <label>Estado Pipeline</label>
+          <select id="cm-estado">
+            <option value="ADJUDICADA">✅ Adjudicada</option>
+            <option value="EN NEGOCIACIÓN">🔶 En Negociación</option>
+            <option value="OFERTA ENVIADA">📨 Oferta Enviada</option>
+            <option value="PROSPECTO">📍 Prospecto</option>
+            <option value="PERDIDA">❌ Perdida</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select id="cm-prioridad">
+            <option value="ALTA">⭐ Alta</option>
+            <option value="MEDIA">Media</option>
+            <option value="BAJA">Baja</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Facturación Estimada (€)</label><input type="number" id="cm-importe" placeholder="0"></div>
+        <div class="form-group">
+          <label>Oferta Enviada</label>
+          <select id="cm-ofertaEnviada"><option value="">No</option><option value="SI">Sí</option></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1"><label>Jefe Obra / Contacto</label><input type="text" id="cm-contacto"></div>
+        <div class="form-group"><label>Teléfono</label><input type="text" id="cm-telefono"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="cm-email"></div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Última Acción / Notas</label>
+          <textarea id="cm-ultimaAccion" rows="2" style="width:100%;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div class="form-group"><label>Próxima Acción</label><input type="text" id="cm-proximaAccion"></div>
+        <div class="form-group"><label>Fecha Recordatorio</label><input type="date" id="cm-fechaRec"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="btn danger" id="crm-btn-borrar" style="display:none;margin-right:auto" onclick="borrarObraActual()">🗑 Borrar</button>
+        <button class="btn" onclick="cerrarModalObra()">Cancelar</button>
+        <button class="btn primary" onclick="guardarObra()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════ CONFIG ══════ -->
@@ -1288,6 +1386,7 @@ function showTab(id, el) {
   if (id === 'clientes') renderClientes();
   if (id === 'proveedores') renderProveedores();
   if (id === 'gastos_internos') renderGastosInternos();
+  if (id === 'crm') renderTablaObras();
   if (id === 'contabilidad') renderContabilidad();
   if (id === 'export') cargarDocsGestoria();
 }
@@ -3029,6 +3128,206 @@ function rellenarCamposGasto(d) {
   calcGasto();
   // Scroll al formulario
   document.getElementById('gas-proveedor').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ══════════════════════════════════════════════
+// CRM OBRAS
+// ══════════════════════════════════════════════
+var CRM_KEY = 'segufija_crm_obras';
+var _crmIdx = -1;
+
+var CRM_INICIAL = [
+  {oferta:"25-0001",constructora:"ARCADI PLA",obra:"62VV SANT ANDREU",estado:"ADJUDICADA",prioridad:"ALTA",importe:110000,contacto:"FRANCISCO NODAL",telefono:"669905941",email:"francisco.nodal@arcadipla.com",ultimaAccion:"INICIO 2 DE FEBRERO",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"25-0002",constructora:"BETA CONKRET",obra:"CALELLA PUNTUAL",estado:"ADJUDICADA",prioridad:"ALTA",importe:15000,contacto:"SALVADOR GINOVART/CARLOS HON",telefono:"647335679",email:"sguinovart@betaconkret.com",ultimaAccion:"PUNTUAL",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"25-0004",constructora:"LUIS PARES",obra:"24VV LLORET DE MAR",estado:"ADJUDICADA",prioridad:"ALTA",importe:45282,contacto:"ROBERTO LLAMPAYAS/ DAVID PINTOR JO",telefono:"629218396 / 690804919",email:"roberto@lpares.com",ultimaAccion:"inicios principios de marzo",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"26-0020",constructora:"GRUP MAS",obra:"SANT JOAN DESPI",estado:"ADJUDICADA",prioridad:"ALTA",importe:66000,contacto:"JUAN CEREZO",telefono:"695206205",email:"",ultimaAccion:"inicio finales de febrero",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0034",constructora:"SORIGUE",obra:"PARC MOTOR CASTELLOLI",estado:"ADJUDICADA",prioridad:"ALTA",importe:1000,contacto:"",telefono:"",email:"",ultimaAccion:"TRABAJOS FINALIZADOS",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0016",constructora:"VOPÌ 4",obra:"72 VV CUNIT",estado:"ADJUDICADA",prioridad:"ALTA",importe:146072.59,contacto:"JUAN HIDALGO",telefono:"672331120",email:"juan.hidalgo@vopi4.com",ultimaAccion:"inicios principios de marzo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0049",constructora:"CRC",obra:"PUNTUAL COMISARIA MOSSOS",estado:"ADJUDICADA",prioridad:"ALTA",importe:5000,contacto:"",telefono:"",email:"",ultimaAccion:"URGENTE",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0051",constructora:"CONSTRAULA",obra:"MONTCADA",estado:"ADJUDICADA",prioridad:"ALTA",importe:2500,contacto:"",telefono:"",email:"",ultimaAccion:"MONTAJE SIS INDEK",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0017",constructora:"CORP",obra:"ABRERA",estado:"ADJUDICADA",prioridad:"ALTA",importe:118000,contacto:"ESTEBAN SLUSARUK/XAVIER MARTINEZ",telefono:"626188565",email:"ESLUSARUK@ARKSPOT.ES",ultimaAccion:"llamado 23/02, EN DELEGACION",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0044",constructora:"CONSTRUCIA",obra:"SANT CUGAT - Arrels del Coll",estado:"ADJUDICADA",prioridad:"ALTA",importe:30000,contacto:"",telefono:"",email:"",ultimaAccion:"enviada v2",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0023/",constructora:"CORP",obra:"LA VALL",estado:"ADJUDICADA",prioridad:"ALTA",importe:377000,contacto:"ESTHER COMPANY",telefono:"665 839 097",email:"ecompany@arkspot.es",ultimaAccion:"v4 enviada 19/02, mirando comparativo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0023",constructora:"CORP",obra:"COBEGA 3 SANT JOAN DESPI",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:168309,contacto:"RUBEN CARRILLO",telefono:"665839097",email:"rcarrillo@arkspot.es",ultimaAccion:"llamado 10/02 no contesta",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"25-0012",constructora:"CALAF",obra:"SANT CUGAT MGS RESIDENCIA",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:192267.01,contacto:"ANGEL FERRER",telefono:"609351749",email:"aferrer@calafconstructora.com",ultimaAccion:"fase estudio, llamar mediados marzo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0022",constructora:"CORP",obra:"SANT JUST DESVER",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:115000,contacto:"JOSE MANUEL BRAVO",telefono:"627572973",email:"jmbravo@arkspot.es",ultimaAccion:"LLAMADO 23/02 EN DELEGACION",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0050",constructora:"ARCADI PLA",obra:"57 VV GRANOLLERS",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:90000,contacto:"ANTONIO",telefono:"",email:"",ultimaAccion:"VISITA 10/04",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0051",constructora:"BOSHC PASCUAL",obra:"TANATORIO MATARO",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:40000,contacto:"",telefono:"",email:"",ultimaAccion:"LLAMADO 9/4, se lo mira próxima semana",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0041",constructora:"CALAF",obra:"IGUALADA ESCOLA PIA",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:50000,contacto:"Lautaro Vietri",telefono:"619 91 31 31",email:"",ultimaAccion:"REC. 4/2",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0043",constructora:"UTE CALAF",obra:"0125 WECOLORS VILASAR",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:55000,contacto:"OCTAVI OLLE",telefono:"",email:"",ultimaAccion:"LLAMADO 27/03, estudiando comparativo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0054",constructora:"VIOCA",obra:"VV ACD CARRILET HOSPITALET",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:215000,contacto:"",telefono:"",email:"",ultimaAccion:"hacer revision 2 V",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0055",constructora:"ROIG",obra:"CALLE MARINA 97",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:68000,contacto:"",telefono:"",email:"",ultimaAccion:"LLAMADA 9/4, llamará en mayo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0059",constructora:"ARCADI PLA",obra:"VILADECANS",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:127000,contacto:"CARLOS MASANA",telefono:"",email:"",ultimaAccion:"LLAMADO 9/4, se lo tiene que mirar",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0036",constructora:"TARRACO",obra:"90 VV PINEDA",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:125000,contacto:"VICTOR CUGAR",telefono:"747742693",email:"",ultimaAccion:"llamado 27/3, NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0042",constructora:"AVINTIA",obra:"70 VV TERRASSA",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:173000,contacto:"ALBERT PERALTA/ ALEX TEC AVINTIA",telefono:"",email:"",ultimaAccion:"CON SIP CON 50000 DE DIFERENCIA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0038",constructora:"LUIS PARES",obra:"23 VV SANT FELIU DE GUIXOLS",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:70000,contacto:"ROBERTO LLAMPAYAS",telefono:"",email:"",ultimaAccion:"TIENE QUE REPARTIR",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0031",constructora:"VOPÌ 4",obra:"90 VV ESPLUGUES LA MONTESA",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:168000,contacto:"PERE SUBIRANA",telefono:"600513106",email:"",ultimaAccion:"env 2ª v 21/01, llamado 3/2 no contesta",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0018",constructora:"SEROM",obra:"CERDANYOLA-PARC ALBA",estado:"EN NEGOCIACIÓN",prioridad:"MEDIA",importe:157296.74,contacto:"ANDRES RIVERA",telefono:"630173942",email:"arivera@serom.cat",ultimaAccion:"LLAMADO 4/2 NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0019",constructora:"UTE CALAF",obra:"TORRE DIAGONAL",estado:"EN NEGOCIACIÓN",prioridad:"ALTA",importe:270000,contacto:"JORDI GALINDO /MARC VAZQUE",telefono:"629737476 / 636988983",email:"JGALINDO@CALAFCONSTRUCTORA.COM",ultimaAccion:"enviada V2 20/01, LLAMADO 28/01 NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0033",constructora:"VOPÌ 4",obra:"148VV HOSPITALET",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:315000,contacto:"JORDI MORENO / ESTEPHANIE",telefono:"609067853",email:"",ultimaAccion:"enviada V3 el 19/03, no contesta",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0026",constructora:"UTE VILAREYES VOPI4",obra:"121 VV LLORETT",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:270000,contacto:"JORDI VIDAL RUBIO",telefono:"663897658",email:"j.vidal@vopi4.com",ultimaAccion:"enviada 2ª versión, LLAMADO 9/4 NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0039",constructora:"TOMAS SANCHEZ",obra:"PALAU DE PLEGAMANS",estado:"OFERTA ENVIADA",prioridad:"BAJA",importe:33000,contacto:"TOMAS SANCHEZ",telefono:"",email:"",ultimaAccion:"ENVIADA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0048",constructora:"LDV DEFINITIVA",obra:"MERCAT D'HORTA",estado:"OFERTA ENVIADA",prioridad:"BAJA",importe:12500,contacto:"",telefono:"",email:"",ultimaAccion:"enviada",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0049",constructora:"CRC",obra:"COMISARIA MOSSOS",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:84000,contacto:"",telefono:"",email:"",ultimaAccion:"OFERTA COMPLETA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0057",constructora:"GREICO",obra:"8 CASAS caldes d'estrac",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:92000,contacto:"",telefono:"",email:"",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0060",constructora:"ARCADI PLA",obra:"HOTEL SANTA SUSANA",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:175000,contacto:"",telefono:"",email:"",ultimaAccion:"ENVIADA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0056",constructora:"NIU ARQUITECTURA",obra:"CARRER CERDANYA 13 MARTINET",estado:"OFERTA ENVIADA",prioridad:"BAJA",importe:1500,contacto:"",telefono:"",email:"",ultimaAccion:"enviada",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0040",constructora:"TARRACO",obra:"ST ANTONI DE CALONGE",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:104000,contacto:"Anna Cots Soler",telefono:"605 89 90 60",email:"",ultimaAccion:"enviada",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0013",constructora:"SEROM",obra:"20VV PALAMOS",estado:"OFERTA ENVIADA",prioridad:"BAJA",importe:66642.59,contacto:"Josep PIFARRE",telefono:"672244231",email:"",ultimaAccion:"enviado pres. JO 7/1",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0007",constructora:"TARRACO",obra:"",estado:"OFERTA ENVIADA",prioridad:"MEDIA",importe:168000,contacto:"VICTOR CUGAT",telefono:"606389291",email:"VCUGAT@TARRACOEC.COM",ultimaAccion:"PRESUPUESTO V2 Y ENVIAR",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"26-0027",constructora:"BETA CONKRET",obra:"CAN DRAGO",estado:"PERDIDA",prioridad:"MEDIA",importe:61120,contacto:"JESUS RODRIGUEZ",telefono:"672319930",email:"",ultimaAccion:"llamada 9/4, NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0035",constructora:"BETA CONKRET",obra:"121VV BARBERA",estado:"PERDIDA",prioridad:"MEDIA",importe:175000,contacto:"ALFONSO MARTINEZ/ FERMANDO ARIEL",telefono:"661389966",email:"",ultimaAccion:"LLAMADO 9/2, haciendo comparativo",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0013",constructora:"BETA CONKRET",obra:"108VV CASERNES SANT ANDREU",estado:"PERDIDA",prioridad:"MEDIA",importe:137000,contacto:"DAVID ALBUIXECH",telefono:"607211521",email:"dalbuixech@betaconkret.com",ultimaAccion:"ofer v2 enviada, NO CONTESTA",proximaAccion:"",fechaRec:"",ofertaEnviada:"SI"},
+  {oferta:"26-0032",constructora:"ELECNOR",obra:"BRILTEN C/PAMPLONA 110",estado:"PERDIDA",prioridad:"MEDIA",importe:40896.20,contacto:"RAMON ZABALLA",telefono:"",email:"",ultimaAccion:"llamado 3/02 no contesta",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0024",constructora:"TARRACO",obra:"78 VV MATARO",estado:"PERDIDA",prioridad:"ALTA",importe:185500,contacto:"RAUL GARCIA",telefono:"636925714",email:"",ultimaAccion:"REPARTEN, quieren obra más pequeña",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0052",constructora:"CONTROLDEMETER",obra:"CALLE BALMES 89 PUNTUAL",estado:"PERDIDA",prioridad:"BAJA",importe:1400,contacto:"",telefono:"",email:"",ultimaAccion:"ENVIADA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0015",constructora:"BOQUET",obra:"7 naves industriales redes protección",estado:"PERDIDA",prioridad:"BAJA",importe:25000,contacto:"IRENE CORTADA",telefono:"",email:"",ultimaAccion:"OFERTADAS 3 NAVES - MUY CARO",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0058",constructora:"HORMIPRESA",obra:"SALAS",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"NO ESTUDIARÁ",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0030",constructora:"GRUP MAS",obra:"SANT CUGAT",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"CARLOS CAMBROM",telefono:"677621747",email:"",ultimaAccion:"no hacer presupuesto",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0003",constructora:"CERTIS",obra:"OFICINAS c/ PAMPLONA",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"JULIO REILLO // ALBERT IZQUIERDO",telefono:"616 550 226",email:"albert.i@certis.cat",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0009",constructora:"COPCISA",obra:"EL PRAT 20VV",estado:"PERDIDA",prioridad:"BAJA",importe:122289.69,contacto:"RAFAEL ESTIRADO",telefono:"667648637",email:"rafael.estirado@copcisa.com",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0010",constructora:"CALAF",obra:"CASA MARSINYACH",estado:"PERDIDA",prioridad:"BAJA",importe:39766.90,contacto:"RAUL PRIETO",telefono:"609 390 543",email:"",ultimaAccion:"NO ADJUDICADA",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0011",constructora:"FERROVIAL",obra:"118VV TERRASSA",estado:"PERDIDA",prioridad:"BAJA",importe:300000,contacto:"NACHO GONZALEZ",telefono:"690876880",email:"",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"25-0006",constructora:"CERTIS // ROMERO POLO",obra:"ZONA FRANCA cem marina",estado:"PERDIDA",prioridad:"BAJA",importe:89689.18,contacto:"IVAN/MARC RODRIGUEZ",telefono:"639355435",email:"marc.r@certis.cat",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0037",constructora:"TARRACO",obra:"90 VV SALOU",estado:"PERDIDA",prioridad:"MEDIA",importe:300000,contacto:"JAVIER FRACUA",telefono:"611 43 60 18",email:"",ultimaAccion:"OK PLANOS, pendiente oferta",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0046",constructora:"VOPÌ 4",obra:"BLUE TECH PORT",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"URGENTE",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0047",constructora:"ELECNOR",obra:"ZONA FRANCA ESTRUCTURA METALICA",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0045",constructora:"VISCOLA",obra:"HOTEL MADANIS LICEO",estado:"PERDIDA",prioridad:"BAJA",importe:20000,contacto:"",telefono:"",email:"",ultimaAccion:"URGENTE",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0053",constructora:"COPISA",obra:"CAN ROCA CASTELLDEFELS",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0061",constructora:"IRC",obra:"C/UNIO VILANOVA",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"URG",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0062",constructora:"IRC",obra:"C/SABT JOSEP VILANOVA",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"",telefono:"",email:"",ultimaAccion:"URG",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0029",constructora:"NOVANTIA",obra:"VV HOSPITALET",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"JOAQUIN CABOS",telefono:"661828221",email:"",ultimaAccion:"NO CONTESTA, pedir planos",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0025",constructora:"COPCISA",obra:"BINGO VILLARES",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"ARIADNA MARQUEZ",telefono:"617556920",email:"",ultimaAccion:"OK planos, pendiente oferta",proximaAccion:"",fechaRec:"",ofertaEnviada:""},
+  {oferta:"26-0028",constructora:"ROIG",obra:"OB-0320 ESPLUGUES Sant Gabriel",estado:"PERDIDA",prioridad:"BAJA",importe:0,contacto:"CÉSAR LÓPEZ",telefono:"653 18 97 74",email:"clopez@roigconstruccions.com",ultimaAccion:"LLAMAR DIA 12, preguntar estructura metálica",proximaAccion:"",fechaRec:"",ofertaEnviada:""}
+];
+
+var ESTADO_BADGE = {
+  'ADJUDICADA':'<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">✅ Adjudicada</span>',
+  'EN NEGOCIACIÓN':'<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">🔶 En Negociación</span>',
+  'OFERTA ENVIADA':'<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">📨 Oferta Enviada</span>',
+  'PROSPECTO':'<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">📍 Prospecto</span>',
+  'PERDIDA':'<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:11px;white-space:nowrap">❌ Perdida</span>'
+};
+
+function getObras() {
+  var s = localStorage.getItem(CRM_KEY);
+  if (s) return JSON.parse(s);
+  localStorage.setItem(CRM_KEY, JSON.stringify(CRM_INICIAL));
+  return JSON.parse(JSON.stringify(CRM_INICIAL));
+}
+function saveObras(o) { localStorage.setItem(CRM_KEY, JSON.stringify(o)); }
+
+function renderCrmStats() {
+  var obras = getObras();
+  var cfg = [
+    {k:'ADJUDICADA',label:'Adjudicadas',bg:'#d1fae5',tc:'#065f46'},
+    {k:'EN NEGOCIACIÓN',label:'En Negociación',bg:'#fef3c7',tc:'#92400e'},
+    {k:'OFERTA ENVIADA',label:'Oferta Enviada',bg:'#dbeafe',tc:'#1e40af'},
+    {k:'PERDIDA',label:'Perdidas',bg:'#fee2e2',tc:'#991b1b'}
+  ];
+  var html = '';
+  cfg.forEach(function(e) {
+    var fil = obras.filter(function(o){return o.estado===e.k;});
+    var tot = fil.reduce(function(a,b){return a+(parseFloat(b.importe)||0);},0);
+    html += '<div class="stat-card" style="background:'+e.bg+';border-color:'+e.bg+'">'+
+      '<div class="stat-label" style="color:'+e.tc+'">'+e.label+'</div>'+
+      '<div class="stat-value" style="color:'+e.tc+';font-size:22px">'+fil.length+'</div>'+
+      '<div style="font-size:11px;color:'+e.tc+'">'+fmt(tot)+'</div>'+
+    '</div>';
+  });
+  document.getElementById('crm-stats').innerHTML = html;
+}
+
+function renderTablaObras() {
+  var obras = getObras();
+  var buscar = (document.getElementById('crm-buscar')||{value:''}).value.toLowerCase();
+  var fEst = (document.getElementById('crm-filtro-estado')||{value:''}).value;
+  var fPrio = (document.getElementById('crm-filtro-prioridad')||{value:''}).value;
+  var fil = obras.filter(function(o) {
+    if (fEst && o.estado !== fEst) return false;
+    if (fPrio && o.prioridad !== fPrio) return false;
+    if (buscar) {
+      var h = [o.oferta,o.constructora,o.obra,o.contacto].join(' ').toLowerCase();
+      if (h.indexOf(buscar) < 0) return false;
+    }
+    return true;
+  });
+  var html = '';
+  fil.forEach(function(o) {
+    var ri = obras.indexOf(o);
+    html += '<tr style="border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'\'" onclick="editarObra('+ri+')">'+
+      '<td style="padding:9px 12px;white-space:nowrap;font-weight:600">'+(o.oferta||'—')+'</td>'+
+      '<td style="padding:9px 12px;white-space:nowrap">'+(o.constructora||'—')+'</td>'+
+      '<td style="padding:9px 12px">'+(o.obra||'—')+'</td>'+
+      '<td style="padding:9px 12px">'+(ESTADO_BADGE[o.estado]||o.estado||'—')+'</td>'+
+      '<td style="padding:9px 12px;font-size:11px;white-space:nowrap">'+(o.prioridad==='ALTA'?'<span style="color:#f59e0b;font-weight:700">⭐ ALTA</span>':o.prioridad==='MEDIA'?'<span style="color:#6b7280">MEDIA</span>':'<span style="color:#d1d5db">BAJA</span>')+'</td>'+
+      '<td style="padding:9px 12px;text-align:right;white-space:nowrap;font-weight:600">'+(o.importe?fmt(o.importe):'—')+'</td>'+
+      '<td style="padding:9px 12px;white-space:nowrap">'+(o.contacto||'—')+'</td>'+
+      '<td style="padding:9px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(o.ultimaAccion||'')+'">'+(o.ultimaAccion||'—')+'</td>'+
+      '<td style="padding:9px 12px"><button class="btn" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();editarObra('+ri+')">✏️</button></td>'+
+    '</tr>';
+  });
+  if (!fil.length) html = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text2)">No hay obras con los filtros seleccionados</td></tr>';
+  document.getElementById('crm-tbody').innerHTML = html;
+  renderCrmStats();
+}
+
+function abrirModalObra(idx) {
+  _crmIdx = (idx !== undefined) ? idx : -1;
+  var o = idx !== undefined ? getObras()[idx] : {};
+  document.getElementById('crm-modal-titulo').textContent = idx !== undefined ? 'Editar Obra' : 'Nueva Obra';
+  document.getElementById('crm-btn-borrar').style.display = idx !== undefined ? '' : 'none';
+  document.getElementById('cm-oferta').value = o.oferta||'';
+  document.getElementById('cm-constructora').value = o.constructora||'';
+  document.getElementById('cm-obra').value = o.obra||'';
+  document.getElementById('cm-estado').value = o.estado||'EN NEGOCIACIÓN';
+  document.getElementById('cm-prioridad').value = o.prioridad||'MEDIA';
+  document.getElementById('cm-importe').value = o.importe||'';
+  document.getElementById('cm-ofertaEnviada').value = o.ofertaEnviada||'';
+  document.getElementById('cm-contacto').value = o.contacto||'';
+  document.getElementById('cm-telefono').value = o.telefono||'';
+  document.getElementById('cm-email').value = o.email||'';
+  document.getElementById('cm-ultimaAccion').value = o.ultimaAccion||'';
+  document.getElementById('cm-proximaAccion').value = o.proximaAccion||'';
+  document.getElementById('cm-fechaRec').value = o.fechaRec||'';
+  document.getElementById('crm-modal').style.display = '';
+}
+
+function cerrarModalObra() { document.getElementById('crm-modal').style.display = 'none'; }
+
+function guardarObra() {
+  var obras = getObras();
+  var o = {
+    oferta: document.getElementById('cm-oferta').value.trim(),
+    constructora: document.getElementById('cm-constructora').value.trim(),
+    obra: document.getElementById('cm-obra').value.trim(),
+    estado: document.getElementById('cm-estado').value,
+    prioridad: document.getElementById('cm-prioridad').value,
+    importe: parseFloat(document.getElementById('cm-importe').value)||0,
+    ofertaEnviada: document.getElementById('cm-ofertaEnviada').value,
+    contacto: document.getElementById('cm-contacto').value.trim(),
+    telefono: document.getElementById('cm-telefono').value.trim(),
+    email: document.getElementById('cm-email').value.trim(),
+    ultimaAccion: document.getElementById('cm-ultimaAccion').value.trim(),
+    proximaAccion: document.getElementById('cm-proximaAccion').value.trim(),
+    fechaRec: document.getElementById('cm-fechaRec').value
+  };
+  if (_crmIdx >= 0) obras[_crmIdx] = o; else obras.unshift(o);
+  saveObras(obras);
+  cerrarModalObra();
+  renderTablaObras();
+}
+
+function editarObra(idx) { abrirModalObra(idx); }
+
+function borrarObraActual() {
+  if (_crmIdx < 0) return;
+  if (!confirm('¿Borrar esta obra del CRM?')) return;
+  var obras = getObras();
+  obras.splice(_crmIdx, 1);
+  saveObras(obras);
+  cerrarModalObra();
+  renderTablaObras();
 }
 
 // ══════════════════════════════════════════════
