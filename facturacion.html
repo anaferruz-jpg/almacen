@@ -734,6 +734,24 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       </table>
     </div>
 
+    <!-- DESPIECE -->
+    <div class="pres-section-hdr" style="cursor:pointer;user-select:none;margin-top:8px" onclick="presToggleSec('desp')">
+      <span>🔩 DESPIECE DE MATERIAL (Equipos)</span>
+      <span id="pres-desp-arr" style="font-size:11px;font-family:'DM Sans',sans-serif">▶</span>
+    </div>
+    <div id="pres-desp-wrap" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-size:12px;color:var(--text2)">Nº Plantas (para INDEK): </span>
+          <input type="number" id="pmed-nplantas" value="0" min="0" step="1" style="width:60px;padding:4px 8px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);text-align:center">
+        </div>
+        <button class="btn primary" onclick="presCalcularDespiece()">🔩 Calcular despiece</button>
+      </div>
+      <div id="pres-desp-resultado" style="color:var(--text2);font-size:12px;text-align:center;padding:20px">
+        Introduce las mediciones y pulsa "Calcular despiece"
+      </div>
+    </div>
+
     <!-- VENTA -->
     <div class="pres-section-hdr" style="margin-top:8px">
       <span>📦 MATERIAL FUNGIBLE (Venta)</span>
@@ -3989,6 +4007,158 @@ function presAplicarMedicion() {
   presRenderAlquiler(p.alquilerItems);
   presCalcTotales();
   toast('✓ Medición aplicada a '+aplicados+' partidas');
+}
+
+// ── Helpers redondeo ──
+function _ru(n)  { return Math.ceil(n); }           // ROUNDUP
+function _ev(n)  { var r=Math.ceil(n); return r%2===0?r:r+1; } // EVEN
+function _fl(n,m){ return Math.floor(n/m)*m; }      // FLOOR(n, múltiplo)
+
+// ── Despiece / BOM ──
+function presCalcularDespiece() {
+  var med = presGetMedicion();
+  var nP  = parseFloat(document.getElementById('pmed-nplantas').value)||1;
+  var res = [];
+
+  // ① SETAS ESPERAS
+  if (med.setas>0) res.push({cat:'Protección Esperas - Setas', med:med.setas+' ud', items:[
+    {n:'Seta protectora 12-24', q:med.setas, u:'ud'}
+  ]});
+
+  // ② REDES BAJO FORJADO
+  if (med.redForj>0) res.push({cat:'Redes Bajo Forjado', med:med.redForj+' m²', items:[
+    {n:'Red PP EN1263-1 1,10×10m', q:_ru((med.redForj/10)*1.15), u:'ud'},
+    {n:'Gancho red bajo forjado 8mm', q:_ru(med.redForj*10), u:'ud'}
+  ]});
+
+  // ③ MOSQUITERA
+  if (med.mosq>0) { var mR=_ru(med.mosq); res.push({cat:'Mosquitera Protección', med:med.mosq+' m²', items:[
+    {n:'Tela mosquitera verde 3×20m', q:mR, u:'ud'},
+    {n:'Brida 4,8×200 (plástico)', q:mR*2, u:'ud'}
+  ]});}
+
+  // ④ HUECOS HORIZONTALES
+  if (med.redHor>0) { var cH=_ev(med.redHor*0.06); res.push({cat:'Protección Huecos Horizontales >1m²', med:med.redHor+' m²', items:[
+    {n:'Red tipo S', q:_ru(med.redHor*1.2), u:'ud'},
+    {n:'Taco argolla D10', q:_ru(med.redHor*4), u:'ud'},
+    {n:'Cuerda 20 kN / 100m', q:cH, u:'ud'},
+    {n:'Cuerda 7,5 kN / 100m', q:cH, u:'ud'}
+  ]});}
+
+  // ⑤ HUECOS VERTICALES
+  if (med.redVer>0) { var cV=_ev(med.redVer*0.06); var rfV=_ru(med.redVer/100); res.push({cat:'Protección Huecos Verticales', med:med.redVer+' m²', items:[
+    {n:'Red tipo S', q:_ru(med.redVer*1.2), u:'ud'},
+    {n:'Taco argolla D10', q:_ru(med.redVer*4), u:'ud'},
+    {n:'Cuerda 20 kN / 100m', q:cV, u:'ud'},
+    {n:'Cuerda 7,5 kN / 100m', q:cV, u:'ud'},
+    {n:'Rafia zócalo', q:rfV, u:'rol'},
+    {n:'Brida 4,8×200 (plástico)', q:rfV*200, u:'ud'}
+  ]});}
+
+  // ⑥ ESCALERA CON RED
+  if (med.redEscl>0) { var cE=_ev(med.redEscl/100); var rfE=_ru(med.redEscl/100); res.push({cat:'Escalera con Red', med:med.redEscl+' m²', items:[
+    {n:'Red tipo S', q:med.redEscl, u:'m²'},
+    {n:'Cuerda 7,5 kN / 100m', q:cE, u:'ud'},
+    {n:'Cuerda 20 kN / 100m', q:cE, u:'ud'},
+    {n:'Rafia', q:rfE, u:'rol'},
+    {n:'Brida 4,8×200', q:rfE*200, u:'ud'},
+    {n:'Taco argolla', q:_ru(med.redEscl*4), u:'ud'}
+  ]});}
+
+  // ⑦ RED FACHADA
+  if (med.redFach>0) { var rF=_ru(med.redFach/10); var rfF=_ru(med.redFach/100); res.push({cat:'Redes Protección Fachada', med:med.redFach+' m²', items:[
+    {n:'Red PP EN1263 UA2', q:rF, u:'ud'},
+    {n:'Cuerda 20 kN / 100m', q:_ru(rF/8), u:'ud'},
+    {n:'Cuerda 7,5 kN / 100m', q:_ev(med.redFach/30), u:'ud'},
+    {n:'Taco argolla', q:_ru(med.redFach*2), u:'ud'},
+    {n:'Rafia', q:rfF, u:'rol'},
+    {n:'Brida 4,8×200', q:rfF*200, u:'ud'}
+  ]});}
+
+  // ⑧ BARANDILLA ENCOFRADO
+  if (med.barEncof>0) res.push({cat:'Barandilla Encofrado', med:med.barEncof+' ml', items:[
+    {n:'Guardacuerpo husillo 1,300m', q:_ru(med.barEncof/1.6), u:'ud'},
+    {n:'Barandilla D/35', q:_fl((med.barEncof/1.8)*3, 3), u:'ud'},
+    {n:'Rodapié 2,5m', q:_ru(med.barEncof/2), u:'ud'}
+  ]});
+
+  // ⑨ BARANDILLA FORJADO
+  if (med.barForj>0) res.push({cat:'Barandilla Perimetral Forjado', med:med.barForj+' ml', items:[
+    {n:'Guardacuerpo / Pie recto', q:_ru(med.barForj/1.6), u:'ud'},
+    {n:'Barandilla D/35', q:_ru((med.barForj/1.8)*3), u:'ud'},
+    {n:'Rodapié 2,5m', q:_ru(med.barForj/2), u:'ud'}
+  ]});
+
+  // ⑩ PERIMETRAL CODOS Y MÁSTILES
+  if (med.codos>0) { var sop=_ru(med.codos/2); var rC=_ru(med.codos/10); var rfC=_ru(med.codos/100); res.push({cat:'Perimetral Codos y Mástiles 2m con Red', med:med.codos+' ml', items:[
+    {n:'Soporte de 160 en L', q:sop, u:'ud'},
+    {n:'Guardacuerpo 1,5m', q:sop, u:'ud'},
+    {n:'Barandilla D/35', q:sop*3, u:'ud'},
+    {n:'Red PP EN1263-1', q:rC, u:'ud'},
+    {n:'Cuerda 7,5 kN', q:_ru(rC*0.3), u:'ud'},
+    {n:'Cuerda 20 kN', q:_ru(rC/10), u:'ud'},
+    {n:'Rafia', q:rfC, u:'rol'},
+    {n:'Brida 4,8×200', q:_ru(med.codos*2), u:'ud'},
+    {n:'Taco D12', q:sop*4, u:'ud'},
+    {n:'Taco argolla', q:_ru(med.codos*2), u:'ud'}
+  ]});}
+
+  // ⑪ INDEK
+  if (med.hueAsc>0 && nP>0) { var vigas=_ev(med.hueAsc/3.2); var puntal=vigas; res.push({cat:'Sistema INDEK — Protección Perimetral Estructura', med:med.hueAsc+' ml × '+nP+' plantas', items:[
+    {n:'Viga R120 (3,2m)', q:vigas, u:'ud'},
+    {n:'Poste R100', q:vigas, u:'ud'},
+    {n:'Brida marco', q:vigas*nP, u:'ud'},
+    {n:'Puntal', q:puntal, u:'ud'},
+    {n:'Polea M15', q:vigas*2, u:'ud'},
+    {n:'Pértiga', q:2, u:'ud'}
+  ]});}
+
+  // ⑫ LdV HORIZONTAL
+  if (med.ldvH>0) { var aH=_ru(med.ldvH/4); res.push({cat:'Líneas de Vida Provisionales Horizontales', med:med.ldvH+' ml', items:[
+    {n:'Anclaje M 10×100', q:aH, u:'ud'},
+    {n:'Punto anclaje LDV074', q:aH, u:'ud'},
+    {n:'Mosquetón', q:aH, u:'ud'}
+  ]});}
+
+  // ⑬ LdV VERTICAL
+  if (med.ldvV>0) { var cLV=_ru(med.ldvV/100); var aLV=cLV*10; res.push({cat:'Líneas de Vida Provisionales Verticales', med:med.ldvV+' ml', items:[
+    {n:'Cuerda semiestática / 100m', q:cLV, u:'ud'},
+    {n:'Anclaje M 10×100', q:aLV, u:'ud'},
+    {n:'Punto anclaje LDV074', q:aLV, u:'ud'},
+    {n:'Mosquetón', q:aLV, u:'ud'}
+  ]});}
+
+  // ⑭ ESLINGAS
+  if (med.eslingas>0) res.push({cat:'Eslingas 1,5m Plataformas Descarga', med:med.eslingas+' ud', items:[
+    {n:'Punto anclaje A1 César', q:med.eslingas, u:'ud'},
+    {n:'Anclaje M 10×100', q:med.eslingas, u:'ud'},
+    {n:'Punto anclaje LDV074', q:med.eslingas, u:'ud'}
+  ]});
+
+  presRenderDespiece(res);
+}
+
+function presRenderDespiece(res) {
+  var el = document.getElementById('pres-desp-resultado');
+  if (!res||!res.length) { el.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Sin mediciones — introduce datos en la sección Medición de Obra.</p>'; return; }
+  var html='';
+  res.forEach(function(cat) {
+    html+='<div style="margin-bottom:14px">'+
+      '<div style="background:var(--brand-dark);color:#fff;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:Playfair Display,serif;display:flex;justify-content:space-between">'+
+        '<span>'+cat.cat+'</span><span style="font-family:DM Sans,sans-serif;font-weight:400;font-size:11px">'+cat.med+'</span></div>'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="background:var(--bg2)"><th style="padding:5px 10px;text-align:left;font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Material</th>'+
+      '<th style="padding:5px 10px;text-align:right;font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em;width:80px">Cant.</th>'+
+      '<th style="padding:5px 10px;text-align:center;font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em;width:50px">Ud</th></tr></thead><tbody>';
+    cat.items.forEach(function(it,i) {
+      html+='<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'#fff':'var(--bg)')+'">'+
+        '<td style="padding:5px 10px">'+it.n+'</td>'+
+        '<td style="padding:5px 10px;text-align:right;font-weight:700;font-size:13px">'+it.q+'</td>'+
+        '<td style="padding:5px 10px;text-align:center;color:var(--text2)">'+it.u+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+  el.innerHTML=html;
 }
 
 function presToggleSec(id) {
