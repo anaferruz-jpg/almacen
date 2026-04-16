@@ -697,41 +697,17 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <span id="pres-plan-arr" style="font-size:11px;font-family:'DM Sans',sans-serif">▼</span>
     </div>
     <div id="pres-plan-wrap" class="card" style="padding:0;overflow:auto">
-      <table class="ptbl" style="min-width:640px">
-        <thead><tr>
-          <th style="min-width:130px"></th>
-          <th style="text-align:center;width:100px">Mes 1</th>
-          <th style="text-align:center;width:100px">Mes 2</th>
-          <th style="text-align:center;width:100px">Mes 3</th>
-          <th style="text-align:center;width:100px">Mes 4</th>
-          <th style="text-align:center;width:100px">Mes 5</th>
-          <th style="text-align:center;width:100px">Mes 6</th>
-        </tr></thead>
-        <tbody>
-          <tr>
-            <td style="font-size:12px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;font-size:10px;letter-spacing:.05em">Fase de obra</td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-1" placeholder="ESTRUCTURA" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-2" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-3" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-4" placeholder="CERRAMIENTOS" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-5" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-            <td style="padding:4px 5px"><input type="text" id="ppf-6" style="width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center"></td>
-          </tr>
-          <tr>
-            <td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Nº Operarios</td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-1" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-2" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-3" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-4" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-5" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-            <td style="padding:4px 5px"><input type="number" id="ppo-6" min="0" step="1" value="0" style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center;font-weight:600"></td>
-          </tr>
-          <tr>
-            <td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Notas</td>
-            <td colspan="6" style="padding:4px 5px"><input type="text" id="pp-notas" placeholder="Observaciones del planning..." style="width:100%;padding:4px 5px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg)"></td>
-          </tr>
-        </tbody>
-      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+        <span style="font-size:11px;color:var(--text2)">Planifica tantos meses como necesite la obra</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm" onclick="presAddMes()">+ Mes</button>
+          <button class="btn sm" onclick="presQuitarMes()">− Mes</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><div id="pp-planning-wrap"></div></div>
+      <div style="margin-top:6px">
+        <input type="text" id="pp-notas" placeholder="Observaciones del planning..." style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
+      </div>
     </div>
 
     <!-- DESPIECE -->
@@ -3904,9 +3880,16 @@ function presGenerarPDF() {
     '<tr><td style="'+tdS+'font-weight:600">Operarios</td>'+meses.map(function(_,i){return '<td style="'+tdS+'text-align:center;font-weight:700">'+(plan.ops[i]||0)+'</td>';}).join('')+'</tr></tbody></table>'+
     (plan.notas?'<p style="font-size:10px;margin-top:6px;color:#7a5c3e;padding:0 4px">'+plan.notas+'</p>':'');
   }
-  var rowsV=(p.ventaItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.medicion>0?it.medicion*it.precio:0;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+(it.medicion>0?presFmtN(it.medicion):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
-  var rowsA=(p.alquilerItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.medicion>0?it.medicion*it.precio*it.dias:0;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+(it.medicion>0?presFmtN(it.medicion):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.dias+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
-  var rowsMO=(p.moItems||[]).filter(function(it){return it.precio>0;}).map(function(it){var tot=it.meses>0?it.precio*it.meses*it.operarios:0;return '<tr><td style="'+tdS+'" colspan="2">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+(it.meses>0?presFmtN(it.meses):'&mdash;')+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.operarios+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+(tot>0?presFmtN(tot):'&mdash;')+'</td></tr>';}).join('');
+  var _vFlt=(p.ventaItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
+  var _aFlt=(p.alquilerItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
+  var _mFlt=(p.moItems||[]).filter(function(it){return it.meses>0&&it.precio>0;});
+  var _pdfV=_vFlt.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-(p.descuentoVenta||0)/100);
+  var _pdfA=_aFlt.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-(p.descuentoAlquiler||0)/100);
+  var _pdfMO=_mFlt.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
+  var _pdfBase=_pdfV+_pdfA+_pdfMO, _pdfIva=_pdfBase*0.21, _pdfTotal=_pdfBase*1.21;
+  var rowsV=_vFlt.map(function(it){var tot=it.medicion*it.precio;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var rowsA=_aFlt.map(function(it){var tot=it.medicion*it.precio*it.dias;return '<tr><td style="'+tdS+'width:40px">'+it.ud+'</td><td style="'+tdS+'">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.medicion)+'</td><td style="'+tdS+'text-align:right;width:70px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.dias+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var rowsMO=_mFlt.map(function(it){var tot=it.precio*it.meses*it.operarios;return '<tr><td style="'+tdS+'" colspan="2">'+it.desc+'</td><td style="'+tdS+'text-align:right;width:80px">'+presFmtN(it.precio)+'</td><td style="'+tdS+'text-align:right;width:60px">'+presFmtN(it.meses)+'</td><td style="'+tdS+'text-align:right;width:60px">'+it.operarios+'</td><td style="'+tdS+'text-align:right;width:90px;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
 
   var css='body{font-family:Arial,sans-serif;font-size:11px;color:#1e1008;margin:0;padding:0;background:#f7f3ee}'
     +'h1,h2,h3{font-family:Georgia,serif}'
@@ -3964,12 +3947,13 @@ function presGenerarPDF() {
     +'<div class="meta-item"><label>A / att.</label><span>'+(p.att||'\u2014')+'</span></div>'
     +'<div class="meta-item"><label>Fecha</label><span>'+fecha+'</span></div>'
   +'</div>'
-  +'<div class="blq"><h3>Qui&eacute;nes somos</h3>'
-  +'<p>Somos una organizaci&oacute;n joven y din&aacute;mica, creada con el prop&oacute;sito de aportar soluciones de seguridad colectiva innovadoras y efectivas. Apostamos por la cercan&iacute;a con el cliente y por un enfoque t&eacute;cnico que nos permite dise&ntilde;ar, instalar e implementar sistemas adaptados a cada necesidad.</p>'
+  +'<div class="blq"><h3>Por qu&eacute; SEGUFIJA S.L.</h3>'
+  +'<p>En SEGUFIJA S.L. dise&ntilde;amos, suministramos e instalamos sistemas de seguridad colectiva para la construcci&oacute;n. Nuestra especialidad son las soluciones t&eacute;cnicas propias que <strong>no interfieren en el proceso constructivo</strong>, eliminando riesgos de ca&iacute;da sin paralizar la obra.</p>'
   +'<ul>'
-  +'<li><strong>Sistemas Innovadores:</strong> Especialistas en protecci&oacute;n perimetral ligera que no requiere uso de gr&uacute;a, eliminando interferencias cr&iacute;ticas en el planning de obra.</li>'
-  +'<li><strong>Direcci&oacute;n T&eacute;cnica Directa:</strong> Supervisi&oacute;n realizada directamente por T&eacute;cnico de Prevenci&oacute;n competente.</li>'
-  +'<li><strong>Control de Producto:</strong> Todos nuestros sistemas cumplen con las normativas UNE-EN&nbsp;13374, UNE&nbsp;1263 y UNE&nbsp;795.</li>'
+  +'<li><strong>Protecci&oacute;n perimetral sin gr&uacute;a:</strong> Barandillas, redes de seguridad, sistema INDEK, l&iacute;neas de vida y soluciones a medida para cada fase de obra.</li>'
+  +'<li><strong>Respuesta &aacute;gil y soporte t&eacute;cnico:</strong> T&eacute;cnico de Prevenci&oacute;n competente disponible durante toda la obra. Montaje y desmontaje con medios propios.</li>'
+  +'<li><strong>Alquiler y venta:</strong> Sistema flexible que optimiza el coste global — solo pagas por el tiempo y el material que realmente necesitas.</li>'
+  +'<li><strong>M&aacute;xima garant&iacute;a normativa:</strong> Todos los sistemas cumplen UNE-EN&nbsp;13374, UNE-EN&nbsp;1263 y UNE&nbsp;795. Certificados y homologados.</li>'
   +'</ul></div>'
   +(medHasDatos?'<div class="sec-title">&#x1F4D0; MEDICIÓN DE OBRA</div><table><thead><tr><th style="'+thS+'">Concepto</th><th style="'+thS+'text-align:right;width:120px">Cantidad</th></tr></thead><tbody>'+medRows+'</tbody></table>':'')
   +(planHasDatos?planHTML:'')
@@ -3977,12 +3961,12 @@ function presGenerarPDF() {
   +(rowsA?'<div class="sec-title">&#x1F504; MATERIAL DE ALQUILER</div><table><thead><tr><th style="'+thS+'width:40px">Ud</th><th style="'+thS+'">Descripción</th><th style="'+thS+'text-align:right;width:70px">Medición</th><th style="'+thS+'text-align:right;width:70px">&euro;/Ud/D&iacute;a</th><th style="'+thS+'text-align:right;width:60px">D&iacute;as</th><th style="'+thS+'text-align:right;width:90px">Total (&euro;)</th></tr></thead><tbody>'+rowsA+'</tbody>'+(p.descuentoAlquiler>0?'<tfoot><tr><td colspan="5" style="'+tdS+'text-align:right;font-size:10px;color:#7a5c3e">Descuento '+p.descuentoAlquiler+'%</td><td style="'+tdS+'text-align:right;font-weight:700">'+presFmtN(p.totalAlquiler)+' &euro;</td></tr></tfoot>':'')+'</table>':'')
   +(rowsMO?'<div class="sec-title">&#x1F477; MANO DE OBRA</div><table><thead><tr><th style="'+thS+'" colspan="2">Descripción</th><th style="'+thS+'text-align:right;width:80px">Precio (&euro;)</th><th style="'+thS+'text-align:right;width:60px">Meses</th><th style="'+thS+'text-align:right;width:60px">N.&ordm; Op.</th><th style="'+thS+'text-align:right;width:90px">Total (&euro;)</th></tr></thead><tbody>'+rowsMO+'</tbody></table>':'')
   +'<div class="totales-wrap"><div class="tot-box">'
-    +'<div class="tot-row"><span>Material Venta</span><span>'+presFmtE(p.totalVenta)+'</span></div>'
-    +'<div class="tot-row"><span>Material Alquiler</span><span>'+presFmtE(p.totalAlquiler)+'</span></div>'
-    +'<div class="tot-row"><span>Mano de Obra</span><span>'+presFmtE(p.totalMO)+'</span></div>'
-    +'<div class="tot-row tot-sub"><span>TOTAL SIN IVA</span><span>'+presFmtE(p.totalObra)+'</span></div>'
-    +'<div class="tot-row"><span>IVA (21%)</span><span>'+presFmtE(p.iva)+'</span></div>'
-    +'<div class="tot-row"><span>TOTAL CON IVA</span><span>'+presFmtE(p.totalConIva)+'</span></div>'
+    +'<div class="tot-row"><span>Material Venta</span><span>'+presFmtE(_pdfV)+'</span></div>'
+    +'<div class="tot-row"><span>Material Alquiler</span><span>'+presFmtE(_pdfA)+'</span></div>'
+    +'<div class="tot-row"><span>Mano de Obra</span><span>'+presFmtE(_pdfMO)+'</span></div>'
+    +'<div class="tot-row tot-sub"><span>TOTAL SIN IVA</span><span>'+presFmtE(_pdfBase)+'</span></div>'
+    +'<div class="tot-row"><span>IVA (21%)</span><span>'+presFmtE(_pdfIva)+'</span></div>'
+    +'<div class="tot-row"><span>TOTAL CON IVA</span><span>'+presFmtE(_pdfTotal)+'</span></div>'
   +'</div></div>'
   +'<div class="blq" style="margin-top:16px"><h3>Condiciones generales</h3><ul>'
   +'<li>La facturaci&oacute;n se realizar&aacute; en funci&oacute;n de las partidas realmente instaladas, seg&uacute;n las mediciones efectuadas in situ.</li>'
@@ -4050,23 +4034,48 @@ function presGetMedicion() {
   return d;
 }
 
+var _presMeses = 6;
+
+function presRenderPlanningTable(pl) {
+  var n = _presMeses;
+  var inpS = 'width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center';
+  var thH = '<th style="min-width:130px"></th>';
+  for (var m=1; m<=n; m++) thH += '<th style="text-align:center;width:90px">Mes '+m+'</th>';
+  var fasH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Fase de obra</td>';
+  for (var m=1; m<=n; m++) fasH += '<td style="padding:4px 5px"><input type="text" id="ppf-'+m+'" value="'+((pl.fases&&pl.fases[m-1])||'')+'" placeholder="'+(m===1?'ESTRUCTURA':m===4?'CERRAMIENTOS':'')+'" style="'+inpS+'"></td>';
+  var opsH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Nº Operarios</td>';
+  for (var m=1; m<=n; m++) opsH += '<td style="padding:4px 5px"><input type="number" id="ppo-'+m+'" value="'+((pl.ops&&pl.ops[m-1])||0)+'" min="0" step="1" style="'+inpS+';font-weight:600;font-size:12px"></td>';
+  var tbl = '<table class="ptbl" style="min-width:'+Math.max(540,(n*90+130))+'px"><thead><tr>'+thH+'</tr></thead><tbody><tr>'+fasH+'</tr><tr>'+opsH+'</tr></tbody></table>';
+  document.getElementById('pp-planning-wrap').innerHTML = tbl;
+}
+
 function presGetPlanning() {
   var fas=[], ops=[];
-  for (var m=1; m<=6; m++) {
+  for (var m=1; m<=_presMeses; m++) {
     fas.push((document.getElementById('ppf-'+m)||{value:''}).value||'');
     ops.push(parseFloat((document.getElementById('ppo-'+m)||{value:0}).value)||0);
   }
-  return {fases:fas, ops:ops, notas:(document.getElementById('pp-notas')||{value:''}).value||''};
+  return {meses:_presMeses, fases:fas, ops:ops, notas:(document.getElementById('pp-notas')||{value:''}).value||''};
 }
 
 function presSetPlanning(pl) {
-  pl = pl||{fases:[],ops:[],notas:''};
-  for (var m=1; m<=6; m++) {
-    var fe=document.getElementById('ppf-'+m), pe=document.getElementById('ppo-'+m);
-    if(fe) fe.value=(pl.fases&&pl.fases[m-1])||'';
-    if(pe) pe.value=(pl.ops&&pl.ops[m-1])||0;
-  }
+  pl = pl||{meses:6, fases:[], ops:[], notas:''};
+  _presMeses = pl.meses || (pl.fases&&pl.fases.length) || 6;
+  presRenderPlanningTable(pl);
   var ne=document.getElementById('pp-notas'); if(ne) ne.value=pl.notas||'';
+}
+
+function presAddMes() {
+  var pl=presGetPlanning(); pl.meses++; _presMeses=pl.meses;
+  pl.fases.push(''); pl.ops.push(0);
+  presRenderPlanningTable(pl);
+}
+
+function presQuitarMes() {
+  if (_presMeses<=1) return;
+  var pl=presGetPlanning(); pl.meses--; _presMeses=pl.meses;
+  pl.fases.pop(); pl.ops.pop();
+  presRenderPlanningTable(pl);
 }
 
 function presAplicarMedicion() {
