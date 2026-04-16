@@ -24,6 +24,7 @@ function doGet(e) {
   if (action === 'getProveedores')   return json(getProveedores());
   if (action === 'getCobros')        return json(getCobros());
   if (action === 'getGastosInt')     return json(getGastosInternos());
+  if (action === 'getCRM')           return json(getCRM());
   if (action === 'getDocsPersonal')  return json(getDocsPersonal(e.parameter.trabajador));
   if (action === 'getDocsGestoria')  return json(getDocsGestoria());
   if (action === 'getDocsObra')      return json(getDocsObra(e.parameter.obra));
@@ -67,6 +68,8 @@ function doPost(e) {
   if (data.action === 'deleteDocObra')          return json(deleteDocObra(data));
   if (data.action === 'saveOperario')           return json(saveOperario(data));
   if (data.action === 'deleteOperario')         return json(deleteOperario(data));
+  if (data.action === 'saveCRM')               return json(saveCRM(data));
+  if (data.action === 'deleteCRM')             return json(deleteCRM(data));
   return json({error: 'accion no valida'});
 }
 
@@ -1096,6 +1099,59 @@ function deleteDocObra(data) {
       sheet.deleteRow(i+1);
       return {ok:true};
     }
+  }
+  return {ok:false};
+}
+
+// ══════════════════════════════════════════════════════
+// CRM OBRAS
+// ══════════════════════════════════════════════════════
+var CRM_COLS = ['oferta','constructora','obra','estado','prioridad','importe','ofertaEnviada','contacto','telefono','email','ultimaAccion','proximaAccion','fechaRec'];
+
+function getCRM() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('CRM_Obras');
+  if (!sheet) return [];
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  var result = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0] && !rows[i][1]) continue;
+    var o = {};
+    for (var c = 0; c < CRM_COLS.length; c++) o[CRM_COLS[c]] = rows[i][c] !== undefined ? String(rows[i][c]) : '';
+    o.importe = parseFloat(rows[i][5]) || 0;
+    o._row = i + 1;
+    result.push(o);
+  }
+  return result;
+}
+
+function saveCRM(data) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('CRM_Obras');
+  if (!sheet) {
+    sheet = ss.insertSheet('CRM_Obras');
+    sheet.appendRow(CRM_COLS);
+    sheet.getRange(1,1,1,CRM_COLS.length).setFontWeight('bold').setBackground('#1a3353').setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  var rowData = CRM_COLS.map(function(k){ return data[k] !== undefined ? data[k] : ''; });
+  rowData[5] = parseFloat(data.importe) || 0;
+  if (data._row && data._row > 1) {
+    sheet.getRange(data._row, 1, 1, CRM_COLS.length).setValues([rowData]);
+  } else {
+    sheet.appendRow(rowData);
+  }
+  return {ok:true};
+}
+
+function deleteCRM(data) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('CRM_Obras');
+  if (!sheet) return {ok:false};
+  if (data._row && data._row > 1) {
+    sheet.deleteRow(data._row);
+    return {ok:true};
   }
   return {ok:false};
 }

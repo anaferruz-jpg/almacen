@@ -1386,7 +1386,7 @@ function showTab(id, el) {
   if (id === 'clientes') renderClientes();
   if (id === 'proveedores') renderProveedores();
   if (id === 'gastos_internos') renderGastosInternos();
-  if (id === 'crm') renderTablaObras();
+  if (id === 'crm') cargarCRMdesdeSheets();
   if (id === 'contabilidad') renderContabilidad();
   if (id === 'export') cargarDocsGestoria();
 }
@@ -3211,11 +3211,21 @@ var ESTADO_BADGE = {
 
 function getObras() {
   var s = localStorage.getItem(CRM_KEY);
-  if (s) return JSON.parse(s);
-  localStorage.setItem(CRM_KEY, JSON.stringify(CRM_INICIAL));
+  if (s) { try { return JSON.parse(s); } catch(e) {} }
   return JSON.parse(JSON.stringify(CRM_INICIAL));
 }
-function saveObras(o) { localStorage.setItem(CRM_KEY, JSON.stringify(o)); }
+function saveObrasLocal(o) { try { localStorage.setItem(CRM_KEY, JSON.stringify(o)); } catch(e) {} }
+
+function cargarCRMdesdeSheets() {
+  callAPI('getCRM', function(err, data) {
+    if (!err && Array.isArray(data) && data.length > 0) {
+      saveObrasLocal(data);
+    } else if (!localStorage.getItem(CRM_KEY)) {
+      saveObrasLocal(CRM_INICIAL);
+    }
+    renderTablaObras();
+  });
+}
 
 function renderCrmStats() {
   var obras = getObras();
@@ -3312,10 +3322,21 @@ function guardarObra() {
     proximaAccion: document.getElementById('cm-proximaAccion').value.trim(),
     fechaRec: document.getElementById('cm-fechaRec').value
   };
-  if (_crmIdx >= 0) obras[_crmIdx] = o; else obras.unshift(o);
-  saveObras(obras);
+  if (_crmIdx >= 0) {
+    o._row = obras[_crmIdx]._row || null;
+    obras[_crmIdx] = o;
+  } else {
+    obras.unshift(o);
+  }
+  saveObrasLocal(obras);
   cerrarModalObra();
   renderTablaObras();
+  // Sync a Sheets
+  var payload = Object.assign({action:'saveCRM'}, o);
+  postAPI(payload, function(err) {
+    if (!err) toast('CRM guardado ✓');
+    else toast('Guardado local (sin conexión)', true);
+  });
 }
 
 function editarObra(idx) { abrirModalObra(idx); }
@@ -3324,10 +3345,13 @@ function borrarObraActual() {
   if (_crmIdx < 0) return;
   if (!confirm('¿Borrar esta obra del CRM?')) return;
   var obras = getObras();
+  var o = obras[_crmIdx];
   obras.splice(_crmIdx, 1);
-  saveObras(obras);
+  saveObrasLocal(obras);
   cerrarModalObra();
   renderTablaObras();
+  // Sync a Sheets
+  postAPI({action:'deleteCRM', _row: o._row || null}, function() {});
 }
 
 // ══════════════════════════════════════════════
