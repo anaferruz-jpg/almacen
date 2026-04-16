@@ -147,6 +147,20 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   .tabs-bar .tab-btn{padding:6px 10px;font-size:12px}
 }
 
+/* PRESUPUESTOS */
+.btn.sm{padding:4px 10px;font-size:12px}
+.ptbl{width:100%;border-collapse:collapse;font-size:12px}
+.ptbl th{padding:6px 8px;font-size:10px;color:var(--text2);text-transform:uppercase;border-bottom:2px solid var(--border);background:var(--bg2);white-space:nowrap}
+.ptbl td{padding:5px 6px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ptbl input[type=number]{width:90px;padding:4px 6px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);text-align:right}
+.ptbl input[type=number]:focus{outline:none;border-color:var(--brand2)}
+.ptbl tr:hover td{background:var(--brand-light)}
+.pres-section-hdr{background:var(--brand-dark);color:#fff;padding:8px 12px;font-size:12px;font-weight:600;font-family:Playfair Display,serif;border-radius:8px;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.totales-box{background:var(--bg2);border-radius:var(--radius);padding:14px 18px;border:1px solid var(--border);min-width:260px}
+.tot-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)}
+.tot-row:last-child{border:none;font-weight:700;font-size:16px;padding-top:8px;font-family:Playfair Display,serif;color:var(--brand-dark)}
+.tot-row.subtot{font-weight:600;color:var(--brand)}
+
 /* GLOBAL NAV */
 .global-nav{background:var(--brand-dark);border-radius:var(--radius-lg);padding:0 16px;margin-bottom:10px;display:flex;align-items:center;gap:0;overflow:hidden}
 .global-nav-logo{display:flex;align-items:center;gap:8px;padding:10px 16px 10px 0;border-right:1px solid rgba(255,255,255,.15);margin-right:8px;flex-shrink:0}
@@ -200,6 +214,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <button class="tab-btn" onclick="showTab('proveedores',this)">🏭 Proveedores</button>
   <button class="tab-btn" onclick="showTab('gastos_internos',this)">🏢 Gastos internos</button>
   <button class="tab-btn" onclick="showTab('contabilidad',this)">📊 Contabilidad</button>
+  <button class="tab-btn" onclick="showTab('presupuestos',this)">📋 Presupuestos</button>
   <button class="tab-btn" onclick="showTab('crm',this)">🏗️ CRM Obras</button>
   <button class="tab-btn" onclick="showTab('config',this)">⚙️ Config</button>
 </div>
@@ -571,6 +586,168 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <button class="btn danger" id="crm-btn-borrar" style="display:none;margin-right:auto" onclick="borrarObraActual()">🗑 Borrar</button>
         <button class="btn" onclick="cerrarModalObra()">Cancelar</button>
         <button class="btn primary" onclick="guardarObra()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PRESUPUESTOS ══════ -->
+<div id="tab-presupuestos" class="panel">
+
+  <!-- LISTA -->
+  <div id="pres-view-lista">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <h2 style="font-size:16px">📋 Presupuestos <span style="font-size:12px;font-weight:400;color:var(--text2);font-family:'DM Sans',sans-serif">Ofertas técnico-económicas</span></h2>
+      <button class="btn primary" onclick="presNuevo()">+ Nuevo Presupuesto</button>
+    </div>
+
+    <div class="stats-row" id="pres-stats"></div>
+
+    <div class="card" style="padding:10px 14px;margin-bottom:12px">
+      <div class="toolbar" style="margin:0">
+        <input type="text" id="pres-buscar" placeholder="🔍 Buscar proyecto, cliente..." oninput="presRenderLista()">
+        <select id="pres-filtro-estado" onchange="presRenderLista()" style="min-width:150px">
+          <option value="">Todos los estados</option>
+          <option value="borrador">📝 Borrador</option>
+          <option value="enviado">📨 Enviado</option>
+          <option value="aceptado">✅ Aceptado</option>
+          <option value="rechazado">❌ Rechazado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nº Oferta</th><th>Proyecto / Obra</th><th>Cliente</th><th>ATT</th>
+            <th>Fecha</th><th style="text-align:right">Total (sin IVA)</th>
+            <th style="text-align:right">Total (con IVA)</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="pres-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="pres-view-editor" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <h2 style="font-size:16px" id="pres-editor-titulo">Nuevo Presupuesto <span id="pres-editor-subtitulo" style="font-size:12px;font-weight:400;color:var(--text2);font-family:'DM Sans',sans-serif"></span></h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="presGenerarPDF()">🖨️ Generar PDF</button>
+        <button class="btn primary" onclick="presGuardar()">💾 Guardar</button>
+        <button class="btn" onclick="presVolverLista()">← Volver</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Datos del Presupuesto</div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <div class="form-group"><label>Nº Oferta</label><input type="text" id="ped-oferta" placeholder="ej. 26-0050"></div>
+        <div class="form-group"><label>Fecha</label><input type="date" id="ped-fecha"></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="ped-estado" style="padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif">
+            <option value="borrador">📝 Borrador</option>
+            <option value="enviado">📨 Enviado</option>
+            <option value="aceptado">✅ Aceptado</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+        </div>
+        <div class="form-group"><label>ATT (Persona contacto)</label><input type="text" id="ped-att" placeholder="Nombre contacto"></div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 2fr">
+        <div class="form-group"><label>Cliente / Constructora</label><input type="text" id="ped-cliente" placeholder="ARCADI PLA"></div>
+        <div class="form-group"><label>Proyecto / Obra</label><input type="text" id="ped-proyecto" placeholder="62VV SANT ANDREU"></div>
+      </div>
+    </div>
+
+    <!-- VENTA -->
+    <div class="pres-section-hdr">
+      <span>📦 MATERIAL FUNGIBLE (Venta)</span>
+      <span id="pres-total-venta-hdr" style="font-family:'DM Sans',sans-serif;font-size:13px"></span>
+    </div>
+    <div class="card" style="padding:0;overflow:auto">
+      <table class="ptbl">
+        <thead><tr>
+          <th style="width:40px">Ud</th><th>Descripción</th>
+          <th style="width:100px;text-align:right">Medición</th>
+          <th style="width:100px;text-align:right">Precio Ud (€)</th>
+          <th style="width:110px;text-align:right">Total (€)</th>
+          <th style="width:30px"></th>
+        </tr></thead>
+        <tbody id="pres-venta-tbody"></tbody>
+        <tfoot>
+          <tr style="background:var(--bg2)"><td colspan="5" style="padding:6px 8px"><button class="btn sm" onclick="presAddPartida('venta')">+ Añadir partida</button></td><td></td></tr>
+          <tr>
+            <td colspan="3" style="padding:6px 8px;font-size:12px;color:var(--text2)">Descuento: <input type="number" id="pres-desc-venta" min="0" max="100" value="0" style="width:60px;padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;text-align:right" oninput="presCalcTotales()"> %</td>
+            <td style="padding:6px 8px;text-align:right;font-size:12px;color:var(--text2)">Con descuento:</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:600" id="pres-venta-con-desc">0,00 €</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ALQUILER -->
+    <div class="pres-section-hdr">
+      <span>🔄 MATERIAL DE ALQUILER</span>
+      <span id="pres-total-alquiler-hdr" style="font-family:'DM Sans',sans-serif;font-size:13px"></span>
+    </div>
+    <div class="card" style="padding:0;overflow:auto">
+      <table class="ptbl">
+        <thead><tr>
+          <th style="width:40px">Ud</th><th>Descripción</th>
+          <th style="width:90px;text-align:right">Medición</th>
+          <th style="width:100px;text-align:right">€/Ud/Día</th>
+          <th style="width:70px;text-align:right">Días</th>
+          <th style="width:110px;text-align:right">Total (€)</th>
+          <th style="width:30px"></th>
+        </tr></thead>
+        <tbody id="pres-alquiler-tbody"></tbody>
+        <tfoot>
+          <tr style="background:var(--bg2)"><td colspan="6" style="padding:6px 8px"><button class="btn sm" onclick="presAddPartida('alquiler')">+ Añadir partida</button></td><td></td></tr>
+          <tr>
+            <td colspan="4" style="padding:6px 8px;font-size:12px;color:var(--text2)">Descuento: <input type="number" id="pres-desc-alquiler" min="0" max="100" value="0" style="width:60px;padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;text-align:right" oninput="presCalcTotales()"> %</td>
+            <td style="padding:6px 8px;text-align:right;font-size:12px;color:var(--text2)">Con descuento:</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:600" id="pres-alquiler-con-desc">0,00 €</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- MANO DE OBRA -->
+    <div class="pres-section-hdr">
+      <span>👷 MANO DE OBRA</span>
+      <span id="pres-total-mo-hdr" style="font-family:'DM Sans',sans-serif;font-size:13px"></span>
+    </div>
+    <div class="card" style="padding:0;overflow:auto">
+      <table class="ptbl">
+        <thead><tr>
+          <th>Descripción</th>
+          <th style="width:110px;text-align:right">Precio (€)</th>
+          <th style="width:80px;text-align:right">Meses</th>
+          <th style="width:100px;text-align:right">Nº Operarios</th>
+          <th style="width:110px;text-align:right">Total (€)</th>
+          <th style="width:30px"></th>
+        </tr></thead>
+        <tbody id="pres-mo-tbody"></tbody>
+        <tfoot>
+          <tr style="background:var(--bg2)"><td colspan="5" style="padding:6px 8px"><button class="btn sm" onclick="presAddPartida('mo')">+ Añadir partida</button></td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- RESUMEN -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+      <div class="totales-box">
+        <div class="tot-row"><span>Total Material Venta</span><span id="pres-res-venta">0,00 €</span></div>
+        <div class="tot-row"><span>Total Material Alquiler</span><span id="pres-res-alquiler">0,00 €</span></div>
+        <div class="tot-row subtot"><span>Total Mano de Obra</span><span id="pres-res-mo">0,00 €</span></div>
+        <div class="tot-row subtot" style="margin-top:4px;padding-top:8px;border-top:2px solid var(--border)"><span>TOTAL OBRA (sin IVA)</span><span id="pres-res-total">0,00 €</span></div>
+        <div class="tot-row"><span>IVA (21%)</span><span id="pres-res-iva">0,00 €</span></div>
+        <div class="tot-row"><span>TOTAL CON IVA</span><span id="pres-res-total-iva">0,00 €</span></div>
       </div>
     </div>
   </div>
@@ -1409,6 +1586,7 @@ function showTab(id, el) {
   if (id === 'clientes') renderClientes();
   if (id === 'proveedores') renderProveedores();
   if (id === 'gastos_internos') renderGastosInternos();
+  if (id === 'presupuestos') presRenderLista();
   if (id === 'crm') cargarCRMdesdeSheets();
   if (id === 'contabilidad') renderContabilidad();
   if (id === 'export') cargarDocsGestoria();
@@ -3375,6 +3553,265 @@ function borrarObraActual() {
   renderTablaObras();
   // Sync a Sheets
   postAPI({action:'deleteCRM', _row: o._row || null}, function() {});
+}
+
+// ══════════════════════════════════════════════
+// PRESUPUESTOS
+// ══════════════════════════════════════════════
+var PRES_KEY = 'segufija_presupuestos';
+var _presIdx = -1;
+
+var PRES_DEF_VENTA = [
+  {ud:'Ud', desc:'Protección de esperas - Setas', medicion:0, precio:0.0945},
+  {ud:'m2', desc:'Red bajo forjado', medicion:0, precio:3.50},
+  {ud:'ml', desc:'Protección perimetral INDEK fase estructura', medicion:0, precio:0},
+  {ud:'m2', desc:'Mosquitera protección caída objetos', medicion:0, precio:0.95},
+  {ud:'m2', desc:'Protección red huecos horizontales > 1m²', medicion:0, precio:6.95},
+  {ud:'m2', desc:'Protección red huecos verticales', medicion:0, precio:7.80},
+  {ud:'m2', desc:'Protección vertical escalera con red', medicion:0, precio:4.60},
+  {ud:'m2', desc:'Red protección de fachada', medicion:0, precio:3.50},
+  {ud:'ml', desc:'Material fungible barandilla perimetral forjado', medicion:0, precio:0.80},
+  {ud:'ml', desc:'Protección perimetral codos y mástil 2m con red', medicion:0, precio:7.53},
+  {ud:'ml', desc:'Líneas de vida provisionales horizontales', medicion:0, precio:6.90},
+  {ud:'ml', desc:'Líneas de vida provisionales verticales', medicion:0, precio:2.00},
+  {ud:'ud', desc:'Eslingas para plataformas descarga 1,5m', medicion:0, precio:20.00}
+];
+var PRES_DEF_ALQUILER = [
+  {ud:'ml', desc:'Barandilla provisional en encofrado', medicion:0, precio:0.15, dias:90},
+  {ud:'ml', desc:'Sistema protección perimetral fase estructura (INDEK)', medicion:0, precio:0, dias:120},
+  {ud:'ml', desc:'Barandilla perimetral forjado', medicion:0, precio:0.08, dias:120},
+  {ud:'ml', desc:'Protección perimetral codos y mástiles 2m con red', medicion:0, precio:0.15, dias:60}
+];
+var PRES_DEF_MO = [
+  {desc:'OPERARIO PROTECCIONES MES', precio:3950, meses:0, operarios:1},
+  {desc:'OPERARIO DÍA', precio:245, meses:0, operarios:1}
+];
+
+var PRES_ESTADO_BADGE = {
+  borrador:'<span class="badge" style="background:var(--bg2);color:var(--text2)">📝 Borrador</span>',
+  enviado: '<span class="badge" style="background:#dbeafe;color:#1e40af">📨 Enviado</span>',
+  aceptado:'<span class="badge" style="background:var(--success-light);color:var(--success)">✅ Aceptado</span>',
+  rechazado:'<span class="badge" style="background:var(--danger-light);color:var(--danger)">❌ Rechazado</span>'
+};
+
+function presGetAll() { try { return JSON.parse(localStorage.getItem(PRES_KEY)||'[]'); } catch(e){ return []; } }
+function presSaveAll(arr) { try { localStorage.setItem(PRES_KEY, JSON.stringify(arr)); } catch(e){} }
+function presFmtE(n) { return Number(n||0).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function presFmtN(n) { return Number(n||0).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function presRenderStats() {
+  var arr = presGetAll();
+  var cfg = [
+    {k:'borrador', label:'Borradores', bg:'var(--bg2)', tc:'var(--text2)'},
+    {k:'enviado',  label:'Enviados',   bg:'#dbeafe',   tc:'#1e40af'},
+    {k:'aceptado', label:'Aceptados',  bg:'var(--success-light)', tc:'var(--success)'},
+    {k:'rechazado',label:'Rechazados', bg:'var(--danger-light)',  tc:'var(--danger)'}
+  ];
+  var html = '';
+  cfg.forEach(function(e){
+    var fil = arr.filter(function(p){return p.estado===e.k;});
+    var tot = fil.reduce(function(a,p){return a+(p.totalObra||0);},0);
+    html += '<div class="stat-card" style="background:'+e.bg+';border-color:'+e.bg+'">'+
+      '<div class="stat-label" style="color:'+e.tc+'">'+e.label+'</div>'+
+      '<div class="stat-val" style="color:'+e.tc+';font-size:22px">'+fil.length+'</div>'+
+      '<div style="font-size:11px;color:'+e.tc+'">'+presFmtE(tot)+'</div></div>';
+  });
+  document.getElementById('pres-stats').innerHTML = html;
+}
+
+function presRenderLista() {
+  presRenderStats();
+  var arr = presGetAll();
+  var buscar = (document.getElementById('pres-buscar')||{value:''}).value.toLowerCase();
+  var fEst   = (document.getElementById('pres-filtro-estado')||{value:''}).value;
+  var fil = arr.filter(function(p,i){ p._idx=i; if(fEst && p.estado!==fEst) return false; if(buscar){var h=[p.numOferta,p.proyecto,p.cliente,p.att].join(' ').toLowerCase();if(h.indexOf(buscar)<0)return false;} return true; });
+  var html = '';
+  if (!fil.length) html = '<tr><td colspan="9" style="padding:28px;text-align:center;color:var(--text2)">Sin presupuestos. Crea el primero con "+ Nuevo Presupuesto"</td></tr>';
+  fil.forEach(function(p){
+    html += '<tr onclick="presEditar('+p._idx+')">'+
+      '<td style="font-weight:600;white-space:nowrap">'+(p.numOferta||'—')+'</td>'+
+      '<td>'+(p.proyecto||'—')+'</td>'+
+      '<td style="white-space:nowrap">'+(p.cliente||'—')+'</td>'+
+      '<td style="white-space:nowrap">'+(p.att||'—')+'</td>'+
+      '<td style="white-space:nowrap">'+(p.fecha?p.fecha.split('-').reverse().join('/'):'—')+'</td>'+
+      '<td style="text-align:right;white-space:nowrap;font-weight:600">'+presFmtE(p.totalObra||0)+'</td>'+
+      '<td style="text-align:right;white-space:nowrap">'+presFmtE(p.totalConIva||0)+'</td>'+
+      '<td>'+(PRES_ESTADO_BADGE[p.estado]||p.estado)+'</td>'+
+      '<td><button class="btn sm" onclick="event.stopPropagation();presBorrar('+p._idx+')" style="color:var(--danger);border-color:var(--danger)">🗑</button></td>'+
+    '</tr>';
+  });
+  document.getElementById('pres-tbody').innerHTML = html;
+}
+
+function presCalcTotales() {
+  var tV=0, tA=0, tMO=0;
+  document.querySelectorAll('#pres-venta-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i, med=parseFloat(document.getElementById('pv-med-'+i).value)||0, prc=parseFloat(document.getElementById('pv-prc-'+i).value)||0, tot=med*prc;
+    var el=document.getElementById('pv-tot-'+i); if(el) el.textContent=presFmtN(tot); tV+=tot;
+  });
+  var descV=parseFloat(document.getElementById('pres-desc-venta').value)||0, vDesc=tV*(1-descV/100);
+  document.getElementById('pres-venta-con-desc').textContent=presFmtE(vDesc);
+  document.getElementById('pres-total-venta-hdr').textContent=presFmtE(vDesc);
+  document.getElementById('pres-res-venta').textContent=presFmtE(vDesc);
+
+  document.querySelectorAll('#pres-alquiler-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i, med=parseFloat(document.getElementById('pa-med-'+i).value)||0, prc=parseFloat(document.getElementById('pa-prc-'+i).value)||0, dia=parseFloat(document.getElementById('pa-dia-'+i).value)||0, tot=med*prc*dia;
+    var el=document.getElementById('pa-tot-'+i); if(el) el.textContent=presFmtN(tot); tA+=tot;
+  });
+  var descA=parseFloat(document.getElementById('pres-desc-alquiler').value)||0, aDesc=tA*(1-descA/100);
+  document.getElementById('pres-alquiler-con-desc').textContent=presFmtE(aDesc);
+  document.getElementById('pres-total-alquiler-hdr').textContent=presFmtE(aDesc);
+  document.getElementById('pres-res-alquiler').textContent=presFmtE(aDesc);
+
+  document.querySelectorAll('#pres-mo-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i, prc=parseFloat(document.getElementById('pm-prc-'+i).value)||0, mes=parseFloat(document.getElementById('pm-mes-'+i).value)||0, ops=parseFloat(document.getElementById('pm-ops-'+i).value)||1, tot=prc*mes*ops;
+    var el=document.getElementById('pm-tot-'+i); if(el) el.textContent=presFmtN(tot); tMO+=tot;
+  });
+  document.getElementById('pres-total-mo-hdr').textContent=presFmtE(tMO);
+  document.getElementById('pres-res-mo').textContent=presFmtE(tMO);
+
+  var total=vDesc+aDesc+tMO, iva=total*0.21;
+  document.getElementById('pres-res-total').textContent=presFmtE(total);
+  document.getElementById('pres-res-iva').textContent=presFmtE(iva);
+  document.getElementById('pres-res-total-iva').textContent=presFmtE(total+iva);
+}
+
+function presRenderVenta(items) {
+  var html='';
+  (items||[]).forEach(function(it,i){
+    html+='<tr data-i="'+i+'"><td style="font-size:11px;color:var(--text2);white-space:nowrap">'+it.ud+'</td>'+
+      '<td style="max-width:300px;font-size:12px">'+it.desc+'</td>'+
+      '<td style="text-align:right"><input type="number" id="pv-med-'+i+'" value="'+(it.medicion||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right"><input type="number" id="pv-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.0001" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pv-tot-'+i+'">'+presFmtN((it.medicion||0)*(it.precio||0))+'</td>'+
+      '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'venta\','+i+')">✕</button></td></tr>';
+  });
+  document.getElementById('pres-venta-tbody').innerHTML=html;
+}
+function presRenderAlquiler(items) {
+  var html='';
+  (items||[]).forEach(function(it,i){
+    html+='<tr data-i="'+i+'"><td style="font-size:11px;color:var(--text2);white-space:nowrap">'+it.ud+'</td>'+
+      '<td style="max-width:280px;font-size:12px">'+it.desc+'</td>'+
+      '<td style="text-align:right"><input type="number" id="pa-med-'+i+'" value="'+(it.medicion||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right"><input type="number" id="pa-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.0001" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right"><input type="number" id="pa-dia-'+i+'" value="'+(it.dias||0)+'" min="0" step="1" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pa-tot-'+i+'">'+presFmtN((it.medicion||0)*(it.precio||0)*(it.dias||0))+'</td>'+
+      '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'alquiler\','+i+')">✕</button></td></tr>';
+  });
+  document.getElementById('pres-alquiler-tbody').innerHTML=html;
+}
+function presRenderMO(items) {
+  var html='';
+  (items||[]).forEach(function(it,i){
+    html+='<tr data-i="'+i+'"><td style="font-size:12px">'+it.desc+'</td>'+
+      '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right"><input type="number" id="pm-mes-'+i+'" value="'+(it.meses||0)+'" min="0" step="0.5" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||1)+'" min="1" step="1" oninput="presCalcTotales()"></td>'+
+      '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">'+presFmtN((it.precio||0)*(it.meses||0)*(it.operarios||1))+'</td>'+
+      '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'mo\','+i+')">✕</button></td></tr>';
+  });
+  document.getElementById('pres-mo-tbody').innerHTML=html;
+}
+
+function presAbrirEditor(p) {
+  document.getElementById('pres-view-lista').style.display='none';
+  document.getElementById('pres-view-editor').style.display='';
+  document.getElementById('ped-oferta').value=p.numOferta||'';
+  document.getElementById('ped-fecha').value=p.fecha||new Date().toISOString().split('T')[0];
+  document.getElementById('ped-estado').value=p.estado||'borrador';
+  document.getElementById('ped-att').value=p.att||'';
+  document.getElementById('ped-cliente').value=p.cliente||'';
+  document.getElementById('ped-proyecto').value=p.proyecto||'';
+  document.getElementById('pres-desc-venta').value=p.descuentoVenta||0;
+  document.getElementById('pres-desc-alquiler').value=p.descuentoAlquiler||0;
+  document.getElementById('pres-editor-titulo').childNodes[0].textContent=_presIdx>=0?'Editar Presupuesto':'Nuevo Presupuesto ';
+  document.getElementById('pres-editor-subtitulo').textContent=p.proyecto?' — '+p.proyecto:'';
+  presRenderVenta(p.ventaItems||JSON.parse(JSON.stringify(PRES_DEF_VENTA)));
+  presRenderAlquiler(p.alquilerItems||JSON.parse(JSON.stringify(PRES_DEF_ALQUILER)));
+  presRenderMO(p.moItems||JSON.parse(JSON.stringify(PRES_DEF_MO)));
+  presCalcTotales();
+}
+
+function presNuevo() { _presIdx=-1; presAbrirEditor({}); }
+function presEditar(idx) { _presIdx=idx; presAbrirEditor(presGetAll()[idx]); }
+function presVolverLista() { document.getElementById('pres-view-editor').style.display='none'; document.getElementById('pres-view-lista').style.display=''; presRenderLista(); }
+
+function presRecoger() {
+  var vItems=[], aItems=[], moItems=[];
+  document.querySelectorAll('#pres-venta-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i;
+    vItems.push({ud:tr.querySelector('td:nth-child(1)').textContent.trim(), desc:tr.querySelector('td:nth-child(2)').textContent.trim(), medicion:parseFloat(document.getElementById('pv-med-'+i).value)||0, precio:parseFloat(document.getElementById('pv-prc-'+i).value)||0});
+  });
+  document.querySelectorAll('#pres-alquiler-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i;
+    aItems.push({ud:tr.querySelector('td:nth-child(1)').textContent.trim(), desc:tr.querySelector('td:nth-child(2)').textContent.trim(), medicion:parseFloat(document.getElementById('pa-med-'+i).value)||0, precio:parseFloat(document.getElementById('pa-prc-'+i).value)||0, dias:parseFloat(document.getElementById('pa-dia-'+i).value)||0});
+  });
+  document.querySelectorAll('#pres-mo-tbody tr[data-i]').forEach(function(tr){
+    var i=tr.dataset.i;
+    moItems.push({desc:tr.querySelector('td:nth-child(1)').textContent.trim(), precio:parseFloat(document.getElementById('pm-prc-'+i).value)||0, meses:parseFloat(document.getElementById('pm-mes-'+i).value)||0, operarios:parseFloat(document.getElementById('pm-ops-'+i).value)||1});
+  });
+  var descV=parseFloat(document.getElementById('pres-desc-venta').value)||0;
+  var descA=parseFloat(document.getElementById('pres-desc-alquiler').value)||0;
+  var tV=vItems.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-descV/100);
+  var tA=aItems.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-descA/100);
+  var tMO=moItems.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
+  var total=tV+tA+tMO;
+  return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21};
+}
+
+function presGuardar() {
+  var p=presRecoger(), arr=presGetAll();
+  if(_presIdx>=0) arr[_presIdx]=p; else arr.unshift(p);
+  presSaveAll(arr);
+  toast('Presupuesto guardado ✓');
+  presVolverLista();
+}
+
+function presBorrar(idx) {
+  if(!confirm('¿Borrar este presupuesto?')) return;
+  var arr=presGetAll(); arr.splice(idx,1); presSaveAll(arr);
+  presRenderLista(); toast('Eliminado');
+}
+
+function presAddPartida(tipo) {
+  var p=presRecoger();
+  if(tipo==='venta')    { p.ventaItems.push({ud:'m2',desc:'Nueva partida',medicion:0,precio:0}); presRenderVenta(p.ventaItems); }
+  if(tipo==='alquiler') { p.alquilerItems.push({ud:'ml',desc:'Nueva partida',medicion:0,precio:0,dias:0}); presRenderAlquiler(p.alquilerItems); }
+  if(tipo==='mo')       { p.moItems.push({desc:'Nueva partida',precio:0,meses:0,operarios:1}); presRenderMO(p.moItems); }
+  presCalcTotales();
+}
+
+function presDelPartida(tipo,idx) {
+  var p=presRecoger();
+  if(tipo==='venta')    { p.ventaItems.splice(idx,1);    presRenderVenta(p.ventaItems); }
+  if(tipo==='alquiler') { p.alquilerItems.splice(idx,1); presRenderAlquiler(p.alquilerItems); }
+  if(tipo==='mo')       { p.moItems.splice(idx,1);       presRenderMO(p.moItems); }
+  presCalcTotales();
+}
+
+function presGenerarPDF() {
+  var p=presRecoger();
+  var fecha=p.fecha?p.fecha.split('-').reverse().join('/'):'—';
+  var thS='background:#5c2d0e;color:#fff;padding:7px 10px;font-size:11px;text-align:left;';
+  var tdS='padding:6px 10px;border-bottom:1px solid #f0ebe3;font-size:12px;';
+  var rowsV=(p.ventaItems||[]).filter(function(it){return it.medicion>0;}).map(function(it){var tot=it.medicion*it.precio;return '<tr><td>'+it.ud+'</td><td>'+it.desc+'</td><td style="text-align:right">'+presFmtN(it.medicion)+'</td><td style="text-align:right">'+presFmtN(it.precio)+'</td><td style="text-align:right;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var rowsA=(p.alquilerItems||[]).filter(function(it){return it.medicion>0;}).map(function(it){var tot=it.medicion*it.precio*it.dias;return '<tr><td>'+it.ud+'</td><td>'+it.desc+'</td><td style="text-align:right">'+presFmtN(it.medicion)+'</td><td style="text-align:right">'+presFmtN(it.precio)+'</td><td style="text-align:right">'+it.dias+'</td><td style="text-align:right;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var rowsMO=(p.moItems||[]).filter(function(it){return it.meses>0;}).map(function(it){var tot=it.precio*it.meses*it.operarios;return '<tr><td colspan="2">'+it.desc+'</td><td style="text-align:right">'+presFmtN(it.precio)+'</td><td style="text-align:right">'+presFmtN(it.meses)+'</td><td style="text-align:right">'+it.operarios+'</td><td style="text-align:right;font-weight:600">'+presFmtN(tot)+'</td></tr>';}).join('');
+  var html='<html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:12px;color:#2b1a0e;margin:0;padding:0}h1,h2,h3{font-family:Georgia,serif}.page{padding:30px 40px;max-width:800px;margin:0 auto}.header-bar{background:#5c2d0e;color:#fff;padding:18px 24px;border-radius:8px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}.empresa{font-size:22px;font-weight:700;font-family:Georgia,serif}.empresa small{font-size:11px;font-weight:400;display:block;opacity:.8;margin-top:2px}.oferta-num{font-size:18px;font-weight:700;font-family:Georgia,serif;text-align:right}.meta-box{display:flex;gap:24px;margin-bottom:20px;padding:14px 18px;background:#faf8f5;border:1px solid #e0d0c0;border-radius:8px}.meta-item{flex:1}.meta-item label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#7a5c3e;display:block;margin-bottom:2px}.meta-item span{font-size:13px;font-weight:600}.section-title{background:#5c2d0e;color:#fff;padding:7px 14px;font-size:12px;font-weight:700;border-radius:6px;margin:18px 0 8px;font-family:Georgia,serif}table{width:100%;border-collapse:collapse;margin-bottom:6px}th{'+thS+'}td{'+tdS+'}tr:last-child td{border-bottom:none}.totales{margin-top:20px;display:flex;justify-content:flex-end}.tot-box{border:1px solid #e0d0c0;border-radius:8px;overflow:hidden;width:280px}.tot-row{display:flex;justify-content:space-between;padding:6px 14px;font-size:12px;border-bottom:1px solid #e0d0c0}.tot-row:last-child{background:#5c2d0e;color:#fff;font-weight:700;font-size:14px;border:none;font-family:Georgia,serif}.blq{margin-bottom:20px;padding:14px 18px;background:#faf8f5;border:1px solid #e0d0c0;border-radius:8px}.blq h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#5c2d0e;margin-bottom:10px;border-bottom:1px solid #e0d0c0;padding-bottom:6px}.blq p,.blq li{font-size:11px;line-height:1.7;color:#2b1a0e;margin-bottom:4px}.blq ul{margin-left:16px}.firmas{display:flex;gap:30px;margin-top:30px}.firma-box{flex:1;border-top:2px solid #5c2d0e;padding-top:10px}.firma-box label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#7a5c3e;display:block;margin-bottom:4px}.firma-box span{font-size:12px;font-weight:600}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page">'+
+  '<div class="header-bar"><div><div class="empresa">SEGUFIJA S.L.<small>Seguridad Colectiva Innovadora</small></div><div style="font-size:10px;margin-top:6px;opacity:.8">C/ Granollers, 47 · 08173 Sant Cugat del Vallès · 623 782 259 · info@segufija.com</div></div><div class="oferta-num">PROPUESTA Nº '+(p.numOferta||'—')+'<br><span style="font-size:12px;font-weight:400">'+fecha+'</span></div></div>'+
+  '<div class="meta-box"><div class="meta-item"><label>Proyecto</label><span>'+(p.proyecto||'—')+'</span></div><div class="meta-item"><label>Cliente</label><span>'+(p.cliente||'—')+'</span></div><div class="meta-item"><label>ATT</label><span>'+(p.att||'—')+'</span></div><div class="meta-item"><label>Fecha</label><span>'+fecha+'</span></div></div>'+
+  '<div class="blq"><h3>Presentación de SEGUFIJA S.L.</h3><p>Somos una organización joven y dinámica, creada con el propósito de aportar soluciones de seguridad colectiva innovadoras y efectivas. Apostamos por la cercanía con el cliente y por un enfoque técnico que nos permite diseñar, instalar e implementar sistemas adaptados a cada necesidad.</p><p style="margin-top:8px"><strong>Sistemas Innovadores:</strong> Especialistas en protección perimetral ligera que no requiere uso de grúa, eliminando interferencias críticas en el planning de obra.</p><p><strong>Dirección Técnica Directa:</strong> Supervisión realizada directamente por Técnico de Prevención competente.</p><p><strong>Control de Producto:</strong> Todos nuestros sistemas cumplen con las normativas UNE-EN 13374, UNE 1263 y UNE 795.</p></div>'+
+  (rowsV?'<div class="section-title">📦 MATERIAL FUNGIBLE (Venta)</div><table><thead><tr><th>Ud</th><th>Descripción</th><th style="text-align:right">Medición</th><th style="text-align:right">Precio Ud</th><th style="text-align:right">Total (€)</th></tr></thead><tbody>'+rowsV+'</tbody>'+(p.descuentoVenta>0?'<tfoot><tr><td colspan="4" style="text-align:right;font-size:11px;color:#7a5c3e">Descuento '+p.descuentoVenta+'%</td><td style="text-align:right;font-weight:600;font-size:13px">'+presFmtN(p.totalVenta)+' €</td></tr></tfoot>':'')+'</table>':'')+
+  (rowsA?'<div class="section-title">🔄 MATERIAL DE ALQUILER</div><table><thead><tr><th>Ud</th><th>Descripción</th><th style="text-align:right">Medición</th><th style="text-align:right">€/Ud/Día</th><th style="text-align:right">Días</th><th style="text-align:right">Total (€)</th></tr></thead><tbody>'+rowsA+'</tbody>'+(p.descuentoAlquiler>0?'<tfoot><tr><td colspan="5" style="text-align:right;font-size:11px;color:#7a5c3e">Descuento '+p.descuentoAlquiler+'%</td><td style="text-align:right;font-weight:600;font-size:13px">'+presFmtN(p.totalAlquiler)+' €</td></tr></tfoot>':'')+'</table>':'')+
+  (rowsMO?'<div class="section-title">👷 MANO DE OBRA</div><table><thead><tr><th colspan="2">Descripción</th><th style="text-align:right">Precio (€)</th><th style="text-align:right">Meses</th><th style="text-align:right">Nº Op.</th><th style="text-align:right">Total (€)</th></tr></thead><tbody>'+rowsMO+'</tbody></table>':'')+
+  '<div class="totales"><div class="tot-box"><div class="tot-row"><span>Total Material Venta</span><span>'+presFmtE(p.totalVenta)+'</span></div><div class="tot-row"><span>Total Material Alquiler</span><span>'+presFmtE(p.totalAlquiler)+'</span></div><div class="tot-row"><span>Total Mano de Obra</span><span>'+presFmtE(p.totalMO)+'</span></div><div class="tot-row" style="font-weight:600;font-size:13px;border-top:2px solid #e0d0c0"><span>TOTAL OBRA (sin IVA)</span><span>'+presFmtE(p.totalObra)+'</span></div><div class="tot-row"><span>IVA (21%)</span><span>'+presFmtE(p.iva)+'</span></div><div class="tot-row"><span>TOTAL CON IVA</span><span>'+presFmtE(p.totalConIva)+'</span></div></div></div>'+
+  '<div class="blq" style="margin-top:20px"><h3>Notas del Presupuesto</h3><ul><li>La facturación se realizará en función de las partidas realmente instaladas, según las mediciones efectuadas in situ.</li><li>Forma de pago: confirming 60 días.</li><li>Los materiales suministrados son propiedad de SEGUFIJA.</li><li>Cualquier material deteriorado, roto o quemado será facturado aparte.</li><li>Los medios de elevación necesarios serán aportados por el CLIENTE.</li><li>Las horas extraordinarias tendrán un coste de 35 €.</li><li>El material de madera para huecos inferiores a 1 m² será proporcionado por la obra.</li><li>Nuestra actividad no está sujeta a retención por garantía.</li></ul></div>'+
+  '<div class="firmas"><div class="firma-box"><label>Aprobación cliente</label><span>'+(p.cliente||'EMPRESA:')+'</span><div style="margin-top:40px;border-top:1px solid #ccc;padding-top:8px;font-size:10px;color:#7a5c3e">Firma · Nombre · Cargo · Fecha</div></div><div class="firma-box"><label>Firmado por SEGUFIJA S.L.</label><span>Ana Ferruz</span><div style="margin-top:40px;border-top:1px solid #ccc;padding-top:8px;font-size:10px;color:#7a5c3e">Firma · Fecha</div></div></div>'+
+  '</div></body></html>';
+  var win=window.open('','_blank','width=900,height=800');
+  win.document.write(html); win.document.close();
+  setTimeout(function(){win.print();},600);
 }
 
 // ══════════════════════════════════════════════
