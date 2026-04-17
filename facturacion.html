@@ -671,7 +671,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Introduce las mediciones totales de la obra. Pulsa <strong>Aplicar a partidas</strong> para volcar las cantidades automáticamente.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px">
         <div class="form-group"><label style="color:#1e40af">Bar. Encofrado (ml)</label><input type="number" id="pmed-barEncof" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bfdbfe;border-radius:8px;background:var(--bg);color:var(--text)"></div>
-        <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">INDEK / Huecos+Asc. (ml)</label><input type="number" id="pmed-indek" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
+        <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">INDEK perimetral (ml)</label><input type="number" id="pmed-indek" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Barandilla Forjado (ml)</label><input type="number" id="pmed-barForj" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Codos + Mástil 2m (ml)</label><input type="number" id="pmed-codos" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Hor. Huecos (m²)</label><input type="number" id="pmed-redHor" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
@@ -4343,7 +4343,7 @@ var PRES_MED_FIELDS = [
   {id:'barEncof', label:'Bar. Encofrado (ml)',          unit:'ml',
    alquiler:'Barandilla provisional en encofrado'},
   // ── COMBINADOS: misma medición aplica a venta fungible + alquiler recuperable ──
-  {id:'indek',    label:'INDEK / Huecos+Asc. (ml)',    unit:'ml',
+  {id:'indek',    label:'INDEK perimetral (ml)',          unit:'ml',
    venta:'Sistema de protección: PROTECCION PERIMETRAL (INDEK)',
    alquiler:'Sistema de protección perimetral para fase de estructura (INDEK)'},
   {id:'barForj',  label:'Barandilla Forjado (ml)',      unit:'ml',
