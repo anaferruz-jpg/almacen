@@ -3843,11 +3843,15 @@ function presCalcTotales() {
   document.getElementById('pres-res-total-iva').textContent=presFmtE(total+iva);
 }
 
+var _escAttr=function(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+var _inpDesc='width:100%;padding:2px 5px;font-size:12px;border:1px solid transparent;border-radius:4px;background:transparent;outline:none';
+var _inpUd='width:38px;padding:2px 3px;font-size:11px;border:1px solid transparent;border-radius:4px;background:transparent;text-align:center;color:var(--text2)';
 function presRenderVenta(items) {
   var html='';
   (items||[]).forEach(function(it,i){
-    html+='<tr data-i="'+i+'"><td style="font-size:11px;color:var(--text2);white-space:nowrap">'+it.ud+'</td>'+
-      '<td style="max-width:300px;font-size:12px">'+it.desc+'</td>'+
+    html+='<tr data-i="'+i+'">'+
+      '<td><input type="text" id="pv-ud-'+i+'" value="'+_escAttr(it.ud)+'" style="'+_inpUd+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
+      '<td style="max-width:300px"><input type="text" id="pv-desc-'+i+'" value="'+_escAttr(it.desc)+'" style="'+_inpDesc+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
       '<td style="text-align:right"><input type="number" id="pv-med-'+i+'" value="'+(it.medicion||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
       '<td style="text-align:right"><input type="number" id="pv-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.0001" oninput="presCalcTotales()"></td>'+
       '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pv-tot-'+i+'">'+presFmtN((it.medicion||0)*(it.precio||0))+'</td>'+
@@ -3858,8 +3862,9 @@ function presRenderVenta(items) {
 function presRenderAlquiler(items) {
   var html='';
   (items||[]).forEach(function(it,i){
-    html+='<tr data-i="'+i+'"><td style="font-size:11px;color:var(--text2);white-space:nowrap">'+it.ud+'</td>'+
-      '<td style="max-width:280px;font-size:12px">'+it.desc+'</td>'+
+    html+='<tr data-i="'+i+'">'+
+      '<td><input type="text" id="pa-ud-'+i+'" value="'+_escAttr(it.ud)+'" style="'+_inpUd+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
+      '<td style="max-width:280px"><input type="text" id="pa-desc-'+i+'" value="'+_escAttr(it.desc)+'" style="'+_inpDesc+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
       '<td style="text-align:right"><input type="number" id="pa-med-'+i+'" value="'+(it.medicion||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
       '<td style="text-align:right"><input type="number" id="pa-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.0001" oninput="presCalcTotales()"></td>'+
       '<td style="text-align:right"><input type="number" id="pa-dia-'+i+'" value="'+(it.dias||0)+'" min="0" step="1" oninput="presCalcTotales()"></td>'+
@@ -3881,7 +3886,8 @@ function presRenderMO(items) {
         '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">0</td>'+
         '<td></td></tr>';
     } else {
-      html+='<tr data-i="'+i+'"><td style="font-size:12px">'+it.desc+'</td>'+
+      html+='<tr data-i="'+i+'">'+
+        '<td><input type="text" id="pm-desc-'+i+'" value="'+_escAttr(it.desc)+'" style="'+_inpDesc+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
         '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
         '<td style="text-align:right"><input type="number" id="pm-mes-'+i+'" value="'+(it.meses||0)+'" min="0" step="0.5" oninput="presCalcTotales()"></td>'+
         '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||1)+'" min="1" step="1" oninput="presCalcTotales()"></td>'+
@@ -3957,11 +3963,15 @@ function presRecoger() {
   var vItems=[], aItems=[], moItems=[];
   document.querySelectorAll('#pres-venta-tbody tr[data-i]').forEach(function(tr){
     var i=tr.dataset.i;
-    vItems.push({ud:tr.querySelector('td:nth-child(1)').textContent.trim(), desc:tr.querySelector('td:nth-child(2)').textContent.trim(), medicion:parseFloat(document.getElementById('pv-med-'+i).value)||0, precio:parseFloat(document.getElementById('pv-prc-'+i).value)||0});
+    var ud=(document.getElementById('pv-ud-'+i)||{value:''}).value.trim();
+    var desc=(document.getElementById('pv-desc-'+i)||{value:''}).value.trim();
+    vItems.push({ud:ud, desc:desc, medicion:parseFloat(document.getElementById('pv-med-'+i).value)||0, precio:parseFloat(document.getElementById('pv-prc-'+i).value)||0});
   });
   document.querySelectorAll('#pres-alquiler-tbody tr[data-i]').forEach(function(tr){
     var i=tr.dataset.i;
-    aItems.push({ud:tr.querySelector('td:nth-child(1)').textContent.trim(), desc:tr.querySelector('td:nth-child(2)').textContent.trim(), medicion:parseFloat(document.getElementById('pa-med-'+i).value)||0, precio:parseFloat(document.getElementById('pa-prc-'+i).value)||0, dias:parseFloat(document.getElementById('pa-dia-'+i).value)||0});
+    var ud=(document.getElementById('pa-ud-'+i)||{value:''}).value.trim();
+    var desc=(document.getElementById('pa-desc-'+i)||{value:''}).value.trim();
+    aItems.push({ud:ud, desc:desc, medicion:parseFloat(document.getElementById('pa-med-'+i).value)||0, precio:parseFloat(document.getElementById('pa-prc-'+i).value)||0, dias:parseFloat(document.getElementById('pa-dia-'+i).value)||0});
   });
   document.querySelectorAll('#pres-mo-tbody tr[data-i]').forEach(function(tr){
     var i=tr.dataset.i, prc=parseFloat(document.getElementById('pm-prc-'+i).value)||0;
@@ -3974,7 +3984,7 @@ function presRecoger() {
       meses=parseFloat(document.getElementById('pm-mes-'+i).value)||0;
       operarios=parseFloat(document.getElementById('pm-ops-'+i).value)||1;
     }
-    var desc = tr.dataset.desc || tr.querySelector('td:nth-child(1)').textContent.trim();
+    var desc = tr.dataset.desc || (document.getElementById('pm-desc-'+i)||{value:''}).value.trim() || tr.querySelector('td:nth-child(1)').textContent.trim();
     moItems.push({desc:desc, precio:prc, meses:meses, operarios:operarios});
   });
   var descV=parseFloat(document.getElementById('pres-desc-venta').value)||0;
