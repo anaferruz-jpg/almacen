@@ -4256,13 +4256,16 @@ function presGenerarPDF() {
   var plan = p.planning||{};
   var planFases = plan.fases||[]; var planOps = plan.ops||[]; var nMeses = plan.meses||planFases.length||0;
   if (nMeses>0 && (planFases.some(function(f){return f;}) || planOps.some(function(o){return o>0;}))) {
-    var thCols = '<th style="min-width:120px;text-align:left">MESES</th>';
-    for (var m=1; m<=nMeses; m++) thCols += '<th style="width:42px">'+m+'</th>';
-    var fasRow = '<tr><td>FASES</td>';
-    for (var m=0; m<nMeses; m++) fasRow += '<td>'+(planFases[m]||'')+'</td>';
+    // Solo mostrar meses con fase o con operarios > 0
+    var mesesActivos = [];
+    for (var m=0; m<nMeses; m++) { if ((planFases[m]&&planFases[m].trim()) || planOps[m]>0) mesesActivos.push(m); }
+    var thCols = '<th style="min-width:120px;text-align:left">MES</th>';
+    mesesActivos.forEach(function(m){ thCols += '<th style="width:52px">'+(m+1)+'</th>'; });
+    var fasRow = '<tr><td>FASE</td>';
+    mesesActivos.forEach(function(m){ fasRow += '<td>'+(planFases[m]||'')+'</td>'; });
     fasRow += '</tr>';
     var opsRow = '<tr style="background:#fdf8f2"><td>PERSONAL</td>';
-    for (var m=0; m<nMeses; m++) opsRow += '<td style="font-weight:700">'+(planOps[m]||0)+'</td>';
+    mesesActivos.forEach(function(m){ opsRow += '<td style="font-weight:700">'+(planOps[m]||0)+'</td>'; });
     opsRow += '</tr>';
     planHtml =
       '<div class="sec">'+
