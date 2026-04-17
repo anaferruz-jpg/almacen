@@ -4101,7 +4101,8 @@ function presGenerarPDF() {
       '<div class="meta-item"><label>Att.</label><span>'+(p.att||'&mdash;')+'</span></div>'+
     '</div>';
 
-  // ── PRESENTACIÓN ──────────────────────────────────────────────────────────
+  // ── PRESENTACIÓN + ENFOQUE (sección unificada) ────────────────────────────
+  var enfoqueHtml = '';
   var presentHtml =
     '<div class="sec">'+
       '<div class="sec-title">PRESENTACI&Oacute;N DE SEGUFIJA S.L.</div>'+
@@ -4113,15 +4114,7 @@ function presGenerarPDF() {
           '<li><strong>Direcci&oacute;n T&eacute;cnica Directa:</strong> Supervisi&oacute;n realizada directamente por T&eacute;cnico de Prevenci&oacute;n competente, asegurando una interlocuci&oacute;n directa y resolutiva.</li>'+
           '<li><strong>Control de Producto:</strong> Todos nuestros sistemas cumplen estrictamente con las normativas UNE-EN&nbsp;13374, UNE&nbsp;1263 y UNE&nbsp;795.</li>'+
         '</ul>'+
-      '</div>'+
-    '</div>';
-
-  // ── ENFOQUE INTEGRAL ──────────────────────────────────────────────────────
-  var enfoqueHtml =
-    '<div class="sec">'+
-      '<div class="sec-title">ENFOQUE EN SOLUCI&Oacute;N INTEGRAL</div>'+
-      '<div class="blq">'+
-        '<p>Para la construcci&oacute;n del proyecto mencionado, se requiere la implantaci&oacute;n de protecciones colectivas que cumplan con los est&aacute;ndares de calidad para las fases de estructura y cerramientos.</p>'+
+        '<p style="margin-top:12px">Para la construcci&oacute;n del proyecto mencionado, se requiere la implantaci&oacute;n de protecciones colectivas que cumplan con los est&aacute;ndares de calidad para las fases de estructura y cerramientos.</p>'+
         '<p>Ofrecemos un presupuesto de Gesti&oacute;n Integral con los datos proporcionados por el cliente, garantizando:</p>'+
         '<ul>'+
           '<li><strong>1. Estudio T&eacute;cnico:</strong> An&aacute;lisis previo de los riesgos espec&iacute;ficos de la obra.</li>'+
