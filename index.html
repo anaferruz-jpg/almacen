@@ -641,9 +641,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <th style="color:#3498db" title="Pedidos en tránsito del proveedor">📦 En camino</th>
       <th style="color:#8e44ad" title="Stock reservado para pedidos de almacén pendientes">🔒 Reservado</th>
       <th style="color:#e67e22" title="Pendiente de servir a obras">🏗️ Pend. servir</th>
+      <th style="color:#059669" title="Material pendiente de suministrar según partidas de obras activas (contratado − suministrado)">📋 Dem. Obras</th>
       <th>PVP</th><th>Compra</th><th></th>
     </tr></thead>
-    <tbody id="tbody-inv"><tr><td colspan="10" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+    <tbody id="tbody-inv"><tr><td colspan="11" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
   </div>
 </div>
 
@@ -3181,19 +3182,40 @@ function actualizarDiasAlquiler(val){actualizarMesesAlquiler(val/30);}
 function actualizarPctAlquiler(){}
 
 /* ── INVENTARIO ── */
-function estado(item){
-  // Alerta stock mínimo para reposición
+function estado(item, demandaObras){
+  // Alerta stock mínimo para reposición (prioridad máxima)
   if(item.stockMin>0&&item.stock<=item.stockMin) return{label:'⚠️ Reponer',cls:'falta',reponer:true};
-  if(item.nec===0)return{label:'Sin uso',cls:'warn'};
-  var d=item.stock-item.nec;
-  if(d>=0)return{label:'OK',cls:'ok'};
-  return{label:'Falta '+Math.abs(d).toFixed(0),cls:'falta'};
+  // Si hay demanda real de obras, usar esa como referencia
+  if(demandaObras===undefined) demandaObras=item.nec||0;
+  if(demandaObras===0) return{label:'Sin demanda',cls:'warn'};
+  var d=item.stock-demandaObras;
+  if(d>=0) return{label:'✅ Stock OK',cls:'ok'};
+  return{label:'⚡ Falta '+Math.abs(d).toFixed(0)+' ud',cls:'falta'};
 }
 
 function renderStats(){
-  var falta=inventario.filter(function(i){return i.nec>0&&i.stock<i.nec;}).length;
+  // Calcular demanda real de obras por material
+  var demandasMapStats={};
+  OBRAS.forEach(function(o){
+    (o.partidas||[]).forEach(function(p){
+      var mat=(p.material||'').toLowerCase().trim();
+      if(!mat)return;
+      var pend=Math.max(0,(p.contratado||0)-(p.suministrado||0));
+      if(pend<=0)return;
+      if(!demandasMapStats[mat])demandasMapStats[mat]=0;
+      demandasMapStats[mat]+=pend;
+    });
+  });
+  var falta=inventario.filter(function(i){
+    var dem=demandasMapStats[(i.nombre||'').toLowerCase().trim()]||0;
+    return dem>0&&i.stock<dem;
+  }).length;
   var reponer=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;}).length;
-  var ok=inventario.filter(function(i){return i.nec>0&&i.stock>=i.nec&&!(i.stockMin>0&&i.stock<=i.stockMin);}).length;
+  var ok=inventario.filter(function(i){
+    var dem=demandasMapStats[(i.nombre||'').toLowerCase().trim()]||0;
+    return dem>0&&i.stock>=dem&&!(i.stockMin>0&&i.stock<=i.stockMin);
+  }).length;
+  var totalDemanda=Object.keys(demandasMapStats).reduce(function(a,k){return a+demandasMapStats[k];},0);
   var tot=inventario.reduce(function(a,b){return a+(b.stock||0);},0);
   // Calcular totales de en camino y pendiente servir
   var totalEnCamino=0;var totalPendServir=0;
@@ -3210,10 +3232,12 @@ function renderStats(){
   });
   document.getElementById('stats-inv').innerHTML=
     '<div class="stat"><div class="stat-label">Total artículos</div><div class="stat-val">'+inventario.length+'</div></div>'+
-    '<div class="stat"><div class="stat-label">Stock insuficiente</div><div class="stat-val danger">'+falta+'</div></div>'+
+    (falta>0?'<div class="stat" style="border-top:3px solid #dc2626;cursor:pointer" onclick="document.getElementById(\'filtro-inv\').value=\'falta\';renderInv()"><div class="stat-label" style="color:#dc2626">⚡ Sin stock obras</div><div class="stat-val" style="color:#dc2626">'+falta+'</div></div>':
+             '<div class="stat"><div class="stat-label">Stock insuficiente</div><div class="stat-val danger">0</div></div>')+
     (reponer>0?'<div class="stat" style="border-top:3px solid #e67e22;cursor:pointer" onclick="filtrarPorReponer()"><div class="stat-label" style="color:#e67e22">⚠️ Reponer</div><div class="stat-val" style="color:#e67e22">'+reponer+'</div></div>':'')+
     '<div class="stat"><div class="stat-label">Stock correcto</div><div class="stat-val success">'+ok+'</div></div>'+
     '<div class="stat"><div class="stat-label">Uds en almacén</div><div class="stat-val">'+tot.toLocaleString('es')+'</div></div>'+
+    (totalDemanda>0?'<div class="stat" style="border-top:3px solid #059669;cursor:pointer" onclick="document.getElementById(\'filtro-inv\').value=\'falta\';renderInv()"><div class="stat-label" style="color:#059669">📋 Dem. obras</div><div class="stat-val" style="color:#059669">'+Math.round(totalDemanda).toLocaleString('es')+' ud</div></div>':'')+
     (totalEnCamino>0?'<div class="stat"><div class="stat-label" style="color:#3498db">📦 En camino</div><div class="stat-val" style="color:#3498db">'+totalEnCamino+' ud</div></div>':'')+
     (totalReservado>0?'<div class="stat"><div class="stat-label" style="color:#8e44ad">🔒 Reservado</div><div class="stat-val" style="color:#8e44ad">'+totalReservado+' ud</div></div>':'')+
     (totalPendServir>0?'<div class="stat"><div class="stat-label" style="color:#e67e22">🏗️ Pend. servir</div><div class="stat-val" style="color:#e67e22">'+totalPendServir+' ud</div></div>':'');
@@ -3223,20 +3247,39 @@ function renderInv(){
   renderStats();
   var q=document.getElementById('buscar-inv').value.toLowerCase();
   var f=document.getElementById('filtro-inv').value;
+
+  // ── Calcular demanda pendiente de obras por material ──────────────────────
+  // Para cada material: Σ max(0, contratado − suministrado) en todas las obras activas
+  var demandasMap={};
+  OBRAS.forEach(function(o){
+    (o.partidas||[]).forEach(function(p){
+      var mat=(p.material||'').toLowerCase().trim();
+      if(!mat)return;
+      var pend=Math.max(0,(p.contratado||0)-(p.suministrado||0));
+      if(pend<=0)return;
+      if(!demandasMap[mat])demandasMap[mat]=0;
+      demandasMap[mat]+=pend;
+    });
+  });
+
+  // ── Filtrar inventario usando demanda real de obras ───────────────────────
   var data=inventario.filter(function(i){
     if(q&&i.nombre.toLowerCase().indexOf(q)===-1)return false;
+    var dem=demandasMap[(i.nombre||'').toLowerCase().trim()]||0;
     if(f==='reponer')return i.stockMin>0&&i.stock<=i.stockMin;
-    if(f==='falta')return i.nec>0&&i.stock<i.nec;
-    if(f==='ok')return i.nec>0&&i.stock>=i.nec;
-    if(f==='sinuso')return i.nec===0;
+    if(f==='falta')return dem>0&&i.stock<dem;
+    if(f==='ok')return dem>0&&i.stock>=dem;
+    if(f==='sinuso')return dem===0;
     return true;
   });
+
   var tb=document.getElementById('tbody-inv');
-  if(!data.length){tb.innerHTML='<tr><td colspan="10" class="empty">Sin resultados</td></tr>';return;}
-  // Calcular en camino y pendiente servir desde historial
-  var enCaminoMap={};    // proveedor → obra, en tránsito
-  var reservadoMap={};   // almacén → obra, stock reservado pendiente de servir
-  var pendServirMap={};  // total pendiente de servir (todos los pedidos no entregados)
+  if(!data.length){tb.innerHTML='<tr><td colspan="11" class="empty">Sin resultados</td></tr>';return;}
+
+  // ── Calcular en camino / reservado / pendiente servir desde historial ─────
+  var enCaminoMap={};
+  var reservadoMap={};
+  var pendServirMap={};
   historial.forEach(function(h){
     if(h.anulada===true||h.anulada==='true')return;
     var items=Array.isArray(h.items)?h.items:[];
@@ -3246,17 +3289,14 @@ function renderInv(){
       var esProveedor=!esAlmacen;
       if(est!=='entregado'){
         items.forEach(function(it){
-          // En camino: solo pedidos de proveedor en tránsito o pendientes
           if(esProveedor&&(est==='en_transito'||est==='pendiente')){
             if(!enCaminoMap[it.nombre])enCaminoMap[it.nombre]=0;
             enCaminoMap[it.nombre]+=(it.qty||0);
           }
-          // Reservado: pedidos de almacén pendientes de servir
           if(esAlmacen){
             if(!reservadoMap[it.nombre])reservadoMap[it.nombre]=0;
             reservadoMap[it.nombre]+=(it.qty||0);
           }
-          // Pendiente de servir: todos los pedidos no entregados
           if(!pendServirMap[it.nombre])pendServirMap[it.nombre]=0;
           pendServirMap[it.nombre]+=(it.qty||0);
         });
@@ -3266,12 +3306,15 @@ function renderInv(){
 
   tb.innerHTML=data.map(function(i){
     var idx=inventario.indexOf(i);
-    var e=estado(i);
+    var demandaObras=demandasMap[(i.nombre||'').toLowerCase().trim()]||0;
+    var e=estado(i,demandaObras);
     var enCamino=enCaminoMap[i.nombre]||0;
     var reservado=reservadoMap[i.nombre]||0;
     var pendServir=pendServirMap[i.nombre]||0;
-    // Stock disponible real = stock físico - reservado
     var stockDisp=Math.max(0,(i.stock||0)-reservado);
+    // Color demanda: rojo si falta stock, verde si hay suficiente, gris si no hay demanda
+    var demClr=demandaObras===0?'var(--text2)':i.stock>=demandaObras?'#059669':'#dc2626';
+    var demWgt=demandaObras>0?'700':'400';
     return '<tr id="inv-row-'+idx+'">'+
       '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
@@ -3280,6 +3323,7 @@ function renderInv(){
       '<td style="text-align:right;color:#3498db;font-weight:'+(enCamino>0?'700':'400')+'">'+(enCamino>0?'+'+enCamino+' ud':'—')+'</td>'+
       '<td style="text-align:right;color:'+(reservado>0?'#8e44ad':'inherit')+';font-weight:'+(reservado>0?'700':'400')+'">'+(reservado>0?reservado+' ud':'—')+'</td>'+
       '<td style="text-align:right;color:'+(pendServir>0?'#e67e22':'inherit')+';font-weight:'+(pendServir>0?'700':'400')+'">'+(pendServir>0?pendServir+' ud':'—')+'</td>'+
+      '<td style="text-align:right;color:'+demClr+';font-weight:'+demWgt+'" title="'+(demandaObras>0?'Pendiente de suministrar en obras: '+demandaObras+' ud':'Sin demanda de obras')+'">'+(demandaObras>0?demandaObras.toLocaleString('es')+' ud':'—')+'</td>'+
       '<td style="text-align:right">'+(i.pvp>0?i.pvp.toFixed(2)+' €':'-')+'</td>'+
       '<td style="text-align:right">'+(i.pcompra>0?i.pcompra.toFixed(2)+' €':'-')+'</td>'+
       '<td>'+
