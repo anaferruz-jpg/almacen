@@ -3820,7 +3820,18 @@ function presCalcTotales() {
   document.getElementById('pres-res-alquiler').textContent=presFmtE(aDesc);
 
   document.querySelectorAll('#pres-mo-tbody tr[data-i]').forEach(function(tr){
-    var i=tr.dataset.i, prc=parseFloat(document.getElementById('pm-prc-'+i).value)||0, mes=parseFloat(document.getElementById('pm-mes-'+i).value)||0, ops=parseFloat(document.getElementById('pm-ops-'+i).value)||1, tot=prc*mes*ops;
+    var i=tr.dataset.i, prc=parseFloat(document.getElementById('pm-prc-'+i).value)||0, tot=0;
+    if (tr.dataset.planSync==='1') {
+      // Suma ops de cada mes del planning × precio/mes
+      var totalOpMeses=0;
+      for (var m=1; m<=_presMeses; m++) { var opEl=document.getElementById('ppo-'+m); totalOpMeses+=(opEl?parseFloat(opEl.value)||0:0); }
+      tot=prc*totalOpMeses;
+      var lblM=document.getElementById('pm-mes-lbl-'+i); if(lblM) lblM.textContent=_presMeses+' m';
+      var lblO=document.getElementById('pm-ops-lbl-'+i); if(lblO) lblO.textContent=presFmtN(totalOpMeses)+' op·m';
+    } else {
+      var mes=parseFloat(document.getElementById('pm-mes-'+i).value)||0, ops=parseFloat(document.getElementById('pm-ops-'+i).value)||1;
+      tot=prc*mes*ops;
+    }
     var el=document.getElementById('pm-tot-'+i); if(el) el.textContent=presFmtN(tot); tMO+=tot;
   });
   document.getElementById('pres-total-mo-hdr').textContent=presFmtE(tMO);
@@ -3860,12 +3871,23 @@ function presRenderAlquiler(items) {
 function presRenderMO(items) {
   var html='';
   (items||[]).forEach(function(it,i){
-    html+='<tr data-i="'+i+'"><td style="font-size:12px">'+it.desc+'</td>'+
-      '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
-      '<td style="text-align:right"><input type="number" id="pm-mes-'+i+'" value="'+(it.meses||0)+'" min="0" step="0.5" oninput="presCalcTotales()"></td>'+
-      '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||1)+'" min="1" step="1" oninput="presCalcTotales()"></td>'+
-      '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">'+presFmtN((it.precio||0)*(it.meses||0)*(it.operarios||1))+'</td>'+
-      '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'mo\','+i+')">✕</button></td></tr>';
+    if (it.desc === 'OPERARIO PROTECCIONES MES') {
+      // Fila especial: meses y operarios vienen del planning automáticamente
+      html+='<tr data-i="'+i+'" data-plan-sync="1" data-desc="'+it.desc+'">'+
+        '<td style="font-size:12px">'+it.desc+'<br><span style="font-size:10px;color:var(--primary)">🔗 Calculado desde Planning (op × meses)</span></td>'+
+        '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
+        '<td style="text-align:right;color:var(--text2);font-size:11px" id="pm-mes-lbl-'+i+'">—</td>'+
+        '<td style="text-align:right;color:var(--text2);font-size:11px" id="pm-ops-lbl-'+i+'">—</td>'+
+        '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">0</td>'+
+        '<td></td></tr>';
+    } else {
+      html+='<tr data-i="'+i+'"><td style="font-size:12px">'+it.desc+'</td>'+
+        '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
+        '<td style="text-align:right"><input type="number" id="pm-mes-'+i+'" value="'+(it.meses||0)+'" min="0" step="0.5" oninput="presCalcTotales()"></td>'+
+        '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||1)+'" min="1" step="1" oninput="presCalcTotales()"></td>'+
+        '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">'+presFmtN((it.precio||0)*(it.meses||0)*(it.operarios||1))+'</td>'+
+        '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'mo\','+i+')">✕</button></td></tr>';
+    }
   });
   document.getElementById('pres-mo-tbody').innerHTML=html;
 }
@@ -3942,8 +3964,18 @@ function presRecoger() {
     aItems.push({ud:tr.querySelector('td:nth-child(1)').textContent.trim(), desc:tr.querySelector('td:nth-child(2)').textContent.trim(), medicion:parseFloat(document.getElementById('pa-med-'+i).value)||0, precio:parseFloat(document.getElementById('pa-prc-'+i).value)||0, dias:parseFloat(document.getElementById('pa-dia-'+i).value)||0});
   });
   document.querySelectorAll('#pres-mo-tbody tr[data-i]').forEach(function(tr){
-    var i=tr.dataset.i;
-    moItems.push({desc:tr.querySelector('td:nth-child(1)').textContent.trim(), precio:parseFloat(document.getElementById('pm-prc-'+i).value)||0, meses:parseFloat(document.getElementById('pm-mes-'+i).value)||0, operarios:parseFloat(document.getElementById('pm-ops-'+i).value)||1});
+    var i=tr.dataset.i, prc=parseFloat(document.getElementById('pm-prc-'+i).value)||0;
+    var meses, operarios;
+    if (tr.dataset.planSync==='1') {
+      var totalOpMeses=0;
+      for (var m=1; m<=_presMeses; m++) { var opEl=document.getElementById('ppo-'+m); totalOpMeses+=(opEl?parseFloat(opEl.value)||0:0); }
+      meses=totalOpMeses; operarios=1;
+    } else {
+      meses=parseFloat(document.getElementById('pm-mes-'+i).value)||0;
+      operarios=parseFloat(document.getElementById('pm-ops-'+i).value)||1;
+    }
+    var desc = tr.dataset.desc || tr.querySelector('td:nth-child(1)').textContent.trim();
+    moItems.push({desc:desc, precio:prc, meses:meses, operarios:operarios});
   });
   var descV=parseFloat(document.getElementById('pres-desc-venta').value)||0;
   var descA=parseFloat(document.getElementById('pres-desc-alquiler').value)||0;
@@ -4430,7 +4462,7 @@ function presRenderPlanningTable(pl) {
   var fasH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Fase de obra</td>';
   for (var m=1; m<=n; m++) fasH += '<td style="padding:4px 5px"><input type="text" id="ppf-'+m+'" value="'+((pl.fases&&pl.fases[m-1])||'')+'" placeholder="'+(m===1?'ESTRUCTURA':m===4?'CERRAMIENTOS':'')+'" style="'+inpS+'"></td>';
   var opsH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Nº Operarios</td>';
-  for (var m=1; m<=n; m++) opsH += '<td style="padding:4px 5px"><input type="number" id="ppo-'+m+'" value="'+((pl.ops&&pl.ops[m-1])||0)+'" min="0" step="1" style="'+inpS+';font-weight:600;font-size:12px"></td>';
+  for (var m=1; m<=n; m++) opsH += '<td style="padding:4px 5px"><input type="number" id="ppo-'+m+'" value="'+((pl.ops&&pl.ops[m-1])||0)+'" min="0" step="1" oninput="presCalcTotales()" style="'+inpS+';font-weight:600;font-size:12px"></td>';
   var tbl = '<table class="ptbl" style="min-width:'+Math.max(540,(n*90+130))+'px"><thead><tr>'+thH+'</tr></thead><tbody><tr>'+fasH+'</tr><tr>'+opsH+'</tr></tbody></table>';
   document.getElementById('pp-planning-wrap').innerHTML = tbl;
 }
