@@ -606,6 +606,12 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <option value="pausada">⏸ Pausada</option>
         <option value="finalizada">✅ Finalizada</option>
       </select>
+      <select id="obras-filtro-tipo" onchange="renderTablaObrasEj()" style="min-width:150px">
+        <option value="">Todos los tipos</option>
+        <option value="cerrado">🔒 Precio Cerrado</option>
+        <option value="produccion">📐 A Producción</option>
+        <option value="ml">📏 A ml</option>
+      </select>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:auto">
@@ -615,8 +621,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
           <th style="padding:10px 12px;text-align:left;white-space:nowrap">Nº Oferta</th>
           <th style="padding:10px 12px;text-align:left">Constructora</th>
           <th style="padding:10px 12px;text-align:left">Obra</th>
+          <th style="padding:10px 12px;text-align:left;white-space:nowrap">Tipo</th>
           <th style="padding:10px 12px;text-align:left">Estado</th>
-          <th style="padding:10px 12px;text-align:left">Inicio</th>
           <th style="padding:10px 12px;text-align:right;white-space:nowrap">Presupuesto</th>
           <th style="padding:10px 12px;text-align:right;white-space:nowrap">Certificado</th>
           <th style="padding:10px 12px"></th>
@@ -702,9 +708,16 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         </div>
         <div class="form-group"><label>ATT (Persona contacto)</label><input type="text" id="ped-att" placeholder="Nombre contacto"></div>
       </div>
-      <div class="form-grid" style="grid-template-columns:1fr 2fr">
+      <div class="form-grid" style="grid-template-columns:1fr 2fr 1fr">
         <div class="form-group"><label>Cliente / Constructora</label><input type="text" id="ped-cliente" placeholder="ARCADI PLA"></div>
         <div class="form-group"><label>Proyecto / Obra</label><input type="text" id="ped-proyecto" placeholder="62VV SANT ANDREU"></div>
+        <div class="form-group"><label>Tipo de Contrato</label>
+          <select id="ped-tipo-contrato" style="padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif">
+            <option value="cerrado">🔒 Precio Cerrado</option>
+            <option value="produccion">📐 A Producción</option>
+            <option value="ml">📏 A ml</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -3743,6 +3756,7 @@ function getObrasPrc()    { try{ return JSON.parse(localStorage.getItem(OBRAS_PR
 function saveObrasPrc(o)  { try{ localStorage.setItem(OBRAS_PRC_KEY, JSON.stringify(o)); }catch(e){} }
 
 function getObraKey(o)    { return (o.corto||o.nombre||'').replace(/\s+/g,'_').toLowerCase(); }
+function getPresKey(p)    { return ((p.numOferta||p.proyecto||'').replace(/\s+/g,'_').toLowerCase()); }
 
 // Proformas de una obra específica
 function getPrfForObra(obraKey)       { return getPrfStore()[obraKey] || []; }
@@ -3763,92 +3777,92 @@ var _OBRA_ESTADO_LABEL = {pendiente:'⏳ Pendiente', activa:'▶️ Activa', pau
 
 function renderTablaObrasEj() {
   var fmtE = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; };
-  // Si OBRAS está vacío, cargar de API
-  if (!OBRAS || !OBRAS.length) {
-    var tb=document.getElementById('obras-ej-tbody');
-    if(tb) tb.innerHTML='<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text2)">⏳ Cargando obras...</td></tr>';
-    callAPI('getObras', function(err, data){
-      if(!err && Array.isArray(data)) OBRAS=data;
-      renderTablaObrasEj();
-    });
-    return;
-  }
   var buscar = (document.getElementById('obras-buscar')||{value:''}).value.toLowerCase();
   var fEst   = (document.getElementById('obras-filtro-estado')||{value:''}).value;
-  var estMap  = getObrasEst();
-  var fil = OBRAS.filter(function(o){
-    var est = estMap[getObraKey(o)] || o.estado || '';
-    if (fEst && est !== fEst) return false;
+  var fTipo  = (document.getElementById('obras-filtro-tipo')||{value:''}).value;
+  var estMap = getObrasEst();
+  var tipoLabel = function(t){ return t==='produccion'?'📐 Producción':t==='ml'?'📏 ml':'🔒 Cerrado'; };
+  var TIPO_CLR  = {cerrado:'#7c3aed',produccion:'#0369a1',ml:'#0f766e'};
+
+  var allAcept = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+  var fil = allAcept.filter(function(p){
+    var est = estMap[getPresKey(p)] || 'ejecucion';
+    if (fEst  && est !== fEst) return false;
+    if (fTipo && (p.tipoContrato||'cerrado') !== fTipo) return false;
     if (buscar) {
-      var h=[o.nombre,o.corto,o.lugar,(o.contacto||{}).nombre].join(' ').toLowerCase();
-      if(h.indexOf(buscar)<0) return false;
+      var h = [p.numOferta,p.cliente,p.proyecto].join(' ').toLowerCase();
+      if (h.indexOf(buscar)<0) return false;
     }
     return true;
   });
+
   // Stats
-  var totAct=0,totPaus=0,totCerr=0,sumCert=0,sumPres=0;
-  OBRAS.forEach(function(o){
-    var est=estMap[getObraKey(o)]||o.estado||'';
-    if(est==='activa'||est==='pendiente') totAct++;
-    else if(est==='pausada') totPaus++;
-    else if(est==='cerrada') totCerr++;
-    sumPres+=(o.presupuesto||0);
-    sumCert+=obrasEjCertificado(getObraKey(o));
+  var totAct=0,totPaus=0,totFin=0,sumCert=0,sumPres=0;
+  allAcept.forEach(function(p){
+    var est = estMap[getPresKey(p)] || 'ejecucion';
+    if (est==='ejecucion') totAct++;
+    else if (est==='pausada') totPaus++;
+    else if (est==='finalizada') totFin++;
+    sumPres += (p.totalObra||0);
+    sumCert += obrasEjCertificado(getPresKey(p));
   });
-  var statsEl=document.getElementById('obras-stats');
-  if(statsEl) statsEl.innerHTML=
-    '<div class="stat-card"><div class="stat-val">'+totAct+'</div><div class="stat-lbl">Activas</div></div>'+
+  var statsEl = document.getElementById('obras-stats');
+  if (statsEl) statsEl.innerHTML=
+    '<div class="stat-card"><div class="stat-val">'+totAct+'</div><div class="stat-lbl">En Ejecución</div></div>'+
     '<div class="stat-card"><div class="stat-val">'+totPaus+'</div><div class="stat-lbl">Pausadas</div></div>'+
-    '<div class="stat-card"><div class="stat-val">'+totCerr+'</div><div class="stat-lbl">Cerradas</div></div>'+
+    '<div class="stat-card"><div class="stat-val">'+totFin+'</div><div class="stat-lbl">Finalizadas</div></div>'+
     '<div class="stat-card"><div class="stat-val">'+fmtE(sumPres)+'</div><div class="stat-lbl">Presupuestado</div></div>'+
     '<div class="stat-card"><div class="stat-val">'+fmtE(sumCert)+'</div><div class="stat-lbl">Certificado</div></div>';
-  var html='';
-  fil.forEach(function(o, fi){
-    var ri=OBRAS.indexOf(o);
-    var oKey=getObraKey(o);
-    var cert=obrasEjCertificado(oKey);
-    var pres=o.presupuesto||0;
-    var pct=pres>0?Math.round(cert/pres*100):0;
-    var nPrf=getPrfForObra(oKey).length;
-    var est=estMap[oKey]||o.estado||'activa';
-    // Progreso suministrado
-    var parts=o.partidas||[];
-    var totCont=parts.reduce(function(a,p){ return a+(p.contratado||0); },0);
-    var totSum=parts.reduce(function(a,p){ return a+(p.suministrado||0); },0);
-    var pctSum=totCont>0?Math.min(100,Math.round(totSum/totCont*100)):0;
+
+  var html = '';
+  fil.forEach(function(p, fi){
+    var pKey = getPresKey(p);
+    var cert = obrasEjCertificado(pKey);
+    var pres = p.totalObra||0;
+    var pct  = pres>0 ? Math.round(cert/pres*100) : 0;
+    var nPrf = getPrfForObra(pKey).length;
+    var est  = estMap[pKey] || 'ejecucion';
+    var tipo = p.tipoContrato||'cerrado';
+    var estBadge = est==='ejecucion'
+      ? '<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">▶️ Ejecución</span>'
+      : est==='pausada'
+      ? '<span style="background:#fef9c3;color:#713f12;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">⏸ Pausada</span>'
+      : '<span style="background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">✅ Finalizada</span>';
     html+='<tr style="border-bottom:1px solid var(--border)">'+
-      '<td style="padding:9px 12px;font-weight:700;white-space:nowrap">'+(o.corto||o.nombre||'—')+'</td>'+
-      '<td style="padding:9px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(o.nombre||'')+'">'+(o.nombre||'—')+'</td>'+
-      '<td style="padding:9px 12px;font-size:11px;color:var(--text2);white-space:nowrap">'+(o.lugar||'—')+'</td>'+
-      '<td style="padding:9px 12px;white-space:nowrap">'+(_OBRA_ESTADO_LABEL[est]||est||'—')+'</td>'+
-      '<td style="padding:9px 12px;text-align:right;white-space:nowrap">'+fmtE(pres)+'</td>'+
-      '<td style="padding:9px 12px">'+
-        '<div style="display:flex;align-items:center;gap:6px">'+
-          '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;min-width:60px">'+
-            '<div style="width:'+pctSum+'%;height:6px;background:var(--primary);border-radius:3px"></div>'+
-          '</div>'+
-          '<span style="font-size:11px;color:var(--text2);white-space:nowrap">'+pctSum+'%</span>'+
+      '<td style="padding:9px 12px;font-weight:700;white-space:nowrap">'+(p.numOferta||'—')+'</td>'+
+      '<td style="padding:9px 12px;font-size:12px;white-space:nowrap">'+(p.cliente||'—')+'</td>'+
+      '<td style="padding:9px 12px;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(p.proyecto||'')+'">'+(p.proyecto||'—')+'</td>'+
+      '<td style="padding:9px 12px;white-space:nowrap"><span style="color:'+(TIPO_CLR[tipo]||'#555')+';font-size:11px;font-weight:700">'+tipoLabel(tipo)+'</span></td>'+
+      '<td style="padding:9px 12px">'+estBadge+
+        '<div style="margin-top:3px;display:flex;gap:4px">'+
+          '<button onclick="obraEjSetEstado('+fi+',\'ejecucion\')" title="En Ejecución" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">▶</button>'+
+          '<button onclick="obraEjSetEstado('+fi+',\'pausada\')" title="Pausar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">⏸</button>'+
+          '<button onclick="obraEjSetEstado('+fi+',\'finalizada\')" title="Finalizar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">✓</button>'+
         '</div>'+
       '</td>'+
+      '<td style="padding:9px 12px;text-align:right;white-space:nowrap">'+fmtE(pres)+'</td>'+
       '<td style="padding:9px 12px;text-align:right;white-space:nowrap">'+
         '<span style="font-weight:600">'+fmtE(cert)+'</span>'+
         (pct>0?'<span style="font-size:10px;color:var(--text2);margin-left:4px">('+pct+'%)</span>':'')+
       '</td>'+
       '<td style="padding:9px 12px;white-space:nowrap">'+
-        '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="abrirProformasModal('+ri+')">📋 Proforma'+(nPrf?' ('+nPrf+')':'')+'</button>'+
+        '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="abrirProformasModal('+fi+')">📋 Proforma'+(nPrf?' ('+nPrf+')':'')+'</button>'+
       '</td>'+
     '</tr>';
   });
-  if(!fil.length) html='<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text2)">'+
-    (OBRAS.length===0?'No se pudieron cargar las obras. Comprueba la conexión.':'No hay obras con los filtros seleccionados.')+
+  if (!fil.length) html='<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text2)">'+
+    (allAcept.length===0
+      ? 'No hay presupuestos aceptados. Acepta un presupuesto en Presupuestos-CRM para que aparezca aquí.'
+      : 'No hay obras con los filtros seleccionados.')+
     '</td></tr>';
   var tb=document.getElementById('obras-ej-tbody');
   if(tb) tb.innerHTML=html;
 }
 
-function obraEjSetEstado(ri, estado) {
-  var o=OBRAS[ri]; if(!o) return;
-  var est=getObrasEst(); est[getObraKey(o)]=estado; saveObrasEst(est); renderTablaObrasEj();
+function obraEjSetEstado(fi, estado) {
+  var allAcept = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+  var p = allAcept[fi]; if(!p) return;
+  var est = getObrasEst(); est[getPresKey(p)]=estado; saveObrasEst(est); renderTablaObrasEj();
 }
 
 // ══════════════════════════════════════════════
@@ -3858,8 +3872,13 @@ var _prfObraIdx = -1;
 var _prfIdx     = -1;
 var _prfLineas  = [];   // lineas en edición activa
 
-function abrirProformasModal(ri) {
-  _prfObraIdx = ri;
+function prfGetPres() {
+  var all = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+  return all[_prfObraIdx] || null;
+}
+
+function abrirProformasModal(fi) {
+  _prfObraIdx = fi;
   _prfIdx = -1;
   document.getElementById('crm-proforma-modal').style.display = '';
   prfRenderLista();
@@ -3870,17 +3889,17 @@ function cerrarProformaModal() {
 
 // ── Lista de proformas ────────────────────────
 function prfRenderLista() {
-  var obra = (OBRAS && OBRAS[_prfObraIdx]) || {};
-  var obraKey = getObraKey(obra);
-  var proformas = getPrfForObra(obraKey);
+  var pres = prfGetPres() || {};
+  var presKey = getPresKey(pres);
+  var proformas = getPrfForObra(presKey);
   document.getElementById('prf-view-editor').style.display = 'none';
   var el = document.getElementById('prf-view-lista');
   el.style.display = '';
   var fmtE = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; };
   var rowsHtml = '';
   proformas.forEach(function(prf, pi) {
-    var total = (prf.lineas||[]).reduce(function(a,l){ return a + (l.mes||0)*l.precioUnit; }, 0);
-    var badge = prf.estado==='aprobada' ? '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">✅ Aprobada</span>'
+    var total = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||1); },0);
+    var badge = prf.estado==='aprobada'  ? '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">✅ Aprobada</span>'
               : prf.estado==='facturada' ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">🧾 Facturada</span>'
               : '<span style="background:#fef9c3;color:#713f12;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">✏️ Borrador</span>';
     rowsHtml += '<tr style="border-bottom:1px solid var(--border)">'+
@@ -3892,15 +3911,17 @@ function prfRenderLista() {
       '<td style="padding:9px 12px;white-space:nowrap">'+
         '<button class="btn" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="prfAbrirEditor('+pi+')">✏️ Ver/Editar</button>'+
         (prf.estado==='aprobada' ? '<button class="btn primary" style="font-size:11px;padding:3px 8px" onclick="prfGenerarFactura('+pi+')">🧾 Factura</button>' : '')+
+        (prf.estado==='facturada' ? '<span style="font-size:11px;color:var(--text2);margin-left:4px">'+( prf.facturaNum||'')+'</span>' : '')+
       '</td>'+
     '</tr>';
   });
   if (!proformas.length) rowsHtml = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text2)">No hay proformas todavía. Crea la primera.</td></tr>';
+  var tipoTxt = pres.tipoContrato==='produccion'?'📐 A Producción':pres.tipoContrato==='ml'?'📏 A ml':'🔒 Precio Cerrado';
   el.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'+
       '<div>'+
-        '<p style="font-size:15px;font-weight:700;margin:0">📋 Proformas</p>'+
-        '<p style="font-size:12px;color:var(--text2);margin:2px 0 0">'+(obra.corto||obra.nombre||'')+(obra.lugar?' — '+obra.lugar:'')+'</p>'+
+        '<p style="font-size:15px;font-weight:700;margin:0">📋 Proformas — '+(pres.proyecto||'')+'</p>'+
+        '<p style="font-size:12px;color:var(--text2);margin:2px 0 0">'+(pres.cliente||'')+' &nbsp;|&nbsp; '+(pres.numOferta||'')+' &nbsp;|&nbsp; '+tipoTxt+'</p>'+
       '</div>'+
       '<div style="display:flex;gap:8px">'+
         '<button class="btn primary" onclick="prfNuevaProforma()">➕ Nueva Proforma</button>'+
@@ -3927,47 +3948,42 @@ function prfNuevaProforma() { _prfIdx = -1; prfAbrirEditor(-1); }
 
 function prfAbrirEditor(pi) {
   _prfIdx = pi;
-  var obra     = (OBRAS && OBRAS[_prfObraIdx]) || {};
-  var obraKey  = getObraKey(obra);
-  var proformas= getPrfForObra(obraKey);
-  var obraPrc  = (getObrasPrc()[obraKey]) || {};
+  var pres     = prfGetPres() || {};
+  var presKey  = getPresKey(pres);
+  var proformas= getPrfForObra(presKey);
+  var tipo     = pres.tipoContrato || 'cerrado';
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtE = function(n){ return fmtN(n)+' €'; };
   var isNew = (pi < 0);
   var prf = isNew ? null : proformas[pi];
 
-  // ── Construir lineas desde partidas de la obra (agrupadas por partida) ──
+  // ── Construir lineas según tipoContrato ──────────────────────────────────
   if (isNew) {
     _prfLineas = [];
-    var grupos = {};
-    (obra.partidas||[]).forEach(function(item){
-      var key = item.partida || 'Sin Partida';
-      if (!grupos[key]) grupos[key] = {tipo:item.tipo||'venta', contratado:0, suministrado:0, precioAlquiler:0};
-      grupos[key].contratado  += parseFloat(item.contratado||0);
-      grupos[key].suministrado+= parseFloat(item.suministrado||0);
-      if (item.precioAlquiler) grupos[key].precioAlquiler = parseFloat(item.precioAlquiler)||0;
-      if (item.tipo) grupos[key].tipo = item.tipo;
-    });
-    Object.keys(grupos).forEach(function(desc){
-      var g   = grupos[desc];
-      var isAlq = g.tipo && g.tipo !== 'venta';
-      var prc = isAlq ? g.precioAlquiler : (obraPrc[desc]||0);
-      _prfLineas.push({
-        tipo:         isAlq ? 'alquiler' : 'venta',
-        desc:         desc,
-        ud:           isAlq ? 'ml' : 'ud',
-        origen:       g.contratado,
-        suministrado: g.suministrado,
-        anterior:     0,
-        mes:          0,
-        precioUnit:   prc
+    if (tipo === 'cerrado') {
+      // Una sola línea: importe total del contrato, el usuario introduce € directamente
+      _prfLineas.push({tipo:'cerrado', desc:'PRECIO CERRADO — '+(pres.proyecto||''), ud:'€',
+        origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
+    } else {
+      // produccion / ml: una línea por partida del presupuesto
+      (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
+        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud',
+          origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
       });
-    });
+      (pres.alquilerItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
+        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml',
+          origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
+      });
+      (pres.moItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
+        _prfLineas.push({tipo:'mo', desc:it.desc, ud:'mes',
+          origen:it.meses||0, anterior:0, mes:0, precioUnit:it.precio*(it.operarios||1)});
+      });
+    }
     // Calcular ANTERIOR sumando proformas previas
     proformas.forEach(function(prev){
       (prev.lineas||[]).forEach(function(pl){
         _prfLineas.forEach(function(l){
-          if (l.desc===pl.desc) l.anterior+=(pl.mes||0);
+          if (l.desc===pl.desc) l.anterior += (pl.mes||0);
         });
       });
     });
@@ -3977,7 +3993,7 @@ function prfAbrirEditor(pi) {
     proformas.forEach(function(prev,prevIdx){
       if (prevIdx<pi) (prev.lineas||[]).forEach(function(pl){
         _prfLineas.forEach(function(l){
-          if (l.desc===pl.desc) l.anterior+=(pl.mes||0);
+          if (l.desc===pl.desc) l.anterior += (pl.mes||0);
         });
       });
     });
@@ -3989,45 +4005,59 @@ function prfAbrirEditor(pi) {
   var fechaVal   = prf ? (prf.fecha||hoy) : hoy;
   var periodoVal = prf ? (prf.mes||periodoDefault) : periodoDefault;
   var estadoVal  = prf ? (prf.estado||'borrador') : 'borrador';
+  var nPrf = isNew ? proformas.length+1 : pi+1;
 
-  // Renderizar tabla por secciones
-  function tipoLabel(t){ return t==='venta'?'🟢 Venta':t==='alquiler'?'🔵 Alquiler':'🟠 M.O.'; }
-  function tipoColor(t){ return t==='venta'?'#059669':t==='alquiler'?'#2563eb':'#d97706'; }
+  // ── Renderizar filas ────────────────────────────────────────────────────
+  function tipoColor(t){ return t==='venta'?'#059669':t==='alquiler'?'#2563eb':t==='cerrado'?'#7c3aed':'#d97706'; }
+  function tipoLabel(t){ return t==='venta'?'🟢 Venta':t==='alquiler'?'🔵 Alquiler':t==='cerrado'?'🔒 Cerrado':'🟠 M.O.'; }
+  var isCerrado = (tipo==='cerrado');
   var rowsHtml = '';
   _prfLineas.forEach(function(l,i){
-    var impAnt = l.anterior*(l.precioUnit||0);
-    var impMes = (l.mes||0)*(l.precioUnit||0);
-    var sumCol = (l.suministrado||0) > 0
-      ? '<span style="font-weight:600;color:'+(l.suministrado>=l.origen?'#059669':'#d97706')+'">'
-        +fmtN(l.suministrado)+'</span>'
-      : '<span style="color:var(--text2)">—</span>';
+    var impAnt = (l.anterior||0)*(l.precioUnit||1);
+    var impMes = (l.mes||0)*(l.precioUnit||1);
     rowsHtml += '<tr data-i="'+i+'" style="border-bottom:1px solid var(--border)">'+
       '<td style="padding:6px 10px;white-space:nowrap"><span style="font-size:10px;font-weight:700;color:'+tipoColor(l.tipo)+'">'+tipoLabel(l.tipo)+'</span></td>'+
       '<td style="padding:6px 10px;font-size:12px">'+l.desc+'</td>'+
       '<td style="padding:6px 10px;font-size:11px;color:var(--text2);text-align:center">'+l.ud+'</td>'+
-      '<td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtN(l.origen)+'</td>'+
-      '<td style="padding:6px 10px;text-align:right;font-size:11px">'+sumCol+'</td>'+
-      '<td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtN(l.anterior)+'</td>'+
+      '<td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtE(l.origen)+'</td>'+
+      '<td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtE(impAnt)+'</td>'+
       '<td style="padding:6px 10px;text-align:center">'+
-        '<input type="number" id="prf-mes-'+i+'" value="'+(l.mes||0)+'" min="0" step="0.01" style="width:80px;text-align:right;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
+        (isCerrado
+          ? '<input type="number" id="prf-mes-'+i+'" value="'+(l.mes||0)+'" min="0" step="0.01" style="width:110px;text-align:right;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()" placeholder="€ este mes">'
+          : '<input type="number" id="prf-mes-'+i+'" value="'+(l.mes||0)+'" min="0" step="0.01" style="width:80px;text-align:right;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">')+
       '</td>'+
-      '<td style="padding:6px 10px;text-align:center">'+
-        '<input type="number" id="prf-prc-'+i+'" value="'+(l.precioUnit||0)+'" min="0" step="0.01" style="width:75px;text-align:right;padding:4px 6px;border:1px solid '+(l.precioUnit>0?'var(--border)':'#fca5a5')+';border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()" placeholder="€/ud">'+
-      '</td>'+
-      '<td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)" id="prf-imp-ant-'+i+'">'+fmtE(impAnt)+'</td>'+
-      '<td style="padding:6px 10px;text-align:right;font-weight:700;font-size:12px" id="prf-imp-mes-'+i+'">'+fmtE(impMes)+'</td>'+
+      (!isCerrado
+        ? '<td style="padding:6px 10px;text-align:center">'+
+            '<input type="number" id="prf-prc-'+i+'" value="'+(l.precioUnit||0)+'" min="0" step="0.01" style="width:80px;text-align:right;padding:4px 6px;border:1px solid '+(l.precioUnit>0?'var(--border)':'#fca5a5')+';border-radius:6px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()" placeholder="€/ud">'+
+          '</td>'
+        : '')+
+      '<td style="padding:6px 10px;text-align:right;font-weight:700;font-size:13px;color:var(--primary)" id="prf-imp-mes-'+i+'">'+fmtE(impMes)+'</td>'+
     '</tr>';
   });
-  if (!_prfLineas.length) rowsHtml = '<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--text2)">Esta obra no tiene partidas. Comprueba que la obra tiene datos en el módulo de Almacén.</td></tr>';
+  if (!_prfLineas.length) rowsHtml = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text2)">No hay partidas. Comprueba el presupuesto.</td></tr>';
 
-  var nPrf = isNew ? proformas.length+1 : pi+1;
+  var tipoTxt = tipo==='produccion'?'📐 A Producción':tipo==='ml'?'📏 A ml':'🔒 Precio Cerrado';
+
+  // ── Info cerrado: totales de contrato ───────────────────────────────────
+  var infoCerrado = isCerrado
+    ? '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;gap:24px;flex-wrap:wrap;font-size:12px">'+
+        '<div><span style="color:var(--text2)">Total contrato (neto):</span> <strong>'+fmtE(pres.totalObra||0)+'</strong></div>'+
+        '<div><span style="color:var(--text2)">IVA 21%:</span> <strong>'+fmtE((pres.totalObra||0)*0.21)+'</strong></div>'+
+        '<div><span style="color:var(--text2)">Total con IVA:</span> <strong>'+fmtE((pres.totalObra||0)*1.21)+'</strong></div>'+
+        '<div><span style="color:var(--text2)">Ya certificado:</span> <strong id="prf-ya-cert">'+fmtE(obrasEjCertificado(presKey))+'</strong></div>'+
+      '</div>'
+    : '';
+
   document.getElementById('prf-view-lista').style.display = 'none';
   var ed = document.getElementById('prf-view-editor');
   ed.style.display = '';
   ed.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">'+
       '<button class="btn" onclick="prfRenderLista()" style="padding:4px 10px">← Volver</button>'+
-      '<p style="font-size:15px;font-weight:700;margin:0">'+(isNew?'Nueva Proforma':'Proforma PRF-'+nPrf.toString().padStart(3,'0'))+'</p>'+
+      '<div>'+
+        '<p style="font-size:15px;font-weight:700;margin:0">'+(isNew?'Nueva Proforma':'Proforma PRF-'+nPrf.toString().padStart(3,'0'))+'</p>'+
+        '<p style="font-size:11px;color:var(--text2);margin:1px 0 0">'+(pres.proyecto||'')+' &nbsp;·&nbsp; '+tipoTxt+'</p>'+
+      '</div>'+
       '<div style="margin-left:auto;display:flex;gap:8px">'+
         ((!isNew && estadoVal==='borrador') ? '<button class="btn" style="background:#d1fae5;border-color:#6ee7b7;color:#065f46;font-size:12px" onclick="prfAprobar()">✅ Aprobar</button>' : '')+
         ((!isNew && estadoVal==='aprobada') ? '<button class="btn primary" style="font-size:12px" onclick="prfGenerarFactura('+pi+')">🧾 Generar Factura</button>' : '')+
@@ -4042,18 +4072,17 @@ function prfAbrirEditor(pi) {
       '<div class="form-group" style="margin:0"><label style="font-size:11px;color:var(--text2)">Fecha emisión</label>'+
         '<input type="date" id="prf-fecha-emision" value="'+fechaVal+'" style="font-size:13px"></div>'+
     '</div>'+
+    infoCerrado+
     '<div class="card" style="padding:0;overflow:auto;margin-bottom:12px">'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px" id="prf-tabla">'+
         '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
           '<th style="padding:8px 10px;text-align:left;white-space:nowrap">Tipo</th>'+
           '<th style="padding:8px 10px;text-align:left">Concepto</th>'+
           '<th style="padding:8px 10px;text-align:center">UD</th>'+
-          '<th style="padding:8px 10px;text-align:right;white-space:nowrap">Contratado</th>'+
-          '<th style="padding:8px 10px;text-align:right;white-space:nowrap">Suministrado</th>'+
-          '<th style="padding:8px 10px;text-align:right;white-space:nowrap">Anterior</th>'+
-          '<th style="padding:8px 10px;text-align:center;white-space:nowrap">Mes</th>'+
-          '<th style="padding:8px 10px;text-align:center;white-space:nowrap">€/UD</th>'+
+          '<th style="padding:8px 10px;text-align:right;white-space:nowrap">'+(isCerrado?'Total Contrato':'Contratado')+'</th>'+
           '<th style="padding:8px 10px;text-align:right;white-space:nowrap">Imp. Anterior</th>'+
+          '<th style="padding:8px 10px;text-align:center;white-space:nowrap">'+(isCerrado?'€ Este Mes':'Cant. Mes')+'</th>'+
+          (!isCerrado?'<th style="padding:8px 10px;text-align:center;white-space:nowrap">€/UD</th>':'')+
           '<th style="padding:8px 10px;text-align:right;white-space:nowrap;background:#f0fdf4">Imp. Mes</th>'+
         '</tr></thead>'+
         '<tbody id="prf-lineas-tbody">'+rowsHtml+'</tbody>'+
@@ -4070,48 +4099,56 @@ function prfAbrirEditor(pi) {
 function prfCalcTotales() {
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtE = function(n){ return fmtN(n)+' €'; };
+  var pres = prfGetPres() || {};
+  var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
   var totAnt=0, totMes=0;
   _prfLineas.forEach(function(l,i){
     var mesEl = document.getElementById('prf-mes-'+i);
     var prcEl = document.getElementById('prf-prc-'+i);
     if (!mesEl) return;
     var mes = parseFloat(mesEl.value)||0;
-    var prc = prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||0);
-    var impAnt = (l.anterior||0)*prc;
-    var impMes = mes*prc;
+    var prc = prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||1);
+    var impAnt = (l.anterior||0)*(isCerrado?1:prc);
+    var impMes = isCerrado ? mes : mes*prc;
     totAnt += impAnt; totMes += impMes;
-    var elA = document.getElementById('prf-imp-ant-'+i);
     var elM = document.getElementById('prf-imp-mes-'+i);
-    if (elA) elA.textContent = fmtE(impAnt);
     if (elM) { elM.textContent = fmtE(impMes); elM.style.color = impMes>0?'var(--primary)':''; }
   });
+  var iva = totMes*0.21;
+  var totalIva = totMes*1.21;
+  // colspan: cerrado=5 cols before imp.mes, produccion=6
+  var cs = isCerrado ? 5 : 6;
   var tf = document.getElementById('prf-tfoot');
-  if (tf) tf.innerHTML = '<tr style="background:var(--bg2);font-weight:700;border-top:2px solid var(--border)">'+
-    '<td colspan="8" style="padding:9px 10px;text-align:right;font-size:12px">TOTAL:</td>'+
-    '<td style="padding:9px 10px;text-align:right;font-size:12px">'+fmtE(totAnt)+'</td>'+
-    '<td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--primary)">'+fmtE(totMes)+'</td>'+
-  '</tr>';
+  if (tf) tf.innerHTML =
+    '<tr style="background:var(--bg2);font-weight:700;border-top:2px solid var(--border)">'+
+      '<td colspan="'+cs+'" style="padding:9px 10px;text-align:right;font-size:12px;color:var(--text2)">Base certificación:</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--primary)">'+fmtE(totMes)+'</td>'+
+    '</tr>'+
+    '<tr style="background:var(--bg2)">'+
+      '<td colspan="'+cs+'" style="padding:4px 10px;text-align:right;font-size:11px;color:var(--text2)">IVA 21%:</td>'+
+      '<td style="padding:4px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtE(iva)+'</td>'+
+    '</tr>'+
+    '<tr style="background:#f0fdf4;font-weight:700">'+
+      '<td colspan="'+cs+'" style="padding:7px 10px;text-align:right;font-size:13px">TOTAL FACTURA:</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-size:15px;color:#059669">'+fmtE(totalIva)+'</td>'+
+    '</tr>';
 }
 
 function prfGuardar() {
-  var obra    = (OBRAS && OBRAS[_prfObraIdx]) || {};
-  var obraKey = getObraKey(obra);
-  var prfs    = getPrfForObra(obraKey);
-  // Recoger lineas + actualizar precios en obrasPrc
-  var obrasPrc = getObrasPrc();
-  if (!obrasPrc[obraKey]) obrasPrc[obraKey] = {};
+  var pres    = prfGetPres() || {};
+  var presKey = getPresKey(pres);
+  var prfs    = getPrfForObra(presKey);
+  var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
   var lineas = _prfLineas.map(function(l,i){
     var mesEl = document.getElementById('prf-mes-'+i);
     var prcEl = document.getElementById('prf-prc-'+i);
-    var prc   = prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||0);
-    if (prc > 0) obrasPrc[obraKey][l.desc] = prc;
-    return Object.assign({}, l, {
-      mes:       mesEl ? (parseFloat(mesEl.value)||0) : (l.mes||0),
-      precioUnit: prc
-    });
+    var mes   = mesEl ? (parseFloat(mesEl.value)||0) : (l.mes||0);
+    var prc   = isCerrado ? 1 : (prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||0));
+    return Object.assign({}, l, { mes: mes, precioUnit: prc });
   });
-  saveObrasPrc(obrasPrc);
-  var total = lineas.reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||0); },0);
+  var total = lineas.reduce(function(a,l){
+    return a + (isCerrado ? (l.mes||0) : (l.mes||0)*(l.precioUnit||0));
+  }, 0);
   var existing = (_prfIdx>=0) ? prfs[_prfIdx] : null;
   var prf = {
     id:     existing ? existing.id : Date.now().toString(),
@@ -4122,45 +4159,55 @@ function prfGuardar() {
     lineas: lineas
   };
   if (_prfIdx>=0) prfs[_prfIdx]=prf; else { prfs.push(prf); _prfIdx=prfs.length-1; }
-  savePrfForObra(obraKey, prfs);
+  savePrfForObra(presKey, prfs);
   toast('Proforma guardada ✓');
   prfRenderLista();
 }
 
 function prfAprobar() {
-  var obra    = (OBRAS && OBRAS[_prfObraIdx]) || {};
-  var obraKey = getObraKey(obra);
+  var pres    = prfGetPres() || {};
+  var presKey = getPresKey(pres);
   if (_prfIdx < 0) return;
   prfGuardar();
-  var prfs = getPrfForObra(obraKey);
-  if (prfs[_prfIdx]) { prfs[_prfIdx].estado='aprobada'; savePrfForObra(obraKey, prfs); }
+  var prfs = getPrfForObra(presKey);
+  if (prfs[_prfIdx]) { prfs[_prfIdx].estado='aprobada'; savePrfForObra(presKey, prfs); }
   toast('Proforma aprobada ✓');
   prfRenderLista();
 }
 
 function prfGenerarFactura(pi) {
-  var obra    = (OBRAS && OBRAS[_prfObraIdx]) || {};
-  var obraKey = getObraKey(obra);
-  var prfs    = getPrfForObra(obraKey);
+  var pres    = prfGetPres() || {};
+  var presKey = getPresKey(pres);
+  var prfs    = getPrfForObra(presKey);
   var prf     = prfs[pi];
   if (!prf) return;
-  var lineasFac = (prf.lineas||[]).filter(function(l){ return (l.mes||0)>0 && (l.precioUnit||0)>0; })
-    .map(function(l){ return {desc:l.desc, uds:l.mes, precio:l.precioUnit, dto:0}; });
-  if (!lineasFac.length) { toast('La proforma no tiene cantidades o precios. Complétala primero.', true); return; }
+  var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
+  var lineasFac;
+  if (isCerrado) {
+    // Para precio cerrado: una única línea con el importe del mes
+    var total = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0); },0);
+    if (!total) { toast('La proforma no tiene importe. Complétala primero.', true); return; }
+    lineasFac = [{desc:'Certificación '+(prf.mes||'')+ ' — '+(pres.proyecto||''), uds:1, precio:total, dto:0}];
+  } else {
+    lineasFac = (prf.lineas||[])
+      .filter(function(l){ return (l.mes||0)>0 && (l.precioUnit||0)>0; })
+      .map(function(l){ return {desc:l.desc, uds:l.mes, precio:l.precioUnit, dto:0}; });
+    if (!lineasFac.length) { toast('La proforma no tiene cantidades o precios. Complétala primero.', true); return; }
+  }
   var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
   var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
   var fac  = {
     id:         'FAC-'+Date.now(),
     numero:     numF,
-    cliente:    (obra.contacto&&obra.contacto.nombre) || obra.corto || obra.nombre || '',
+    cliente:    pres.cliente||'',
     cifCliente: '',
-    dirCliente: obra.lugar||'',
-    obra:       obra.nombre||obra.corto||'',
+    dirCliente: '',
+    obra:       pres.proyecto||'',
     fecha:      hoy,
     vencimiento:'',
     condiciones:'',
-    obs:        'Proforma PRF-'+String(pi+1).padStart(3,'0')+' | '+(obra.corto||obra.nombre||'')+' — '+( prf.mes||''),
+    obs:        'Proforma PRF-'+String(pi+1).padStart(3,'0')+' | '+(pres.proyecto||'')+' — '+(prf.mes||''),
     lineas:     lineasFac,
     base:       base,
     iva:        base*0.21,
@@ -4172,10 +4219,9 @@ function prfGenerarFactura(pi) {
   };
   facturas.push(fac);
   saveFacturas();
-  // Marcar proforma como facturada
   prfs[pi].estado     = 'facturada';
   prfs[pi].facturaNum = numF;
-  savePrfForObra(obraKey, prfs);
+  savePrfForObra(presKey, prfs);
   toast('✅ Factura '+numF+' creada en Facturación');
   renderTablaObrasEj();
   prfRenderLista();
@@ -4459,6 +4505,7 @@ function presAbrirEditor(p) {
   document.getElementById('ped-att').value=p.att||'';
   document.getElementById('ped-cliente').value=p.cliente||'';
   document.getElementById('ped-proyecto').value=p.proyecto||'';
+  document.getElementById('ped-tipo-contrato').value=p.tipoContrato||'cerrado';
   document.getElementById('pres-desc-venta').value=p.descuentoVenta||0;
   document.getElementById('pres-desc-alquiler').value=p.descuentoAlquiler||0;
   document.getElementById('pres-editor-titulo').childNodes[0].textContent=_presIdx>=0?'Editar Presupuesto':'Nuevo Presupuesto ';
@@ -4545,7 +4592,7 @@ function presRecoger() {
   var tA=aItems.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-descA/100);
   var tMO=moItems.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
   var total=tV+tA+tMO;
-  return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
+  return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), tipoContrato:document.getElementById('ped-tipo-contrato').value||'cerrado', ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
 }
 
 function presGuardar() {
@@ -4561,12 +4608,13 @@ function presGuardar() {
 }
 
 function presCrearObraDesdePresupuesto(p) {
-  // Las obras vienen de la API del almacén (OBRAS global).
-  // Aquí guardamos los precios de facturación del presupuesto en OBRAS_PRC_KEY
-  // para que se auto-rellenen al generar proformas.
-  // La clave es el nombre del proyecto (debe coincidir con obra.corto o parte del nombre).
+  // El presupuesto aceptado aparece automáticamente en la pestaña Obras.
+  // Las proformas leen las partidas y precios directamente del presupuesto.
+  toast('✅ Presupuesto aceptado — aparece en Obras para proformas y facturación');
+  return;
+  // (legacy price cache — kept for backward compat but no longer needed)
   var proyKey = (p.proyecto||'').replace(/\s+/g,'_').toLowerCase();
-  if (!proyKey) { toast('✅ Presupuesto aceptado'); return; }
+  if (!proyKey) return;
   var obrasPrc = getObrasPrc();
   if (!obrasPrc[proyKey]) obrasPrc[proyKey] = {};
   // Guardar precios de partidas de venta
