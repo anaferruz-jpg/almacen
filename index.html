@@ -3418,6 +3418,80 @@ function eliminarArticulo(idx){
   });
 }
 
+/* ── GUARDAR OBRA (genérico, cualquier obra) ── */
+function guardarObraSilencioso(obraObj, cb) {
+  postAPI({
+    action:'saveObra',
+    nombreOriginal:     obraObj.nombre,
+    nombre:             obraObj.nombre,
+    lugar:              obraObj.lugar||'—',
+    presupuesto:        obraObj.presupuesto||0,
+    inicio:             obraObj.inicio||'',
+    fin:                obraObj.fin||'',
+    estado:             obraObj.estado||'activa',
+    obs:                obraObj.obs||'',
+    partidas:           obraObj.partidas||[],
+    personal:           obraObj.personal||[],
+    pctAlquiler:        obraObj.pctAlquiler||0,
+    diasAlquiler:       obraObj.diasAlquiler||0,
+    previsionPersonal:  obraObj.previsionPersonal||[],
+    tipo:               obraObj.tipo||'fija',
+    ml:                 obraObj.ml||0,
+    meses:              obraObj.meses||0,
+    formaPago:          obraObj.formaPago||'',
+    plazo:              obraObj.plazo||'',
+    contacto:           obraObj.contacto||{}
+  }, function(){ if(cb) cb(); });
+}
+
+/* ── ACTUALIZAR SUMINISTRADO EN PARTIDAS (first-fit por obra) ── */
+// Cuando sale material del almacén:
+//   1. Busca la obra por nombre
+//   2. Para cada material del carrito, recorre las partidas de esa obra en orden
+//   3. Descuenta de la primera partida con ese material que aún tenga capacidad disponible
+//   4. Si la partida se agota, sigue con la siguiente partida del mismo material
+//   5. Si no hay partidas con capacidad, suma al primer match (para no perder el dato)
+function actualizarSuministradoSalida(obraName, carritoItems) {
+  var obraObj = OBRAS.find(function(o){ return o.nombre === obraName; });
+  if (!obraObj || !(obraObj.partidas||[]).length) return;
+  var updated = false;
+  carritoItems.forEach(function(c) {
+    var matNorm = (c.nombre||'').toLowerCase().trim();
+    var qtyRestante = c.qty;
+    // Paso 1 — first-fit: recorrer partidas con capacidad disponible (contratado > suministrado)
+    obraObj.partidas.forEach(function(p) {
+      if (qtyRestante <= 0) return;
+      if ((p.material||'').toLowerCase().trim() !== matNorm) return;
+      var disponible = Math.max(0, (p.contratado||0) - (p.suministrado||0));
+      if (disponible <= 0) return; // partida agotada, ir a la siguiente
+      var aSuministrar = Math.min(qtyRestante, disponible);
+      p.suministrado = (p.suministrado||0) + aSuministrar;
+      qtyRestante -= aSuministrar;
+      updated = true;
+    });
+    // Paso 2 — si aún queda qty (todas las partidas estaban agotadas),
+    //           sumar al primer match para no perder el dato de suministro
+    if (qtyRestante > 0) {
+      var firstMatch = obraObj.partidas.find(function(p) {
+        return (p.material||'').toLowerCase().trim() === matNorm;
+      });
+      if (firstMatch) {
+        firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
+        updated = true;
+      }
+    }
+  });
+  if (!updated) return;
+  guardarObraSilencioso(obraObj, function() {
+    // Si la obra que acabamos de actualizar es la que está abierta en pantalla, refrescar vista
+    if (obraSeleccionada && obraSeleccionada.nombre === obraObj.nombre) {
+      renderPartidas();
+      actualizarKPIsObra(obraSeleccionada);
+    }
+    renderInv(); // refrescar columna Dem. Obras
+  });
+}
+
 /* ── SALIDA ── */
 function renderSearchSal(){
   var q=document.getElementById('buscar-sal').value.toLowerCase();
@@ -3471,15 +3545,18 @@ function registrarSalida(){
   if(!obra){toast('Selecciona una obra',true);return;}
   if(!carrito.length){toast('Añade al menos un material',true);return;}
   var btn=document.getElementById('btn-salida');btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito},function(err,data){
+  var carritoSnapshot=carrito.map(function(c){return{nombre:c.nombre,qty:c.qty};});
+  postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carritoSnapshot},function(err,data){
     if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='✅ Registrar salida';return;}
-    postAPI({action:'updateStock',items:carrito},function(){
-      carrito.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=Math.max(0,it.stock-c.qty);});
-      historial.unshift({tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carrito.slice(),anulada:false});
+    postAPI({action:'updateStock',items:carritoSnapshot},function(){
+      carritoSnapshot.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=Math.max(0,it.stock-c.qty);});
+      historial.unshift({tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:carritoSnapshot,anulada:false});
       carrito=[];renderCarrito();renderInv();buildObrasGrid();
       document.getElementById('sal-obra').value='';document.getElementById('sal-resp').value='';
       btn.disabled=false;btn.textContent='✅ Registrar salida';
-      toast('✅ Salida registrada correctamente');
+      toast('✅ Salida registrada');
+      // Actualizar suministrado en las partidas de la obra (first-fit por capacidad disponible)
+      actualizarSuministradoSalida(obra, carritoSnapshot);
     });
   });
 }
