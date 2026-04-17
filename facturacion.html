@@ -671,13 +671,14 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Introduce las mediciones totales de la obra. Pulsa <strong>Aplicar a partidas</strong> para volcar las cantidades automáticamente.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px">
         <div class="form-group"><label style="color:#1e40af">Bar. Encofrado (ml)</label><input type="number" id="pmed-barEncof" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bfdbfe;border-radius:8px;background:var(--bg);color:var(--text)"></div>
-        <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Barandilla Forjado (ml)</label><input type="number" id="pmed-barForj" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
+        <div class="form-group"><label>Red Bajo Forjado (m²)</label><input type="number" id="pmed-redForj" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Bar. Hue.+Asc. / INDEK (ml)</label><input type="number" id="pmed-barHueAsc" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Hor. Huecos (m²)</label><input type="number" id="pmed-redHor" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Ver. Huecos (m²)</label><input type="number" id="pmed-redVer" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Escalera (m²)</label><input type="number" id="pmed-redEscl" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Ascensor (m²)</label><input type="number" id="pmed-redAsc" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--success)">Red Fachada (m²)</label><input type="number" id="pmed-redFach" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #bbf7d0;border-radius:8px;background:var(--bg);color:var(--text)"></div>
+        <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Barandilla Forjado (ml)</label><input type="number" id="pmed-barForj" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label style="color:var(--warn)" title="Aplica a fungible (venta) y recuperable (alquiler)">Codos + Mástil 2m (ml)</label><input type="number" id="pmed-codos" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:2px solid #fde68a;border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Red Bajo Forjado (m²)</label><input type="number" id="pmed-redForj" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
         <div class="form-group"><label>Mosquitera (m²)</label><input type="number" id="pmed-mosq" value="0" min="0" step="0.01" style="padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)"></div>
@@ -4343,11 +4344,8 @@ var PRES_MED_FIELDS = [
   // venta: desc partida venta | alquiler: desc partida alquiler
   {id:'barEncof', label:'Bar. Encofrado (ml)',          unit:'ml',
    alquiler:'Barandilla provisional en encofrado'},
-  // ── Orden exacto columnas Excel MEDICION ─────────────────────────────────────
-  // BAR.FORJ → BAR HUE Y ASC → RED HOR HUE → RED VER HUE → RED ESCL → RED ASC → RED FACHADA → PERI CODOS
-  {id:'barForj',   label:'Barandilla Forjado (ml)',       unit:'ml',
-   venta:'Material fungible para barandilla perimetral forjado',
-   alquiler:'Barandilla perimetral forjado'},
+  // ── Orden según hoja PRESUPUESTO/EQUIPOS ─────────────────────────────────────
+  {id:'redForj',   label:'Red Bajo Forjado (m²)',         unit:'m²', venta:'Red bajo forjado'},
   {id:'barHueAsc', label:'Bar. Hue.+Asc. / INDEK (ml)',  unit:'ml',
    venta:'Sistema de protección: PROTECCION PERIMETRAL (INDEK)',
    alquiler:'Sistema de protección perimetral para fase de estructura (INDEK)'},
@@ -4356,10 +4354,12 @@ var PRES_MED_FIELDS = [
   {id:'redEscl',   label:'Red Escalera (m²)',             unit:'m²', venta:'Protección vertical escalera con red'},
   {id:'redAsc',    label:'Red Ascensor (m²)',             unit:'m²', venta:'Protección red huecos verticales'},
   {id:'redFach',   label:'Red Fachada (m²)',              unit:'m²', venta:'Red protección de fachada'},
+  {id:'barForj',   label:'Barandilla Forjado (ml)',       unit:'ml',
+   venta:'Material fungible para barandilla perimetral forjado',
+   alquiler:'Barandilla perimetral forjado'},
   {id:'codos',     label:'Codos + Mástil 2m (ml)',        unit:'ml',
    venta:'Protección perimetral codos y mástil 2m con red',
    alquiler:'Protección perimetral codos y mástiles 2m con red'},
-  {id:'redForj',   label:'Red Bajo Forjado (m²)',       unit:'m²', venta:'Red bajo forjado'},
   {id:'mosq',      label:'Mosquitera (m²)',             unit:'m²', venta:'Mosquitera protección'},
   {id:'setas',     label:'Setas esperas (ud)',          unit:'ud',  venta:'Protección de esperas - Setas'},
   {id:'ldvH',      label:'Líneas de vida horiz. (ml)',  unit:'ml',  venta:'Líneas de vida provisionales horizontales'},
