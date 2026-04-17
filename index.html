@@ -198,6 +198,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <div class="card-title" id="form-obra-titulo" style="color:var(--accent)">➕ Nueva obra</div>
       <div class="form-grid">
         <div class="form-group">
+          <label>Código de obra</label>
+          <input type="text" id="fo-cod" placeholder="Ej: OB-2025-01" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
           <label>Nombre de la obra *</label>
           <input type="text" id="fo-nombre" placeholder="Ej: PROMOTORA BARCELONA GRACIA">
         </div>
@@ -1303,7 +1307,7 @@ function toggleFormNuevaObra(){
   _foIdx=-1;_foPartidas=[];
   document.getElementById('form-obra-titulo').textContent='➕ Nueva obra';
   document.getElementById('fo-btn-guardar').textContent='✅ Guardar obra';
-  ['fo-nombre','fo-lugar','fo-inicio','fo-fin','fo-presupuesto','fo-ml','fo-meses','fo-contacto-nombre','fo-contacto-tel','fo-contacto-email'].forEach(function(id){document.getElementById(id).value='';});
+  ['fo-cod','fo-nombre','fo-lugar','fo-inicio','fo-fin','fo-presupuesto','fo-ml','fo-meses','fo-contacto-nombre','fo-contacto-tel','fo-contacto-email'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('fo-tipo').value='fija';
   document.getElementById('fo-estado').value='activa';
   document.getElementById('fo-forma-pago').value='';
@@ -1328,6 +1332,7 @@ function editarObraActual(){
   var o=obraSeleccionada;
   document.getElementById('form-obra-titulo').textContent='✏️ Editar: '+o.corto;
   document.getElementById('fo-btn-guardar').textContent='✅ Actualizar obra';
+  document.getElementById('fo-cod').value=o.codObra||'';
   document.getElementById('fo-nombre').value=o.nombre;
   document.getElementById('fo-lugar').value=o.lugar==='—'?'':o.lugar;
   document.getElementById('fo-inicio').value=o.inicio||'';
@@ -1393,6 +1398,7 @@ function addLineaFO(){
 }
 
 function guardarObra(){
+  var codObra=document.getElementById('fo-cod').value.trim().toUpperCase();
   var nombre=document.getElementById('fo-nombre').value.trim().toUpperCase();
   var lugar=document.getElementById('fo-lugar').value.trim()||'—';
   var inicio=document.getElementById('fo-inicio').value;
@@ -1411,14 +1417,14 @@ function guardarObra(){
   var personal=_foIdx>=0?(OBRAS[_foIdx].personal||[]):[];
   var btn=document.getElementById('fo-btn-guardar');
   btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'saveObra',nombreOriginal:nombreOriginal,nombre:nombre,lugar:lugar,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,inicio:inicio,fin:fin,estado:estado,partidas:partidas,personal:personal,formaPago:formaPago,plazo:plazo,contacto:contacto},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:nombreOriginal,nombre:nombre,codObra:codObra,lugar:lugar,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,inicio:inicio,fin:fin,estado:estado,partidas:partidas,personal:personal,formaPago:formaPago,plazo:plazo,contacto:contacto},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar obra',true);btn.disabled=false;btn.textContent='✅ Guardar obra';return;}
     if(_foIdx<0){
-      OBRAS.push({nombre:nombre,corto:nombre.substring(0,22),lugar:lugar,icon:'🏗️',inicio:inicio,fin:fin,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,estado:estado,partidas:partidas,personal:[],formaPago:formaPago,plazo:plazo,contacto:contacto});
+      OBRAS.push({nombre:nombre,codObra:codObra,corto:nombre.substring(0,22),lugar:lugar,icon:'🏗️',inicio:inicio,fin:fin,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,estado:estado,partidas:partidas,personal:[],formaPago:formaPago,plazo:plazo,contacto:contacto});
       toast('Obra añadida: '+nombre);
     } else {
       var o=OBRAS[_foIdx];
-      o.nombre=nombre;o.corto=nombre.substring(0,22);o.lugar=lugar;
+      o.nombre=nombre;o.codObra=codObra;o.corto=nombre.substring(0,22);o.lugar=lugar;
       o.inicio=inicio;o.fin=fin;o.presupuesto=presupuesto;o.ml=ml;o.meses=meses;o.tipo=tipo;o.estado=estado;
       o.formaPago=formaPago;o.plazo=plazo;o.contacto=contacto;
       if(partidas.length>0)o.partidas=partidas;
@@ -1519,6 +1525,7 @@ function buildObrasGrid(){
     var tipoBadge=o.tipo==='puntual'?'<span class="badge" style="font-size:9px;background:rgba(155,89,182,.15);color:#8e44ad;margin-left:3px">PUNTUAL</span>':'';
     return '<div class="obra-btn-card'+(o.estado==='cerrada'?' obra-cerrada':'')+'" onclick="verObra('+idx+')">'+
       '<div class="obra-icon">'+o.icon+'</div>'+
+      (o.codObra?'<div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.04em;margin-bottom:1px">'+o.codObra+'</div>':'')+
       '<div class="obra-nombre">'+o.corto+tipoBadge+'</div>'+
       '<div class="obra-lugar">'+o.lugar+'</div>'+
       estadoBadge+
@@ -1613,7 +1620,7 @@ function guardarOrganizar(){
       return;
     }
     var o=pendientes[i++];
-    postAPI({action:'saveObra',nombreOriginal:o.nombre,nombre:o.nombre,lugar:o.lugar||'—',presupuesto:o.presupuesto||0,ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',partidas:o.partidas||[],personal:o.personal||[]},function(){next();});
+    postAPI({action:'saveObra',nombreOriginal:o.nombre,nombre:o.nombre,codObra:o.codObra||'',lugar:o.lugar||'—',presupuesto:o.presupuesto||0,ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',partidas:o.partidas||[],personal:o.personal||[]},function(){next();});
   }
   next();
 }
@@ -1632,7 +1639,7 @@ function verObra(idx){
   document.getElementById('obra-detalle-icon').textContent=o.icon;
   var estadoLabel=o.estado==='cerrada'?' ✅ FINALIZADA':o.estado==='pausada'?' 🟡 PAUSADA':o.estado==='pendiente'?' ⏳ PENDIENTE':'';
   var tipoLabel=o.tipo==='puntual'?' ⚡':'';
-  document.getElementById('obra-detalle-nombre').textContent=o.nombre+tipoLabel+estadoLabel;
+  document.getElementById('obra-detalle-nombre').textContent=(o.codObra?'['+o.codObra+'] ':'')+o.nombre+tipoLabel+estadoLabel;
   document.getElementById('obra-detalle-lugar').textContent=o.lugar+(o.inicio?' | Inicio: '+o.inicio:'')+(o.fin?' | Fin: '+o.fin:'');
   var _ct=o.contacto||{};var _ctEl=document.getElementById('obra-detalle-contacto');
   var _ctParts=[];
@@ -1871,7 +1878,7 @@ function confirmarEntregaManual(){
 
 function guardarPartidasSilencioso(cb){
   if(!obraSeleccionada)return;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],previsionPersonal:obraSeleccionada.previsionPersonal||[]},function(){if(cb)cb();});
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,codObra:obraSeleccionada.codObra||'',lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[],previsionPersonal:obraSeleccionada.previsionPersonal||[]},function(){if(cb)cb();});
 }
 
 /* ── PEDIDO DESDE PARTIDA ── */
@@ -1985,7 +1992,7 @@ function eliminarPartida(idx){
 
 function guardarPartidas(){
   if(!obraSeleccionada)return;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[]},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,codObra:obraSeleccionada.codObra||'',lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[]},function(err,d){
     if(!err&&d&&d.ok){toast('✅ Partidas guardadas');actualizarKPIsObra(obraSeleccionada);buildObrasGrid();}
     else toast('Error al guardar',true);
   });
@@ -2674,7 +2681,7 @@ function registrarPersonal(){
   if(!nombre){toast('El nombre del operario es obligatorio',true);return;}
   if(!obraSeleccionada.personal)obraSeleccionada.personal=[];
   obraSeleccionada.personal.push({nombre:nombre,categoria:categoria,fecha:fecha,horas:horas,coste:coste,obs:obs,responsable:responsable});
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,codObra:obraSeleccionada.codObra||'',lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
     if(err||!d||!d.ok)toast('Error al guardar personal',true);
     else toast('Asistencia registrada: '+nombre);
   });
@@ -2915,7 +2922,7 @@ function eliminarRegistroPersonal(idx){
     toast('Responsable incorrecto — no se puede eliminar',true);return;
   }
   obraSeleccionada.personal.splice(idx,1);
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,codObra:obraSeleccionada.codObra||'',lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses||0,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar',true);return;}
     renderPersonal();renderCostes();
     toast('Registro eliminado');
@@ -3174,7 +3181,7 @@ function eliminarPedido(idx){
 function actualizarMesesAlquiler(val){
   if(!obraSeleccionada)return;
   obraSeleccionada.meses=parseFloat(val)||0;
-  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[]},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:obraSeleccionada.nombre,nombre:obraSeleccionada.nombre,codObra:obraSeleccionada.codObra||'',lugar:obraSeleccionada.lugar||'—',presupuesto:obraSeleccionada.presupuesto||0,ml:obraSeleccionada.ml||0,meses:obraSeleccionada.meses,inicio:obraSeleccionada.inicio||'',fin:obraSeleccionada.fin||'',estado:obraSeleccionada.estado||'activa',partidas:obraSeleccionada.partidas||[],personal:obraSeleccionada.personal||[]},function(err,d){
     if(!err&&d&&d.ok)renderCostes();
   });
 }
@@ -3425,6 +3432,7 @@ function guardarObraSilencioso(obraObj, cb) {
     action:'saveObra',
     nombreOriginal:     obraObj.nombre,
     nombre:             obraObj.nombre,
+    codObra:            obraObj.codObra||'',
     lugar:              obraObj.lugar||'—',
     presupuesto:        obraObj.presupuesto||0,
     inicio:             obraObj.inicio||'',
