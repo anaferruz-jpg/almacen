@@ -3450,50 +3450,64 @@ function guardarObraSilencioso(obraObj, cb) {
 // todas las salidas del historial en orden cronológico.
 // Guarda las obras de forma secuencial para no saturar la API.
 function recalcularSuministradoTodo() {
+  // Diagnóstico previo — informar si los datos aún no están cargados
+  if (!OBRAS || !OBRAS.length) {
+    alert('⚠️ Las obras aún no están cargadas.\nEspera a que la página termine de cargar y vuelve a intentarlo.');
+    return;
+  }
+  if (!historial || !historial.length) {
+    alert('⚠️ El historial aún no está cargado.\nEspera a que la página termine de cargar y vuelve a intentarlo.');
+    return;
+  }
+
+  // Contar salidas disponibles antes de confirmar
+  var salidasTotal = historial.filter(function(h) {
+    return h.tipo === 'salida' && h.anulada !== true && h.anulada !== 'true'
+      && h.obra && Array.isArray(h.items) && h.items.length;
+  }).length;
+  var obrasConPartidas = OBRAS.filter(function(o){ return (o.partidas||[]).length > 0; }).length;
+
   if (!confirm(
     '🔄 SINCRONIZAR SUMINISTRADO DESDE HISTORIAL\n\n' +
-    'Esto recalculará el material entregado en TODAS las obras\n' +
-    'procesando el historial de salidas en orden de fecha.\n\n' +
-    '• Se resetearán los valores actuales de "Suministrado"\n' +
-    '• Se recalcularán desde las salidas registradas\n' +
-    '• Las fechas de cada entrega quedarán guardadas\n\n' +
+    'Obras con partidas: ' + obrasConPartidas + '\n' +
+    'Salidas en historial: ' + salidasTotal + '\n\n' +
+    'Se resetearán los suministrados actuales y se\n' +
+    'recalcularán desde el historial de salidas.\n\n' +
     '¿Continuar?'
   )) return;
 
   // 1 — Copia profunda de obras con suministrado y entregas a cero
-  var obrasActualizadas = OBRAS.map(function(o) {
+  var obrasAct = OBRAS.map(function(o) {
     return Object.assign({}, o, {
       partidas: (o.partidas||[]).map(function(p) {
         return Object.assign({}, p, { suministrado: 0, entregas: [] });
       })
     });
   });
+  // Índice por nombre (lowercase) para búsqueda rápida
+  var obraIdx = {};
+  obrasAct.forEach(function(o) { obraIdx[(o.nombre||'').toLowerCase().trim()] = o; });
 
-  // 2 — Filtrar salidas no anuladas y ordenar por fecha (más antigua primero)
+  // 2 — Filtrar y ordenar salidas por fecha (más antigua primero)
   var salidas = historial.filter(function(h) {
-    return h.tipo === 'salida'
-      && h.anulada !== true && h.anulada !== 'true'
-      && h.obra
-      && Array.isArray(h.items) && h.items.length;
+    return h.tipo === 'salida' && h.anulada !== true && h.anulada !== 'true'
+      && h.obra && Array.isArray(h.items) && h.items.length;
   }).slice().sort(function(a, b) {
-    return new Date(a.fecha||0) - new Date(b.fecha||0);
+    return new Date(a.fecha||'2000-01-01') - new Date(b.fecha||'2000-01-01');
   });
 
-  // 3 — Aplicar cada salida a las partidas de la obra destino (first-fit)
-  var sinObra = [], sinPartida = [];
+  // 3 — Aplicar cada salida (first-fit por material con capacidad disponible)
+  var sinObra = {}, sinPartida = {};
   salidas.forEach(function(h) {
-    var obraObj = null;
-    for (var i=0; i<obrasActualizadas.length; i++) {
-      if (obrasActualizadas[i].nombre === h.obra) { obraObj = obrasActualizadas[i]; break; }
-    }
-    if (!obraObj) { sinObra.push(h.obra); return; }
+    var obraObj = obraIdx[(h.obra||'').toLowerCase().trim()];
+    if (!obraObj) { sinObra[h.obra] = true; return; }
 
     h.items.forEach(function(c) {
       var matNorm = (c.nombre||'').toLowerCase().trim();
       var qtyRestante = parseFloat(c.qty)||0;
-      if (qtyRestante <= 0) return;
+      if (!matNorm || qtyRestante <= 0) return;
 
-      // First-fit: partidas con capacidad disponible (contratado − suministrado > 0)
+      // First-fit: partidas con capacidad disponible
       obraObj.partidas.forEach(function(p) {
         if (qtyRestante <= 0) return;
         if ((p.material||'').toLowerCase().trim() !== matNorm) return;
@@ -3505,8 +3519,8 @@ function recalcularSuministradoTodo() {
         qtyRestante -= aSuministrar;
       });
 
-      // Si aún queda qty después de agotar todas las partidas con capacidad,
-      // acumular en la primera partida que coincida (material extra sobre contrato)
+      // Si sobra qty tras agotar todas las partidas con capacidad →
+      // acumular en la primera partida coincidente (sobre-suministro)
       if (qtyRestante > 0) {
         var firstMatch = null;
         for (var j=0; j<obraObj.partidas.length; j++) {
@@ -3518,25 +3532,23 @@ function recalcularSuministradoTodo() {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
           firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
         } else {
-          sinPartida.push(c.nombre + ' → ' + h.obra);
+          sinPartida[c.nombre + ' (' + h.obra + ')'] = true;
         }
       }
     });
   });
 
   // 4 — Guardar obras con partidas de forma secuencial
-  var obrasConPartidas = obrasActualizadas.filter(function(o) {
-    return (o.partidas||[]).length > 0;
-  });
-  var total = obrasConPartidas.length;
-  if (!total) { toast('No hay obras con partidas para actualizar', true); return; }
+  var paraGuardar = obrasAct.filter(function(o){ return (o.partidas||[]).length > 0; });
+  var total = paraGuardar.length;
+  if (!total) { alert('No hay obras con partidas para actualizar.'); return; }
 
-  toast('⏳ Actualizando ' + total + ' obras desde ' + salidas.length + ' salidas...');
+  toast('⏳ Guardando ' + total + ' obras...');
 
   function _saveNext(idx) {
     if (idx >= total) {
-      // Todo guardado: actualizar OBRAS en memoria + refrescar vistas
-      obrasActualizadas.forEach(function(oAct) {
+      // Actualizar OBRAS en memoria
+      obrasAct.forEach(function(oAct) {
         for (var i=0; i<OBRAS.length; i++) {
           if (OBRAS[i].nombre === oAct.nombre) { OBRAS[i] = oAct; break; }
         }
@@ -3548,14 +3560,25 @@ function recalcularSuministradoTodo() {
       if (obraSeleccionada) actualizarKPIsObra(obraSeleccionada);
       renderInv();
       buildObrasGrid();
-      var msg = '✅ ' + total + ' obras sincronizadas (' + salidas.length + ' salidas procesadas)';
-      if (sinObra.length)    msg += '\n⚠️ Obras no encontradas: ' + [...new Set(sinObra)].join(', ');
-      if (sinPartida.length) msg += '\n⚠️ Material sin partida: ' + [...new Set(sinPartida)].join(', ');
-      toast(msg);
+
+      // Resumen final con alert para que no desaparezca
+      var sinObraList  = Object.keys(sinObra);
+      var sinPartList  = Object.keys(sinPartida);
+      var msg = '✅ SINCRONIZACIÓN COMPLETADA\n\n'
+        + total    + ' obras actualizadas\n'
+        + salidas.length + ' salidas procesadas\n';
+      if (sinObraList.length)
+        msg += '\n⚠️ Salidas sin obra encontrada:\n  ' + sinObraList.slice(0,5).join('\n  ')
+             + (sinObraList.length>5 ? '\n  ...y '+(sinObraList.length-5)+' más':'');
+      if (sinPartList.length)
+        msg += '\n⚠️ Material sin partida:\n  '  + sinPartList.slice(0,5).join('\n  ')
+             + (sinPartList.length>5 ? '\n  ...y '+(sinPartList.length-5)+' más':'');
+      alert(msg);
       return;
     }
-    var obraObj = obrasConPartidas[idx];
-    guardarObraSilencioso(obraObj, function() { _saveNext(idx + 1); });
+    // Mostrar progreso
+    if (idx % 3 === 0) toast('⏳ Guardando obra ' + (idx+1) + ' de ' + total + '...');
+    guardarObraSilencioso(paraGuardar[idx], function() { _saveNext(idx + 1); });
   }
   _saveNext(0);
 }
