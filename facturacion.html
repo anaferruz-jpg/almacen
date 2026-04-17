@@ -3861,10 +3861,23 @@ function presAbrirEditor(p) {
   presRenderMedicion(p.medicion||null);
   presSetPlanning(p.planning||null);
   // Merge saved items with current defaults: keep medicion/precio from saved, add new partidas
+  // Mapa de nombres antiguos → nuevos (para migrar presupuestos guardados)
+  var _descAlias = {
+    'Protecci\u00f3n perimetral INDEK fase estructura':           'Sistema de protecci\u00f3n: PROTECCION PERIMETRAL (INDEK)',
+    'Mosquitera protecci\u00f3n ca\u00edda objetos':             'Mosquitera protecci\u00f3n',
+    'Mosquitera protecci\u00f3n ca\u00edda de objetos':          'Mosquitera protecci\u00f3n',
+    'Protecci\u00f3n red huecos horizontales > 1m\u00b2':       'Protecci\u00f3n red huecos horizontales > 1 m2',
+    'Material fungible barandilla perimetral forjado':           'Material fungible para barandilla perimetral forjado',
+    'Sistema protecci\u00f3n perimetral fase estructura (INDEK)':'Sistema de protecci\u00f3n perimetral para fase de estructura (INDEK)',
+    'Protecci\u00f3n perimetral codos y m\u00e1stiles 2m con red':'Protecci\u00f3n perimetral codos y m\u00e1stil 2m con red'
+  };
   function mergeItems(saved, defs) {
     var merged = JSON.parse(JSON.stringify(defs));
     merged.forEach(function(def) {
-      var s = (saved||[]).find(function(it){ return it.desc===def.desc; });
+      // Buscar por desc exacto o por alias (nombre antiguo)
+      var s = (saved||[]).find(function(it){
+        return it.desc===def.desc || _descAlias[it.desc]===def.desc;
+      });
       if (s) {
         if (s.medicion!==undefined)  def.medicion  = s.medicion;
         if (s.precio!==undefined)    def.precio     = s.precio;
@@ -3873,10 +3886,13 @@ function presAbrirEditor(p) {
         if (s.operarios!==undefined) def.operarios  = s.operarios;
       }
     });
-    // Keep any custom partidas not in defs
+    // Solo añadir partidas realmente personalizadas (no las renombradas)
+    var todosDesc = defs.map(function(d){return d.desc;});
+    var todosAlias = Object.keys(_descAlias);
     (saved||[]).forEach(function(s){
-      var inDef = merged.find(function(d){ return d.desc===s.desc; });
-      if (!inDef) merged.push(s);
+      var esAlias = todosAlias.indexOf(s.desc)>=0;
+      var enDefs  = merged.find(function(d){ return d.desc===s.desc; });
+      if (!enDefs && !esAlias) merged.push(s);
     });
     return merged;
   }
