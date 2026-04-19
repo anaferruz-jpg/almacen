@@ -4580,22 +4580,23 @@ function presRecoger() {
     if (tr.dataset.planSync==='1') {
       var totalOpMeses=0;
       for (var m=1; m<=_presMeses; m++) { var opEl=document.getElementById('ppo-'+m); totalOpMeses+=(opEl?parseFloat(opEl.value)||0:0); }
-      // Guardar meses reales + media de operarios para que el PDF lo muestre correctamente
-      // La fórmula precio × meses × operarios = precio × _presMeses × (totalOpMeses/_presMeses) = precio × totalOpMeses ✓
+      // planSync: guardar meses reales y totalOpMeses (jornadas totales) en operarios
+      // Se usa flag planSync:true para que el PDF y el cálculo sepan que total = precio × operarios
       meses=_presMeses;
-      operarios=_presMeses>0 ? Math.round(totalOpMeses/_presMeses*100)/100 : 0;
+      operarios=totalOpMeses;
     } else {
       meses=parseFloat(document.getElementById('pm-mes-'+i).value)||0;
       operarios=parseFloat(document.getElementById('pm-ops-'+i).value)||0;
     }
     var desc = tr.dataset.desc || (document.getElementById('pm-desc-'+i)||{value:''}).value.trim() || tr.querySelector('td:nth-child(1)').textContent.trim();
-    moItems.push({desc:desc, precio:prc, meses:meses, operarios:operarios});
+    var isPlanSync = tr.dataset.planSync==='1';
+    moItems.push({desc:desc, precio:prc, meses:meses, operarios:operarios, planSync:isPlanSync||false});
   });
   var descV=parseFloat(document.getElementById('pres-desc-venta').value)||0;
   var descA=parseFloat(document.getElementById('pres-desc-alquiler').value)||0;
   var tV=vItems.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-descV/100);
   var tA=aItems.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-descA/100);
-  var tMO=moItems.reduce(function(a,it){var q=it.meses>0?it.meses*(it.operarios||0):(it.operarios||0);return a+it.precio*q;},0);
+  var tMO=moItems.reduce(function(a,it){var q=it.planSync?it.operarios:(it.meses>0?it.meses*(it.operarios||0):(it.operarios||0));return a+it.precio*q;},0);
   var total=tV+tA+tMO;
   return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), tipoContrato:document.getElementById('ped-tipo-contrato').value||'cerrado', ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
 }
@@ -4668,12 +4669,12 @@ function presGenerarPDF() {
   // Filtered items (no medición section in PDF - only partidas with qty)
   var _vFlt  = (p.ventaItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
   var _aFlt  = (p.alquilerItems||[]).filter(function(it){return it.medicion>0&&it.precio>0;});
-  var _mFlt  = (p.moItems||[]).filter(function(it){return it.meses>0&&it.precio>0;});
+  var _mFlt  = (p.moItems||[]).filter(function(it){return it.precio>0&&(it.planSync||(it.meses>0)||(it.operarios>0));});
 
   // Totals (NO IVA)
   var _pdfV  = _vFlt.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-(p.descuentoVenta||0)/100);
   var _pdfA  = _aFlt.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-(p.descuentoAlquiler||0)/100);
-  var _pdfMO = _mFlt.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
+  var _pdfMO = _mFlt.reduce(function(a,it){var q=it.planSync?it.operarios:(it.meses>0?it.meses*(it.operarios||0):(it.operarios||0));return a+it.precio*q;},0);
   var _pdfBase = _pdfV + _pdfA + _pdfMO;
 
   // Formatters
@@ -4866,7 +4867,7 @@ function presGenerarPDF() {
   var moHtml = '';
   if (_mFlt.length) {
     var rows = _mFlt.map(function(it){
-      var tot = it.precio*it.meses*it.operarios;
+      var tot = it.planSync ? it.precio*it.operarios : (it.meses>0 ? it.precio*it.meses*(it.operarios||0) : it.precio*(it.operarios||0));
       return '<tr>'+
         '<td class="td-desc">'+it.desc+'</td>'+
         '<td class="td-r" style="width:80px">'+fmtE(it.precio)+'</td>'+
