@@ -4580,10 +4580,13 @@ function presRecoger() {
     if (tr.dataset.planSync==='1') {
       var totalOpMeses=0;
       for (var m=1; m<=_presMeses; m++) { var opEl=document.getElementById('ppo-'+m); totalOpMeses+=(opEl?parseFloat(opEl.value)||0:0); }
-      meses=totalOpMeses; operarios=1;
+      // Guardar meses reales + media de operarios para que el PDF lo muestre correctamente
+      // La fórmula precio × meses × operarios = precio × _presMeses × (totalOpMeses/_presMeses) = precio × totalOpMeses ✓
+      meses=_presMeses;
+      operarios=_presMeses>0 ? Math.round(totalOpMeses/_presMeses*100)/100 : 0;
     } else {
       meses=parseFloat(document.getElementById('pm-mes-'+i).value)||0;
-      operarios=parseFloat(document.getElementById('pm-ops-'+i).value)||1;
+      operarios=parseFloat(document.getElementById('pm-ops-'+i).value)||0;
     }
     var desc = tr.dataset.desc || (document.getElementById('pm-desc-'+i)||{value:''}).value.trim() || tr.querySelector('td:nth-child(1)').textContent.trim();
     moItems.push({desc:desc, precio:prc, meses:meses, operarios:operarios});
