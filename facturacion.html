@@ -861,8 +861,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <thead><tr>
           <th>Descripción</th>
           <th style="width:110px;text-align:right">Precio (€)</th>
-          <th style="width:80px;text-align:right">Meses</th>
-          <th style="width:100px;text-align:right">Nº Operarios</th>
+          <th style="width:80px;text-align:right" title="Meses de trabajo, o días/horas si Nº Operarios=1">Meses/Días/h</th>
+          <th style="width:100px;text-align:right" title="Nº operarios simultáneos, o cantidad total si Meses=0">Op./Unid.</th>
           <th style="width:110px;text-align:right">Total (€)</th>
           <th style="width:30px"></th>
         </tr></thead>
@@ -4427,8 +4427,10 @@ function presCalcTotales() {
       var lblM=document.getElementById('pm-mes-lbl-'+i); if(lblM) lblM.textContent=_presMeses+' m';
       var lblO=document.getElementById('pm-ops-lbl-'+i); if(lblO) lblO.textContent=presFmtN(totalOpMeses)+' op·m';
     } else {
-      var mes=parseFloat(document.getElementById('pm-mes-'+i).value)||0, ops=parseFloat(document.getElementById('pm-ops-'+i).value)||1;
-      tot=prc*mes*ops;
+      var mes=parseFloat(document.getElementById('pm-mes-'+i).value)||0, ops=parseFloat(document.getElementById('pm-ops-'+i).value)||0;
+      // Si Meses > 0 → Precio × Meses × Operarios (ej: operario mes)
+      // Si Meses = 0 → Precio × Operarios/Unidades (ej: operario día, hora extra)
+      tot = mes > 0 ? prc * mes * ops : prc * ops;
     }
     var el=document.getElementById('pm-tot-'+i); if(el) el.textContent=presFmtN(tot); tMO+=tot;
   });
@@ -4590,7 +4592,7 @@ function presRecoger() {
   var descA=parseFloat(document.getElementById('pres-desc-alquiler').value)||0;
   var tV=vItems.reduce(function(a,it){return a+it.medicion*it.precio;},0)*(1-descV/100);
   var tA=aItems.reduce(function(a,it){return a+it.medicion*it.precio*it.dias;},0)*(1-descA/100);
-  var tMO=moItems.reduce(function(a,it){return a+it.precio*it.meses*it.operarios;},0);
+  var tMO=moItems.reduce(function(a,it){var q=it.meses>0?it.meses*(it.operarios||0):(it.operarios||0);return a+it.precio*q;},0);
   var total=tV+tA+tMO;
   return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), tipoContrato:document.getElementById('ped-tipo-contrato').value||'cerrado', ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
 }
