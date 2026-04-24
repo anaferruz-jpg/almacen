@@ -1472,6 +1472,7 @@ var mesActual = new Date().getMonth() + 1;
 
 // Estado local
 var OBRAS = [];
+var COSTES_MAT = {}; // { obraKey: { coste, unidades } } — desde almacén
 var facturas = [];   // guardadas en localStorage
 var gastos = [];     // guardadas en localStorage
 var _facIdx = -1;    // índice factura en edición
@@ -1646,7 +1647,7 @@ function nextNumFac() {
 function recargarTodo() {
   setSyncBadge('loading', 'Cargando...');
   // Cargar todo desde Sheets en paralelo
-  var pendientes = 8;
+  var pendientes = 9;
   function check() { pendientes--; if (pendientes <= 0) { renderTodo(); setSyncBadge('ok', 'Conectado ✓'); } }
   function renderTodo() {
     actualizarSelectsObras();
@@ -1738,6 +1739,10 @@ function recargarTodo() {
     if (!err && data && typeof data === 'object') {
       try { localStorage.setItem('segufija_obras_prf', JSON.stringify(data)); } catch(e) {}
     }
+    check();
+  });
+  callAPI('getCostesMateriales', function(err, data) {
+    if (!err && data && typeof data === 'object') COSTES_MAT = data;
     check();
   });
 }
@@ -4175,18 +4180,49 @@ function sincronizarCRMAlmacen() {
       var existente = encontrarObraAlmacen(o);
       // Si encontramos match en almacén: usar su nombre exacto (evita duplicados por diferencia de nombre)
       // Si no: crear nueva con nombre del CRM
-      var obraAlmacen = {
-        action: 'saveObra',
-        nombre: existente ? existente.nombre : o.obra,
-        nombreOriginal: existente ? existente.nombre : '',
-        constructora: o.constructora||'',
-        cliente: o.constructora||'',
-        codObra: o.oferta||'',
-        presupuesto: parseFloat(o.importe)||0,
-        carpetaDriveId: o.carpetaDriveId||'',
-        estado: 'activa',
-        contacto: {nombre:o.contacto||'',tel:o.telefono||'',email:o.email||''}
-      };
+      var obraAlmacen;
+      if (existente) {
+        // Obra ya existe: actualizar solo campos de CRM, conservar todo lo demás
+        obraAlmacen = {
+          action: 'saveObra',
+          nombre:           existente.nombre,
+          nombreOriginal:   existente.nombre,
+          codObra:          o.oferta || existente.codObra || '',
+          constructora:     o.constructora || existente.constructora || '',
+          cliente:          o.constructora || existente.constructora || '',
+          presupuesto:      parseFloat(o.importe) || existente.presupuesto || 0,
+          carpetaDriveId:   o.carpetaDriveId || existente.carpetaDriveId || '',
+          // Preservar datos del almacén sin tocarlos
+          estado:           existente.estado || 'activa',
+          tipo:             existente.tipo || 'fija',
+          lugar:            existente.lugar || '',
+          ml:               existente.ml || 0,
+          meses:            existente.meses || 0,
+          inicio:           existente.inicio || '',
+          fin:              existente.fin || '',
+          formaPago:        existente.formaPago || '',
+          plazo:            existente.plazo || '',
+          partidas:         existente.partidas || [],
+          personal:         existente.personal || [],
+          previsionPersonal:existente.previsionPersonal || [],
+          contacto:         existente.contacto || {nombre:o.contacto||'',tel:o.telefono||'',email:o.email||''}
+        };
+      } else {
+        // Obra nueva: crear con datos del CRM
+        obraAlmacen = {
+          action: 'saveObra',
+          nombre:         o.obra,
+          nombreOriginal: '',
+          codObra:        o.oferta || '',
+          constructora:   o.constructora || '',
+          cliente:        o.constructora || '',
+          presupuesto:    parseFloat(o.importe) || 0,
+          carpetaDriveId: o.carpetaDriveId || '',
+          estado:         'activa',
+          tipo:           'fija',
+          contacto:       {nombre:o.contacto||'',tel:o.telefono||'',email:o.email||''}
+        };
+      }
       postAPI(obraAlmacen, function(err, resp) {
         done++;
         if (btn) btn.textContent = '⏳ ' + done + '/' + crmObras.length;
@@ -4332,7 +4368,11 @@ function rentabilidadRender() {
       pctProd = totC>0 ? Math.round(totS/totC*100) : 0;
     }
 
-    var totalCostes = gastosObra + costePersonal + costeIndek;
+    // Coste materiales desde almacén (historial salidas × precio compra)
+    var cmKey = Object.keys(COSTES_MAT).find(function(k){ return k.toLowerCase()===obraName.toLowerCase(); });
+    var costeMateriales = cmKey ? (COSTES_MAT[cmKey].coste || 0) : 0;
+
+    var totalCostes = gastosObra + costePersonal + costeIndek + costeMateriales;
     var margen      = facturado - totalCostes;
     var pctMargen   = facturado>0 ? Math.round(margen/facturado*100) : 0;
     var presupuestado = b.presupuestado;
@@ -4341,6 +4381,7 @@ function rentabilidadRender() {
     return { constructora:b.constructora, obraName:obraName, numOferta:b.numOferta,
              presupuestado:presupuestado, facturado:facturado,
              gastosObra:gastosObra, costePersonal:costePersonal, costeIndek:costeIndek,
+             costeMateriales:costeMateriales,
              totalCostes:totalCostes, margen:margen, pctMargen:pctMargen,
              pctEjec:pctEjec, pctProd:pctProd, totalHoras:totalHoras };
   });
@@ -4375,6 +4416,7 @@ function rentabilidadRender() {
       '<th style="'+thS+'">Gastos directos</th>'+
       '<th style="'+thS+'">Personal</th>'+
       '<th style="'+thS+'">INDE-K</th>'+
+      '<th style="'+thS+'">Materiales</th>'+
       '<th style="'+thS+'">Total costes</th>'+
       '<th style="'+thS+'">Margen</th>'+
       '<th style="'+thS+'">% Margen</th>'+
@@ -4395,6 +4437,7 @@ function rentabilidadRender() {
         '<td style="'+tdS+';color:var(--danger)">'+fmt(r.gastosObra)+'</td>'+
         '<td style="'+tdS+';color:var(--danger)">'+fmt(r.costePersonal)+(r.totalHoras?' <span style="font-size:10px;color:var(--text2)">('+r.totalHoras+'h)</span>':'')+'</td>'+
         '<td style="'+tdS+';color:var(--danger)">'+fmt(r.costeIndek)+'</td>'+
+        '<td style="'+tdS+';color:var(--danger)">'+fmt(r.costeMateriales)+(r.costeMateriales>0?'<span style="font-size:9px;color:var(--text2);margin-left:3px">almacén</span>':'')+'</td>'+
         '<td style="'+tdS+';color:var(--danger);font-weight:700">'+fmt(r.totalCostes)+'</td>'+
         '<td style="'+tdS+'"><span style="'+mgColor+'">'+fmt(r.margen)+'</span></td>'+
         '<td style="'+tdS+'"><span style="'+pctColor+';font-weight:700">'+r.pctMargen+'%</span></td>'+
@@ -4407,12 +4450,13 @@ function rentabilidadRender() {
       '<td style="padding:10px;text-align:right;font-weight:700;color:var(--success)">'+fmt(totFac)+'</td>'+
       '<td></td>'+
       '<td colspan="3"></td>'+
+      '<td style="padding:10px;text-align:right;font-weight:700;color:var(--danger)">'+fmt(rows.reduce(function(a,r){return a+r.costeMateriales;},0))+'</td>'+
       '<td style="padding:10px;text-align:right;font-weight:700;color:var(--danger)">'+fmt(totCost)+'</td>'+
       '<td style="padding:10px;text-align:right;font-weight:700;color:'+(totMarg>=0?'var(--success)':'var(--danger)')+'">'+fmt(totMarg)+'</td>'+
       '<td style="padding:10px;text-align:right;font-weight:700;color:'+(pctTot>=20?'var(--success)':pctTot>=10?'var(--warn)':'var(--danger)')+'">'+pctTot+'%</td>'+
     '</tr>'+
     '</tbody></table></div>'+
-    '<p style="font-size:11px;color:var(--text2);margin-top:8px">* Costes de personal y INDE-K tomados de index.html (datos de obras). Gastos directos = compras a proveedores asignadas a cada obra.</p>';
+    '<p style="font-size:11px;color:var(--text2);margin-top:8px">* Materiales = salidas de almacén × precio compra (tiempo real). Gastos directos = compras a proveedores. Personal e INDE-K desde datos de obras.</p>';
 
   cont.innerHTML = kpiHtml + tableHtml;
 }
@@ -4432,7 +4476,15 @@ function renderTablaObrasEj() {
   (OBRAS||[]).forEach(function(ob) {
     var n = (ob.nombre||'').trim();
     var mp = presArr.find(function(p){ return (p.proyecto||'').trim().toLowerCase()===n.toLowerCase(); });
-    allAcept.push(mp || { numOferta:'', cliente:ob.constructora||'', proyecto:n, totalObra:ob.presupuesto||0, tipoContrato:'cerrado' });
+    if (mp) {
+      // Completar presupuesto con datos de almacén si faltan
+      var merged = Object.assign({}, mp);
+      if (!merged.numOferta && ob.codObra)     merged.numOferta = ob.codObra;
+      if (!merged.cliente   && ob.constructora) merged.cliente   = ob.constructora;
+      allAcept.push(merged);
+    } else {
+      allAcept.push({ numOferta: ob.codObra||'', cliente: ob.constructora||'', proyecto: n, totalObra: ob.presupuesto||0, tipoContrato:'cerrado' });
+    }
   });
   presArr.forEach(function(p) {
     var n = (p.proyecto||'').trim().toLowerCase();
@@ -4944,8 +4996,11 @@ function prfImprimirCertificacion() {
       '<button onclick="window.print()" style="padding:9px 28px;background:#c8a96e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700">\ud83d\udda8\ufe0f Imprimir / Guardar PDF</button>'+
     '</div></body></html>';
 
-  var w = window.open('','_blank');
-  if (w) { w.document.write(html); w.document.close(); }
+  var blob = new Blob([html], {type: 'text/html'});
+  var url  = URL.createObjectURL(blob);
+  var w    = window.open(url, '_blank');
+  if (!w) { toast('Activa los pop-ups del navegador para ver el PDF', true); }
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
 }
 
 function prfGuardarEnDrive() {
