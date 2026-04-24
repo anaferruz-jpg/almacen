@@ -4104,16 +4104,34 @@ function guardarObra() {
       }
       // Si es ADJUDICADA, crear/actualizar automáticamente en almacén
       if (o.estado === 'ADJUDICADA') {
+        // Buscar obra existente en almacén para no perder sus datos
+        var almObras = OBRAS || [];
+        var almMatch = almObras.find(function(x){
+          return (o.oferta && (x.codObra||'') === o.oferta) ||
+                 (x.nombre||'').toLowerCase() === (o.obra||'').toLowerCase();
+        });
         var obraAlmacen = {
-          action: 'saveObra',
-          nombre: o.obra,
-          constructora: o.constructora||'',
-          cliente: o.constructora||'',
-          codObra: o.oferta||'',
-          presupuesto: o.importe||0,
-          carpetaDriveId: o.carpetaDriveId||'',
-          estado: 'activa',
-          contacto: {nombre:o.contacto||'',tel:o.telefono||'',email:o.email||''}
+          action:           'saveObra',
+          nombre:           almMatch ? almMatch.nombre : o.obra,
+          nombreOriginal:   almMatch ? almMatch.nombre : '',
+          constructora:     o.constructora || (almMatch && almMatch.constructora) || '',
+          cliente:          o.constructora || '',
+          codObra:          o.oferta || (almMatch && almMatch.codObra) || '',
+          presupuesto:      o.importe || (almMatch && almMatch.presupuesto) || 0,
+          carpetaDriveId:   o.carpetaDriveId || (almMatch && almMatch.carpetaDriveId) || '',
+          estado:           (almMatch && almMatch.estado) || 'activa',
+          tipo:             (almMatch && almMatch.tipo) || 'fija',
+          lugar:            (almMatch && almMatch.lugar) || '',
+          ml:               (almMatch && almMatch.ml) || 0,
+          meses:            (almMatch && almMatch.meses) || 0,
+          inicio:           (almMatch && almMatch.inicio) || '',
+          fin:              (almMatch && almMatch.fin) || '',
+          formaPago:        (almMatch && almMatch.formaPago) || '',
+          plazo:            (almMatch && almMatch.plazo) || '',
+          partidas:         (almMatch && almMatch.partidas) || [],
+          personal:         (almMatch && almMatch.personal) || [],
+          previsionPersonal:(almMatch && almMatch.previsionPersonal) || [],
+          contacto:         (almMatch && almMatch.contacto) || {nombre:o.contacto||'',tel:o.telefono||'',email:o.email||''}
         };
         postAPI(obraAlmacen, function(err2, resp2) {
           if (!err2 && resp2 && resp2.ok) toast('✅ CRM guardado y sincronizado con almacén');
@@ -4471,19 +4489,36 @@ function renderTablaObrasEj() {
   var TIPO_CLR  = {cerrado:'#7c3aed',produccion:'#0369a1',ml:'#0f766e'};
 
   // Base: OBRAS del API + presupuestos aceptados sin obra en API
-  var presArr = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+  var presArr  = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+  var crmObras = getObras(); // CRM local — fuente fiable para constructora
   var allAcept = [];
+
+  function crmConstructora(codObra, nombreObra) {
+    // Buscar en CRM por codObra o nombre para obtener constructora fiable
+    var c = crmObras.find(function(o){
+      return (codObra && o.oferta === codObra) ||
+             (o.obra||'').toLowerCase() === (nombreObra||'').toLowerCase();
+    });
+    return c ? (c.constructora||'') : '';
+  }
+  function looksLikeDriveId(s) {
+    // Drive folder IDs: largo, sin espacios, solo alfanumérico y guiones
+    return s && s.length > 25 && !/\s/.test(s) && /^[A-Za-z0-9_\-]+$/.test(s);
+  }
+
   (OBRAS||[]).forEach(function(ob) {
     var n = (ob.nombre||'').trim();
+    var constructora = looksLikeDriveId(ob.constructora||'')
+      ? crmConstructora(ob.codObra, n)
+      : (ob.constructora || crmConstructora(ob.codObra, n) || '');
     var mp = presArr.find(function(p){ return (p.proyecto||'').trim().toLowerCase()===n.toLowerCase(); });
     if (mp) {
-      // Completar presupuesto con datos de almacén si faltan
       var merged = Object.assign({}, mp);
-      if (!merged.numOferta && ob.codObra)     merged.numOferta = ob.codObra;
-      if (!merged.cliente   && ob.constructora) merged.cliente   = ob.constructora;
+      if (!merged.numOferta && ob.codObra) merged.numOferta = ob.codObra;
+      if (!merged.cliente   && constructora) merged.cliente  = constructora;
       allAcept.push(merged);
     } else {
-      allAcept.push({ numOferta: ob.codObra||'', cliente: ob.constructora||'', proyecto: n, totalObra: ob.presupuesto||0, tipoContrato:'cerrado' });
+      allAcept.push({ numOferta: ob.codObra||'', cliente: constructora, proyecto: n, totalObra: ob.presupuesto||0, tipoContrato:'cerrado' });
     }
   });
   presArr.forEach(function(p) {
@@ -4840,10 +4875,12 @@ function prfAbrirEditor(pi) {
         '<tfoot id="prf-tfoot"></tfoot>'+
       '</table>'+
     '</div>'+
-    '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center">'+
+    '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap">'+
       '<button class="btn" style="font-size:12px" onclick="prfAnadirLinea()">➕ Añadir línea</button>'+
-      '<div style="display:flex;gap:8px">'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
         '<button class="btn" onclick="prfRenderLista()">Cancelar</button>'+
+        '<button class="btn" onclick="prfImprimirCertificacion()">🖨️ PDF</button>'+
+        '<button class="btn" onclick="prfGuardarEnDrive()" title="Guardar en carpeta Drive de la obra">📁 Drive</button>'+
         '<button class="btn primary" onclick="prfGuardar()">💾 Guardar Proforma</button>'+
       '</div>'+
     '</div>';
@@ -5006,7 +5043,8 @@ function prfImprimirCertificacion() {
 function prfGuardarEnDrive() {
   var pres = prfGetPres() || {};
   var obraObj = OBRAS.find(function(o){ return o.nombre===(pres.proyecto||''); });
-  if (!obraObj || !obraObj.carpetaDriveId) { toast('Esta obra no tiene carpeta de Drive vinculada', true); return; }
+  var folderId = obraObj && (obraObj.carpetaDriveId || (obraObj.constructora && obraObj.constructora.length > 20 && !/\s/.test(obraObj.constructora) ? obraObj.constructora : ''));
+  if (!obraObj || !folderId) { toast('Esta obra no tiene carpeta de Drive vinculada', true); return; }
   var presKey = getPresKey(pres);
   var proformas = prfGetAll(presKey);
   var prf = proformas[_prfIdx] || {};
@@ -5023,7 +5061,7 @@ function prfGuardarEnDrive() {
     + tablaHtml
     + '</body></html>';
   var encoded = btoa(unescape(encodeURIComponent(html)));
-  postAPI({ action:'saveFileToFolder', folderId: obraObj.carpetaDriveId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
+  postAPI({ action:'saveFileToFolder', folderId: folderId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
     if (!err && resp && resp.ok) {
       toast('✓ Guardado en Drive: ' + fileName);
       if (resp.fileUrl) window.open(resp.fileUrl, '_blank');
