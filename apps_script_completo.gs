@@ -70,6 +70,11 @@ function doPost(e) {
   if (data.action === 'deleteOperario')         return json(deleteOperario(data));
   if (data.action === 'saveCRM')               return json(saveCRM(data));
   if (data.action === 'deleteCRM')             return json(deleteCRM(data));
+  if (data.action === 'sendEmailPedido')        return json(sendEmailPedido(data));
+  if (data.action === 'saveProforma')            return json(saveProforma(data));
+  if (data.action === 'savePresupuesto')         return json(savePresupuesto(data));
+  if (data.action === 'deletePresupuesto')       return json(deletePresupuesto(data));
+  if (data.action === 'saveFileToFolder')        return json(saveFileToFolder(data));
   return json({error: 'accion no valida'});
 }
 
@@ -1163,3 +1168,173 @@ function json(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+
+// ══════════════════════════════════════════════════════
+// ENVÍO EMAIL PEDIDO PROVEEDOR
+// ══════════════════════════════════════════════════════
+function sendEmailPedido(data) {
+  try {
+    var email = data.email || '';
+    if (!email) return {ok: false, error: 'Email no especificado'};
+    
+    var prov = data.prov || 'Proveedor';
+    var fecha = data.fecha || '';
+    var obs = data.obs || '';
+    var items = data.items || [];
+    
+    var lineas = items.map(function(it) {
+      return '  - ' + it.nombre + ': ' + it.qty + ' ud';
+    }).join('
+');
+    
+    var subject = 'Pedido SEGUFIJA - ' + prov.split(' ')[0] + ' - ' + fecha;
+    
+    var body = 'Estimados,
+
+';
+    body += 'Les enviamos el siguiente pedido de reposición de material:
+
+';
+    body += 'Proveedor: ' + prov + '
+';
+    body += 'Fecha pedido: ' + fecha + '
+';
+    if (obs) body += 'Observaciones: ' + obs + '
+';
+    body += '
+Material solicitado:
+' + lineas + '
+
+';
+    body += 'Por favor, confirmen recepción de este pedido.
+
+';
+    body += 'Muchas gracias,
+Segufija SL
+';
+    body += 'Tel: 623782259 | info@segufija.com
+';
+    body += 'C/ Granollers 47, 08173 Sant Cugat del Vallès';
+    
+    var htmlBody = '<p>Estimados,</p>';
+    htmlBody += '<p>Les enviamos el siguiente pedido de reposición de material:</p>';
+    htmlBody += '<table style="border-collapse:collapse;width:100%;max-width:500px">';
+    htmlBody += '<tr><td style="padding:6px;font-weight:bold;background:#f5f0eb">Proveedor</td><td style="padding:6px">' + prov + '</td></tr>';
+    htmlBody += '<tr><td style="padding:6px;font-weight:bold;background:#f5f0eb">Fecha</td><td style="padding:6px">' + fecha + '</td></tr>';
+    if (obs) htmlBody += '<tr><td style="padding:6px;font-weight:bold;background:#f5f0eb">Observaciones</td><td style="padding:6px">' + obs + '</td></tr>';
+    htmlBody += '</table>';
+    htmlBody += '<h3 style="margin-top:16px;color:#5c2d0e">Material solicitado:</h3>';
+    htmlBody += '<table style="border-collapse:collapse;width:100%;max-width:500px;margin-top:8px">';
+    htmlBody += '<thead><tr style="background:#5c2d0e;color:#fff"><th style="padding:8px;text-align:left">Material</th><th style="padding:8px;text-align:center">Cantidad</th></tr></thead><tbody>';
+    items.forEach(function(it, idx) {
+      var bg = idx % 2 === 0 ? '#fff' : '#f5f0eb';
+      htmlBody += '<tr style="background:' + bg + '"><td style="padding:7px 8px">' + it.nombre + '</td><td style="padding:7px 8px;text-align:center;font-weight:600">' + it.qty + ' ud</td></tr>';
+    });
+    htmlBody += '</tbody></table>';
+    htmlBody += '<p style="margin-top:16px">Por favor, confirmen recepción de este pedido.</p>';
+    htmlBody += '<p>Muchas gracias,<br><strong>Segufija SL</strong><br>Tel: 623782259 | info@segufija.com<br>C/ Granollers 47, 08173 Sant Cugat del Vallès</p>';
+    
+    GmailApp.sendEmail(email, subject, body, {htmlBody: htmlBody, name: 'Segufija SL'});
+    return {ok: true};
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
+
+// ══════════════════════════════════════════════════════
+// PROFORMAS
+// ══════════════════════════════════════════════════════
+function saveProforma(data) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Proformas');
+    if (!sheet) {
+      sheet = ss.insertSheet('Proformas');
+      sheet.appendRow(['ObraKey','Proformas','Actualizado']);
+    }
+    var rows = sheet.getDataRange().getValues();
+    var obraKey = data.obraKey || '';
+    var proformasJson = JSON.stringify(data.proformas || []);
+    var hoy = new Date().toISOString().split('T')[0];
+    // Buscar fila existente
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === obraKey) {
+        sheet.getRange(i + 1, 2).setValue(proformasJson);
+        sheet.getRange(i + 1, 3).setValue(hoy);
+        return {ok: true};
+      }
+    }
+    // Nueva fila
+    sheet.appendRow([obraKey, proformasJson, hoy]);
+    return {ok: true};
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// PRESUPUESTOS
+// ══════════════════════════════════════════════════════
+function savePresupuesto(data) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Presupuestos');
+    if (!sheet) {
+      sheet = ss.insertSheet('Presupuestos');
+      sheet.appendRow(['NumOferta','Proyecto','Cliente','Estado','Data','Actualizado']);
+    }
+    var rowData = [
+      data.numOferta || '',
+      data.proyecto || '',
+      data.cliente || '',
+      data.estado || '',
+      data.data || '{}',
+      new Date().toISOString().split('T')[0]
+    ];
+    var row = parseInt(data._row) || 0;
+    if (row > 1) {
+      sheet.getRange(row, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+      row = sheet.getLastRow();
+    }
+    return {ok: true, _row: row};
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
+function deletePresupuesto(data) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Presupuestos');
+    if (!sheet) return {ok: true};
+    var row = parseInt(data._row) || 0;
+    if (row > 1) sheet.deleteRow(row);
+    return {ok: true};
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// GUARDAR ARCHIVO EN CARPETA DE DRIVE
+// ══════════════════════════════════════════════════════
+function saveFileToFolder(data) {
+  try {
+    var folderId = data.folderId || '';
+    var folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.getFolderById(CARPETA_RAIZ_ID);
+    var decoded = Utilities.base64Decode(data.content);
+    var blob = Utilities.newBlob(decoded, data.mimeType || 'text/html', data.fileName);
+    // Eliminar archivo anterior con mismo nombre si existe
+    var existing = folder.getFilesByName(data.fileName);
+    while (existing.hasNext()) { existing.next().setTrashed(true); }
+    var file = folder.createFile(blob);
+    return {ok: true, fileUrl: file.getUrl(), fileId: file.getId()};
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
