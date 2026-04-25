@@ -137,7 +137,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   <h1 style="font-size:18px;letter-spacing:.04em;font-weight:700">SEGUFIJA</h1>
   <span class="sync-badge loading" id="sync-badge"><span class="spinner"></span>Conectando...</span>
   <button class="btn" onclick="recargarTodo()" style="font-size:11px;padding:5px 8px;color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3)" title="Recargar datos">↻</button>
-  <a href="facturacion.html" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;text-decoration:none;white-space:nowrap">💶 Facturación</a>
+  <a href="#" onclick="location.href='facturacion.html?v='+Date.now();return false;" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;text-decoration:none;white-space:nowrap">💶 Facturación</a>
   <div class="tabs" id="main-tabs">
     <button class="tab active" id="tab-btn-obras" onclick="showTab('obras',this)">🏗️ Obras</button>
     <button class="tab" id="tab-btn-inventario" onclick="showTab('inventario',this)">📦 Stock</button>
@@ -199,11 +199,11 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <div class="form-grid">
         <div class="form-group">
           <label>Código de obra</label>
-          <input type="text" id="fo-cod" placeholder="Ej: OB-2025-01" style="text-transform:uppercase">
+          <input type="text" id="fo-cod" placeholder="Ej: OB-2025-01" style="text-transform:uppercase" oninput="detectarPresupuestoCRM()">
         </div>
         <div class="form-group">
           <label>Nombre de la obra *</label>
-          <input type="text" id="fo-nombre" placeholder="Ej: PROMOTORA BARCELONA GRACIA">
+          <input type="text" id="fo-nombre" placeholder="Ej: PROMOTORA BARCELONA GRACIA" oninput="detectarPresupuestoCRM()">
         </div>
         <div class="form-group">
           <label>Ubicación</label>
@@ -271,6 +271,11 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
           </select>
         </div>
         <div class="form-group" style="grid-column:1/-1">
+          <label>📁 Carpeta Drive de la obra</label>
+          <input type="text" id="fo-carpeta-drive" placeholder="Pega aquí la URL de la carpeta de Drive..." oninput="previsualizarCarpetaDrive()">
+          <div id="fo-carpeta-drive-preview" style="display:none;margin-top:4px;font-size:12px;color:#16a34a;">✓ Carpeta vinculada</div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label style="font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.04em">Contacto en obra (cliente)</label>
         </div>
         <div class="form-group">
@@ -293,6 +298,11 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <div id="fo-preview" style="display:none;margin-bottom:10px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Partidas encontradas:</div>
         <div id="fo-preview-lista" style="background:#f5f5f5;border-radius:8px;padding:10px;max-height:150px;overflow-y:auto;font-size:12px"></div>
+      </div>
+      <div id="fo-import-pres-wrap" style="display:none;margin-bottom:10px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;padding:10px 14px">
+        <div style="font-size:12px;font-weight:600;color:#065f46;margin-bottom:6px">📋 Presupuesto adjudicado encontrado</div>
+        <div id="fo-import-pres-info" style="font-size:11px;color:#047857;margin-bottom:8px"></div>
+        <button class="btn" style="background:#d1fae5;border-color:#6ee7b7;color:#065f46;font-size:12px" onclick="importarPartidasDePres()">📥 Importar partidas del presupuesto</button>
       </div>
       <div style="margin-bottom:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Añadir líneas de material manualmente</div>
@@ -334,6 +344,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       </div>
       <button class="btn" onclick="editarObraActual()" style="font-size:12px">✏️ Editar</button>
       <button class="btn primary" onclick="irSalidaObra()" style="font-size:12px">⬆️ Salida</button>
+      <button id="btn-abrir-carpeta-drive" class="btn" onclick="abrirCarpetaDrive()" style="font-size:12px;display:none">📁 Carpeta Drive</button>
       <button class="btn danger" onclick="eliminarObraActual()" style="font-size:12px">🗑️ Eliminar obra</button>
       <button class="btn" onclick="cerrarDetalleObra()" style="font-size:12px">✕</button>
     </div>
@@ -700,6 +711,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   <div style="display:flex;gap:4px;background:rgba(92,45,14,.1);border-radius:8px;padding:4px;margin-bottom:12px;flex-wrap:wrap">
     <button class="tab active" id="ptab-obra" onclick="pedidoSubTab('obra',this)">🏗️ Pedido a obra</button>
     <button class="tab" id="ptab-almacen" onclick="pedidoSubTab('almacen',this)">📦 Entrada almacén</button>
+    <button class="tab" id="ptab-pedir" onclick="pedidoSubTab('pedir',this)">🛒 Pedir a proveedor</button>
   </div>
 
   <!-- PEDIDO A OBRA -->
@@ -740,6 +752,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
         <div class="form-group"><label>Referencia / Nota</label><input type="text" id="ped-ref" placeholder="No pedido o referencia"></div>
         <div class="form-group" style="grid-column:1/-1"><label>Observaciones</label>
           <textarea id="ped-obs" rows="2" style="resize:vertical;padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px"></textarea></div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>📧 Email proveedor <span style="font-weight:400;color:var(--text2)">(opcional – envía copia del pedido)</span></label>
+          <input type="email" id="ped-email" placeholder="proveedor@email.com" style="padding:7px 10px;font-size:13px;border:0.5px solid var(--border);border-radius:8px;width:100%;box-sizing:border-box">
+        </div>
       </div>
     </div>
     <p class="section-title">Materiales del pedido</p>
@@ -795,6 +811,47 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+
+<!-- PEDIR A PROVEEDOR -->
+<div id="psub-pedir" style="display:none">
+  <p class="section-title" style="margin-top:0">🛒 Pedir a proveedor</p>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:600;white-space:nowrap">Seleccionar todos de:</label>
+      <select id="rep-filtro-prov" style="padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;flex:1;min-width:160px"><option value="">-- Proveedor --</option></select>
+      <button class="btn" onclick="seleccionarPorProveedor()" style="background:#3498db;color:#fff;border-color:#3498db">✔ Marcar todos</button>
+      <button class="btn" onclick="deseleccionarTodosRep()">✕ Desmarcar</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin:0">Material pendiente de pedir</div>
+      <span id="rep-contador" style="font-size:12px;color:var(--text2);font-weight:600">0 seleccionados</span>
+    </div>
+    <div id="rep-lista"><p style="font-size:13px;color:var(--text2)">Cargando materiales...</p></div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+      <input type="text" id="buscar-rep" placeholder="🔍 Añadir otro material..." oninput="renderSearchRep()" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px">
+      <div id="search-rep-results"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Enviar pedido por email</div>
+    <div class="form-grid" style="margin-top:8px">
+      <div class="form-group">
+        <label>Email destino *</label>
+        <input type="email" id="rep-email" placeholder="proveedor@email.com" style="padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px">
+      </div>
+      <div class="form-group">
+        <label>Observaciones / condiciones</label>
+        <input type="text" id="rep-obs" placeholder="Portes, urgencia..." style="padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="limpiarReposicion()">Limpiar selección</button>
+      <button class="btn primary" id="btn-rep-enviar" onclick="enviarPedidoAlmacen()">📧 Enviar pedido y marcar en tránsito</button>
+    </div>
+  </div>
+</div>
 <!-- ══════════════ DEVOLUCIÓN OBRA→ALMACÉN ══════════════ -->
 <div id="tab-devolucion" class="panel">
   <p class="section-title" style="margin-top:0">↩️ Devolver material de obra al almacén</p>
@@ -1223,6 +1280,46 @@ function setSyncBadge(st,msg){var b=document.getElementById('sync-badge');b.clas
 function callAPI(a,cb){fetch(API+'?action='+a).then(function(r){return r.json();}).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});}
 function postAPI(d,cb){fetch(API,{method:'POST',body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(x){cb(null,x);}).catch(function(e){cb(e,null);});}
 function toast(msg,isError){var t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(isError?' error':'')+' show';setTimeout(function(){t.className='toast'+(isError?' error':'');},2800);}
+// ── PIN PROTECCIÓN BORRADO ──────────────────────
+var PIN_KEY='segufija_pin_admin';
+var _pinCb=null;
+function pedirPin(msg,cb){
+  _pinCb=cb;
+  document.getElementById('pin-msg').textContent=msg;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-error').style.display='none';
+  document.getElementById('pin-modal').style.display='flex';
+  setTimeout(function(){document.getElementById('pin-input').focus();},100);
+}
+function cerrarPinModal(){
+  document.getElementById('pin-modal').style.display='none';
+  _pinCb=null;
+}
+function confirmarPin(){
+  var pin=localStorage.getItem(PIN_KEY)||'1234';
+  var val=document.getElementById('pin-input').value;
+  if(val===pin){cerrarPinModal();if(_pinCb)_pinCb();}
+  else{document.getElementById('pin-error').style.display='block';document.getElementById('pin-input').value='';document.getElementById('pin-input').focus();}
+}
+function cambiarPin(p){if(!p||p.length<4){alert('El PIN debe tener al menos 4 caracteres');return;}localStorage.setItem(PIN_KEY,p);alert('PIN cambiado correctamente');}
+// ───────────────────────────────────────────────
+// ── DRIVE CARPETA OBRA ──────────────────────────
+function extraerIdCarpetaDrive(url){
+  if(!url)return '';
+  var m=url.match(/folders\/([a-zA-Z0-9_-]+)/);
+  return m?m[1]:url.trim();
+}
+function previsualizarCarpetaDrive(){
+  var val=document.getElementById('fo-carpeta-drive').value;
+  var id=extraerIdCarpetaDrive(val);
+  document.getElementById('fo-carpeta-drive-preview').style.display=id?'block':'none';
+}
+function abrirCarpetaDrive(obraObj){
+  var id=(obraObj||obraSeleccionada||{}).carpetaDriveId;
+  if(!id){toast('Esta obra no tiene carpeta de Drive vinculada',true);return;}
+  window.open('https://drive.google.com/drive/folders/'+id,'_blank');
+}
+// ────────────────────────────────────────────────
 
 /* ── CARGA INICIAL ── */
 function recargarTodo(){
@@ -1249,7 +1346,28 @@ function recargarTodo(){
     } else {
       OBRAS=obrasFijas.map(function(o){o.corto=o.nombre.substring(0,22);return o;});
     }
+    // Enriquecer con datos del CRM (códigos y nombres actualizados)
+    try {
+      var crmObras=JSON.parse(localStorage.getItem('segufija_crm_obras')||'[]');
+      crmObras.forEach(function(crm){
+        var nombre=(crm.obra||'').trim();
+        if(!nombre)return;
+        if(crm.estado!=='aceptado')return;
+        var match=OBRAS.find(function(o){return o.nombre.toLowerCase()===nombre.toLowerCase();});
+        if(match){
+          if(crm.oferta&&!match.codObra)match.codObra=crm.oferta;
+        } else {
+          OBRAS.push({nombre:nombre,codObra:crm.oferta||'',icon:'🏗️',corto:nombre.substring(0,22),estado:crm.estado||'activa',partidas:[],personal:[],previsionPersonal:[]});
+        }
+      });
+    } catch(e){}
     buildObrasGrid();actualizarSelectsObras();
+  });
+  callAPI('getPresupuestos',function(err,data){
+    if(!err&&Array.isArray(data)&&data.length){
+      window.PRESUPUESTOS_CACHE = data;
+      try{localStorage.setItem('segufija_presupuestos',JSON.stringify(data));}catch(e){}
+    }
   });
 }
 
@@ -1281,15 +1399,22 @@ function cargarHistorial(){
   });
 }
 
+function obraLabel(o, withState){
+  var cod=o.codObra?'['+o.codObra+'] ':'';
+  var tipo=o.tipo==='puntual'?' ⚡':'';
+  var est=withState?(o.estado==='pendiente'?' (pendiente)':o.estado==='pausada'?' (pausada)':''):'';
+  return cod+o.nombre+tipo+est;
+}
 function actualizarSelectsObras(){
   // Para salidas/pedidos: solo obras activas o pausadas (no finalizadas, sí pendientes)
   var activas=OBRAS.filter(function(o){return o.estado!=='cerrada';});
   var todas=OBRAS;
   var optsActivas=activas.map(function(o){
-    var label=o.nombre+(o.tipo==='puntual'?' ⚡':'')+( o.estado==='pendiente'?' (pendiente)':o.estado==='pausada'?' (pausada)':'');
-    return '<option value="'+o.nombre+'">'+label+'</option>';
+    return '<option value="'+o.nombre+'">'+obraLabel(o,true)+'</option>';
   }).join('');
-  var optsAll=todas.map(function(o){return '<option value="'+o.nombre+'">'+o.nombre+'</option>';}).join('');
+  var optsAll=todas.map(function(o){
+    return '<option value="'+o.nombre+'">'+obraLabel(o,false)+'</option>';
+  }).join('');
   var base='<option value="">Seleccionar obra...</option>'+optsActivas;
   ['sal-obra','ped-obra','dev-obra','trasp-obra-origen','trasp-obra-destino'].forEach(function(id){
     var sel=document.getElementById(id);if(!sel)return;
@@ -1307,7 +1432,8 @@ function toggleFormNuevaObra(){
   _foIdx=-1;_foPartidas=[];
   document.getElementById('form-obra-titulo').textContent='➕ Nueva obra';
   document.getElementById('fo-btn-guardar').textContent='✅ Guardar obra';
-  ['fo-cod','fo-nombre','fo-lugar','fo-inicio','fo-fin','fo-presupuesto','fo-ml','fo-meses','fo-contacto-nombre','fo-contacto-tel','fo-contacto-email'].forEach(function(id){document.getElementById(id).value='';});
+  ['fo-cod','fo-nombre','fo-lugar','fo-inicio','fo-fin','fo-presupuesto','fo-ml','fo-meses','fo-contacto-nombre','fo-contacto-tel','fo-contacto-email','fo-carpeta-drive'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('fo-carpeta-drive-preview').style.display='none';
   document.getElementById('fo-tipo').value='fija';
   document.getElementById('fo-estado').value='activa';
   document.getElementById('fo-forma-pago').value='';
@@ -1318,6 +1444,7 @@ function toggleFormNuevaObra(){
   document.getElementById('fo-lin-material').value='';
   document.getElementById('fo-lin-qty').value='';
   document.getElementById('fo-lineas-lista').textContent='Sin líneas añadidas';
+  document.getElementById('fo-import-pres-wrap').style.display='none';
   var w=document.getElementById('form-obra-wrap');
   w.style.display=w.style.display==='none'?'block':'none';
   if(w.style.display==='block')w.scrollIntoView({behavior:'smooth'});
@@ -1348,9 +1475,13 @@ function editarObraActual(){
   document.getElementById('fo-contacto-nombre').value=_c.nombre||'';
   document.getElementById('fo-contacto-tel').value=_c.tel||'';
   document.getElementById('fo-contacto-email').value=_c.email||'';
+  var driveUrl=o.carpetaDriveId?'https://drive.google.com/drive/folders/'+o.carpetaDriveId:'';
+  document.getElementById('fo-carpeta-drive').value=driveUrl;
+  document.getElementById('fo-carpeta-drive-preview').style.display=o.carpetaDriveId?'block':'none';
   document.getElementById('fo-excel').value='';
   document.getElementById('fo-preview').style.display='none';
   renderLineasFO();
+  detectarPresupuestoCRM();
   var w=document.getElementById('form-obra-wrap');
   w.style.display='block';w.scrollIntoView({behavior:'smooth'});
 }
@@ -1367,6 +1498,106 @@ function renderLineasFO(){
 }
 
 function eliminarLineaFO(i){_foPartidas.splice(i,1);renderLineasFO();}
+
+// Busca presupuesto adjudicado en facturacion.html (localStorage compartido) para auto-importar partidas
+function detectarPresupuestoCRM() {
+  var wrap = document.getElementById('fo-import-pres-wrap');
+  wrap.style.display = 'none';
+  // 1. Buscar en CRM (segufija_crm_obras) una entrada ADJUDICADA con partidasDef
+  var crmObras = [];
+  try { crmObras = JSON.parse(localStorage.getItem('segufija_crm_obras')||'[]'); } catch(e){}
+  var obraName = (document.getElementById('fo-nombre')||{value:''}).value.trim().toLowerCase();
+  var obraCod  = (document.getElementById('fo-cod')||{value:''}).value.trim().toLowerCase();
+  var crmMatch = null;
+  if (obraName || obraCod) {
+    crmMatch = crmObras.find(function(c){
+      return c.estado==='ADJUDICADA' && c.partidasDef && c.partidasDef.length &&
+             ((obraName && (c.obra||'').toLowerCase()===obraName) ||
+              (obraCod  && (c.oferta||'').toLowerCase()===obraCod));
+    });
+  }
+  if (!crmMatch && _foIdx >= 0) {
+    // Edición de obra existente: buscar por nombre actual
+    var nombreActual = (OBRAS[_foIdx]||{}).nombre||'';
+    crmMatch = crmObras.find(function(c){
+      return c.estado==='ADJUDICADA' && c.partidasDef && c.partidasDef.length &&
+             (c.obra||'').toLowerCase()===nombreActual.toLowerCase();
+    });
+  }
+  if (crmMatch) {
+    window._foPresDef = crmMatch.partidasDef;
+    var info = document.getElementById('fo-import-pres-info');
+    info.textContent = (crmMatch.oferta?' Oferta '+crmMatch.oferta+' — ':'')+crmMatch.obra+' · '+crmMatch.partidasDef.length+' partidas de material';
+    wrap.style.display = 'block';
+    return;
+  }
+  // 2. Buscar directamente en presupuestos (cache global → localStorage → API)
+  var presArr = window.PRESUPUESTOS_CACHE || [];
+  if (!presArr.length) {
+    try { presArr = JSON.parse(localStorage.getItem('segufija_presupuestos')||'[]'); } catch(e){}
+  }
+  // Si todavía vacío, pedir al API y reintentar
+  if (!presArr.length && (obraName || obraCod)) {
+    callAPI('getPresupuestos', function(err, data) {
+      if (!err && Array.isArray(data) && data.length) {
+        window.PRESUPUESTOS_CACHE = data;
+        try { localStorage.setItem('segufija_presupuestos', JSON.stringify(data)); } catch(e){}
+        detectarPresupuestoCRM();
+      }
+    });
+    return;
+  }
+  var presMatch = null;
+  if (obraName || obraCod) {
+    presMatch = presArr.find(function(p){
+      var tieneItems = (p.ventaItems||[]).some(function(it){return it.medicion>0&&it.precio>0;}) ||
+                       (p.alquilerItems||[]).some(function(it){return it.medicion>0;});
+      var matchNombre = obraName && (p.proyecto||'').toLowerCase()===obraName;
+      var matchCod    = obraCod  && (p.numOferta||'').toLowerCase()===obraCod;
+      return (matchNombre || matchCod) && tieneItems;
+    });
+  }
+  if (presMatch) {
+    // Auto-rellenar campos del formulario
+    if (presMatch.numOferta && !document.getElementById('fo-cod').value)
+      document.getElementById('fo-cod').value = presMatch.numOferta;
+    if (presMatch.proyecto && !document.getElementById('fo-nombre').value)
+      document.getElementById('fo-nombre').value = presMatch.proyecto;
+    if (presMatch.cliente) {
+      var constrEl = document.getElementById('fo-constructora');
+      if (constrEl && !constrEl.value) constrEl.value = presMatch.cliente;
+    }
+    if (presMatch.totalObra) {
+      var presEl = document.getElementById('fo-presupuesto');
+      if (presEl && !presEl.value) presEl.value = presMatch.totalObra;
+    }
+    var pDef = [];
+    (presMatch.ventaItems||[]).filter(function(it){ return it.medicion>0 && it.precio>0; }).forEach(function(it){
+      pDef.push({partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:it.medicion, suministrado:0, entregas:[], tipo:'venta'});
+    });
+    (presMatch.alquilerItems||[]).filter(function(it){ return it.medicion>0; }).forEach(function(it){
+      pDef.push({partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:it.medicion, suministrado:0, entregas:[], tipo:'alquiler'});
+    });
+    if (pDef.length) {
+      window._foPresDef = pDef;
+      document.getElementById('fo-import-pres-info').textContent =
+        (presMatch.numOferta?presMatch.numOferta+' — ':'')+
+        (presMatch.proyecto||'')+
+        (presMatch.cliente?' · '+presMatch.cliente:'')+
+        ' · '+pDef.length+' partidas';
+      wrap.style.display = 'block';
+    }
+  }
+}
+
+function importarPartidasDePres() {
+  var pDef = window._foPresDef || [];
+  if (!pDef.length) { return; }
+  _foPartidas = pDef.map(function(p){ return Object.assign({}, p); });
+  renderLineasFO();
+  document.getElementById('fo-import-pres-wrap').style.display = 'none';
+  toast('✓ '+_foPartidas.length+' partidas importadas del presupuesto');
+}
 
 function buscarMaterialFO(){
   var q=(document.getElementById('fo-lin-material').value||'').toLowerCase().trim();
@@ -1410,6 +1641,7 @@ function guardarObra(){
   var estado=document.getElementById('fo-estado').value||'activa';
   var formaPago=document.getElementById('fo-forma-pago').value;
   var plazo=document.getElementById('fo-plazo').value;
+  var carpetaDriveId=extraerIdCarpetaDrive(document.getElementById('fo-carpeta-drive').value);
   var contacto={nombre:document.getElementById('fo-contacto-nombre').value.trim(),tel:document.getElementById('fo-contacto-tel').value.trim(),email:document.getElementById('fo-contacto-email').value.trim()};
   if(!nombre){toast('El nombre es obligatorio',true);return;}
   var partidas=(_foPartidas||[]).concat(window._foExcelPartidas||[]);
@@ -1417,14 +1649,16 @@ function guardarObra(){
   var personal=_foIdx>=0?(OBRAS[_foIdx].personal||[]):[];
   var btn=document.getElementById('fo-btn-guardar');
   btn.disabled=true;btn.textContent='Guardando...';
-  postAPI({action:'saveObra',nombreOriginal:nombreOriginal,nombre:nombre,codObra:codObra,lugar:lugar,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,inicio:inicio,fin:fin,estado:estado,partidas:partidas,personal:personal,formaPago:formaPago,plazo:plazo,contacto:contacto},function(err,d){
+  postAPI({action:'saveObra',nombreOriginal:nombreOriginal,nombre:nombre,codObra:codObra,carpetaDriveId:carpetaDriveId,lugar:lugar,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,inicio:inicio,fin:fin,estado:estado,partidas:partidas,personal:personal,formaPago:formaPago,plazo:plazo,contacto:contacto},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar obra',true);btn.disabled=false;btn.textContent='✅ Guardar obra';return;}
+    var carpetaFinal = (d.carpetaDriveId || carpetaDriveId);
     if(_foIdx<0){
-      OBRAS.push({nombre:nombre,codObra:codObra,corto:nombre.substring(0,22),lugar:lugar,icon:'🏗️',inicio:inicio,fin:fin,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,estado:estado,partidas:partidas,personal:[],formaPago:formaPago,plazo:plazo,contacto:contacto});
-      toast('Obra añadida: '+nombre);
+      OBRAS.push({nombre:nombre,codObra:codObra,carpetaDriveId:carpetaFinal,corto:nombre.substring(0,22),lugar:lugar,icon:'🏗️',inicio:inicio,fin:fin,presupuesto:presupuesto,ml:ml,meses:meses,tipo:tipo,estado:estado,partidas:partidas,personal:[],formaPago:formaPago,plazo:plazo,contacto:contacto});
+      if(carpetaFinal) toast('Obra añadida con carpeta Drive ✓');
+      else toast('Obra añadida: '+nombre);
     } else {
       var o=OBRAS[_foIdx];
-      o.nombre=nombre;o.codObra=codObra;o.corto=nombre.substring(0,22);o.lugar=lugar;
+      o.nombre=nombre;o.codObra=codObra;o.carpetaDriveId=carpetaDriveId;o.corto=nombre.substring(0,22);o.lugar=lugar;
       o.inicio=inicio;o.fin=fin;o.presupuesto=presupuesto;o.ml=ml;o.meses=meses;o.tipo=tipo;o.estado=estado;
       o.formaPago=formaPago;o.plazo=plazo;o.contacto=contacto;
       if(partidas.length>0)o.partidas=partidas;
@@ -1647,6 +1881,7 @@ function verObra(idx){
   if(_ct.nombre)_ctParts.push('👤 '+_ct.nombre+(o.contacto&&o.contacto.tel?' · '+o.contacto.tel:''));
   if(_ct.email)_ctParts.push('✉ '+_ct.email);
   if(_ctParts.length){_ctEl.textContent=_ctParts.join(' | ');_ctEl.style.display='block';}else{_ctEl.style.display='none';}
+  document.getElementById('btn-abrir-carpeta-drive').style.display=o.carpetaDriveId?'inline-flex':'none';
   document.getElementById('per-fecha').value=today;
   document.getElementById('obra-detalle').style.display='block';
   document.getElementById('obra-detalle').scrollIntoView({behavior:'smooth'});
@@ -1768,6 +2003,7 @@ function renderPartidas(){
         '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)">Pendiente</th>'+
         '<th style="text-align:right;color:var(--text2);font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)" title="€/ud/mes para alquiler INDE-K o propio">€/ud/mes</th>'+
         '<th style="text-align:right;color:#3498db;font-weight:500;padding:4px 4px;border-bottom:0.5px solid var(--border)" title="Pedidos registrados pendientes de entrega">📦 Pedido</th>'+
+        '<th style="text-align:right;color:#e67e22;font-weight:600;padding:4px 4px;border-bottom:0.5px solid var(--border)" title="Cantidad recomendada a pedir = Pendiente − En tránsito. Verde si el almacén lo cubre.">🛒 A pedir</th>'+
         '<th style="padding:4px 4px;border-bottom:0.5px solid var(--border)"></th>'+
       '</tr></thead><tbody>'+
       lineas.map(function(l){
@@ -1806,6 +2042,24 @@ function renderPartidas(){
   if(et>0) badges+='<span style="background:#d6eaf8;color:#1a5276;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🔵 '+et+' ud</span> ';
   if(epend>0) badges+='<span style="background:#fef9e7;color:#7d6608;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🟡 '+epend+' ud</span>';
   return '<td style="padding:5px 4px;text-align:right">'+badges+'</td>';
+})() +
+          (function(){
+  var kMat2=l.material.toLowerCase();
+  var kPart2=(l.partida||'').toLowerCase();
+  var k2=kPart2?kPart2+'|||'+kMat2:kMat2;
+  var ep2=enTransitoMap[k2]||0;
+  var epend2=enPendienteMap[k2]||0;
+  var pend2=Math.max(0,(l.contratado||0)-(l.suministrado||0));
+  var aPedir=Math.max(0,pend2-ep2-epend2);
+  if(pend2<=0) return '<td style="text-align:right;padding:5px 4px;color:var(--success);font-weight:600">✅</td>';
+  if(aPedir===0) return '<td style="text-align:right;padding:5px 4px;color:var(--success);font-size:11px">Cubierto</td>';
+  var invIt=inventario.find(function(i){return i.nombre.toLowerCase()===kMat2;});
+  var stockAlm=invIt?Math.max(0,invIt.stock):0;
+  var cubreAlm=stockAlm>=aPedir;
+  var bg=cubreAlm?'background:#eaf3de;color:var(--success)':'background:#fef3e6;color:#b7500c';
+  var nota=cubreAlm?' <span style="font-size:9px;color:var(--success)">(hay en almacén)</span>':'';
+  return '<td style="text-align:right;padding:5px 4px">'+
+    '<span style="'+bg+';font-size:12px;font-weight:700;padding:2px 7px;border-radius:5px">'+aPedir+' ud</span>'+nota+'</td>';
 })() +
           '<td style="padding:5px 4px">'+
             '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
@@ -1984,10 +2238,11 @@ function actualizarPrecioAlquiler(idx,val){
 
 function eliminarPartida(idx){
   if(!obraSeleccionada)return;
-  if(!confirm('¿Eliminar esta línea?'))return;
-  obraSeleccionada.partidas.splice(idx,1);
-  renderPartidas();
-  guardarPartidas();
+  pedirPin('Eliminar esta línea.', function(){
+    obraSeleccionada.partidas.splice(idx,1);
+    renderPartidas();
+    guardarPartidas();
+  });
 }
 
 function guardarPartidas(){
@@ -2021,7 +2276,7 @@ function renderHistObra(){
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">'+
         '<span class="badge '+(an?'anulada':tipoClass)+'" style="'+(an?'':tipoStyle)+'">'+(an?'ANULADA':tipoLabel)+'</span>'+
         (h.resp?'<span style="font-size:12px;color:var(--text2)">'+h.resp+'</span>':'')+
-        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
+        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+fmtDate(h.fecha)+'</span>'+
       '</div>'+
       '<div>'+items.map(function(i){
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)">'+
@@ -2170,11 +2425,12 @@ function editarFichaTrabajador(idx){
 function eliminarFichaTrabajador(idx){
   loadFichas();
   var f=fichasTrabajadores[idx];
-  if(!confirm('¿Eliminar la ficha de '+f.nombre+'?'))return;
-  fichasTrabajadores.splice(idx,1);
-  saveFichas();
-  renderFichas();
-  toast('Ficha eliminada');
+  pedirPin('Eliminar la ficha de '+f.nombre+'.', function(){
+    fichasTrabajadores.splice(idx,1);
+    saveFichas();
+    renderFichas();
+    toast('Ficha eliminada');
+  });
 }
 
 /* ── DOCUMENTOS PERSONAL ── */
@@ -2230,7 +2486,7 @@ function fileToBase64(file){
   });
 }
 
-function fmtDate(d){if(!d)return'—';return d.split('-').reverse().join('/');}
+function fmtDate(d){if(!d)return'—';var s=String(d).split('T')[0];var p=s.split('-');if(p.length!==3)return s;return p[2]+'/'+p[1]+'/'+p[0];}
 
 function subirDocPersonal(){
   var file=document.getElementById('dp-file').files[0];
@@ -2334,6 +2590,7 @@ function subirDocObra(){
       mimeType:file.type,
       fileName:fileName,
       obra:obraSeleccionada.nombre,
+      carpetaDriveId:obraSeleccionada.carpetaDriveId||'',
       tipo:tipo,
       nombre:obs,
       obs:obs,
@@ -2715,7 +2972,7 @@ function renderPersonal(){
             '<span style="font-size:11px;color:var(--text2);margin-left:8px">'+catLabel+'</span>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:6px">'+
-            '<span style="font-size:12px;color:var(--text2)">'+r.fecha+'</span>'+
+            '<span style="font-size:12px;color:var(--text2)">'+fmtDate(r.fecha)+'</span>'+
             '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarRegistroPersonal('+realIdx+')">🗑️</button>'+
           '</div>'+
         '</div>'+
@@ -3433,6 +3690,7 @@ function guardarObraSilencioso(obraObj, cb) {
     nombreOriginal:     obraObj.nombre,
     nombre:             obraObj.nombre,
     codObra:            obraObj.codObra||'',
+    carpetaDriveId:     obraObj.carpetaDriveId||'',
     lugar:              obraObj.lugar||'—',
     presupuesto:        obraObj.presupuesto||0,
     inicio:             obraObj.inicio||'',
@@ -3722,7 +3980,9 @@ function pedidoSubTab(id,el){
   el.classList.add('active');
   document.getElementById('psub-obra').style.display=id==='obra'?'block':'none';
   document.getElementById('psub-almacen').style.display=id==='almacen'?'block':'none';
+  document.getElementById('psub-pedir').style.display=id==='pedir'?'block':'none';
   if(id==='almacen')document.getElementById('ent-fecha').value=today;
+  if(id==='pedir')cargarListaReposicion();
 }
 
 function renderSearchPed(){
@@ -3769,6 +4029,7 @@ function registrarPedido(){
   var fecha=document.getElementById('ped-fecha').value;
   var ref=document.getElementById('ped-ref').value;
   var obs=document.getElementById('ped-obs').value;
+  var email=(document.getElementById('ped-email').value||'').trim();
   if(!obra){toast('Selecciona una obra',true);return;}
   if(!prov){toast('Selecciona un proveedor',true);return;}
   if(!pedidoItems.length){toast('Añade al menos un material',true);return;}
@@ -3776,24 +4037,37 @@ function registrarPedido(){
   var origen=document.getElementById('ped-origen').value;
   postAPI({action:'addHistorial',tipo:'pedido',fecha:fecha,obra:obra,prov:prov,ref:ref,obs:obs,tipoDestino:'obra',origenPedido:origen,items:pedidoItems},function(err,data){
     if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='Registrar pedido';return;}
-    // Si es de almacén, verificar stock suficiente
     if(origen==='almacen'){
       pedidoItems.forEach(function(c){
         var it=inventario.find(function(i){return i.nombre===c.nombre;});
         if(it&&it.stock<c.qty) toast('⚠️ Stock insuficiente para '+c.nombre.substring(0,30),true);
       });
     }
-    callAPI('getHistorial',function(err2,data2){
-      if(!err2&&Array.isArray(data2))historial=data2.reverse();
-      pedidoItems=[];renderPedidoItems();buildObrasGrid();
-      document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
-      document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
-      document.getElementById('ped-origen').value='proveedor';
-      document.getElementById('ped-origen-info').style.display='none';
-      btn.disabled=false;btn.textContent='Registrar pedido';
-      renderHist();
+    function finalizarPedido(){
+      callAPI('getHistorial',function(err2,data2){
+        if(!err2&&Array.isArray(data2))historial=data2.reverse();
+        pedidoItems=[];renderPedidoItems();buildObrasGrid();
+        document.getElementById('ped-obra').value='';document.getElementById('ped-prov').value='';
+        document.getElementById('ped-ref').value='';document.getElementById('ped-obs').value='';
+        document.getElementById('ped-email').value='';
+        document.getElementById('ped-origen').value='proveedor';
+        document.getElementById('ped-origen-info').style.display='none';
+        btn.disabled=false;btn.textContent='Registrar pedido';
+        renderHist();
+      });
+    }
+    if(email){
+      btn.textContent='Enviando email...';
+      var obsEmail='Obra: '+obra+(ref?' | Ref: '+ref:'')+(obs?' | '+obs:'');
+      postAPI({action:'sendEmailPedido',email:email,prov:prov,obs:obsEmail,fecha:fecha||today,items:pedidoItems},function(err3){
+        if(err3) toast('⚠️ Pedido guardado pero error al enviar email',true);
+        else toast('✅ Pedido registrado y email enviado a '+email);
+        finalizarPedido();
+      });
+    } else {
       toast('✅ Pedido registrado correctamente');
-    });
+      finalizarPedido();
+    }
   });
 }
 
@@ -4042,7 +4316,7 @@ function renderHist(){
         '<span class="tag-obra">'+h.obra+'</span>'+
         (h.prov?'<span style="font-size:11px;color:var(--text2)">'+h.prov+'</span>':'')+
         (h.resp?'<span style="font-size:11px;color:var(--text2)">'+h.resp+'</span>':'')+
-        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+h.fecha+'</span>'+
+        '<span style="font-size:12px;color:var(--text2);margin-left:auto">'+fmtDate(h.fecha)+'</span>'+
       '</div>'+
       '<div>'+items.map(function(i){
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)">'+
@@ -4349,19 +4623,10 @@ function mostrarBannerReposicion(){
 }
 
 function irAPedirReposicion(){
-  // Ir a tab pedidos → entrada almacén con los artículos a reponer pre-seleccionados
-  var aReponer=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;});
-  showTab('pedidos',document.getElementById('tab-btn-pedidos'));toggleMasTabs(document.getElementById('tab-btn-mas'),false);
+  showTab('pedidos',document.getElementById('tab-btn-pedidos'));
+  toggleMasTabs(document.getElementById('tab-btn-mas'),false);
   setTimeout(function(){
-    pedidoSubTab('almacen',document.getElementById('ptab-almacen'));
-    // Pre-rellenar los artículos a reponer
-    entradaItems=[];
-    aReponer.forEach(function(i){
-      var qty=Math.max(1,(i.stockMin*2)-i.stock); // Pedir hasta 2x el mínimo
-      entradaItems.push({nombre:i.nombre,qty:qty});
-    });
-    renderEntradaItems();
-    toast('✅ '+aReponer.length+' artículos añadidos para reponer');
+    pedidoSubTab('pedir',document.getElementById('ptab-pedir'));
   },300);
 }
 
@@ -4388,7 +4653,7 @@ function mostrarModalSincErrores() {
     var items = '';
     salidas.forEach(function(s) {
       items += '<div style="font-size:11px;color:var(--text2);padding:2px 0">'
-        + '📅 '+s.fecha+' — '
+        + '📅 '+fmtDate(s.fecha)+' — '
         + s.items.map(function(it){ return it.nombre+' <b>'+it.qty+' ud</b>'; }).join(', ')
         + '</div>';
     });
@@ -4467,6 +4732,188 @@ function aplicarSincManual(obraOrig) {
     }
   });
 }
+
+/* ── REPOSICIÓN / PEDIR A PROVEEDOR ── */
+var reposicionItems = [];
+
+function cargarListaReposicion(){
+  var bajoMinimo=inventario.filter(function(i){return i.stockMin>0&&i.stock<=i.stockMin;});
+  var conDemanda=inventario.filter(function(i){return i.stockMin===0&&i.nec>0&&i.stock<i.nec;});
+  var todos=bajoMinimo.concat(conDemanda.filter(function(d){
+    return !bajoMinimo.find(function(b){return b.nombre===d.nombre;});
+  }));
+  reposicionItems=todos.map(function(i){
+    var qty=Math.max(1,(i.stockMin>0?(i.stockMin*2):i.nec)-i.stock);
+    return {nombre:i.nombre,qty:qty,prov:'',sel:true,stockActual:i.stock,stockMin:i.stockMin||i.nec};
+  });
+  // Cargar proveedores de Sheets si aún no están cargados
+  if(!proveedoresData.length){
+    callAPI('getProveedores',function(err,data){
+      if(!err&&Array.isArray(data)){
+        proveedoresData=data.filter(function(p){return p.nombre;});
+        actualizarSelectProveedores();
+      }
+      renderListaReposicion();
+    });
+  } else {
+    renderListaReposicion();
+  }
+}
+
+var proveedoresData=[];
+
+function actualizarSelectProveedores(){
+  var sel=document.getElementById('rep-filtro-prov');
+  if(!sel)return;
+  sel.innerHTML='<option value="">-- Proveedor --</option>'+
+    proveedoresData.map(function(p){
+      return '<option value="'+p.nombre+'"'+(p.email?' data-email="'+p.email+'"':'')+'>'+p.nombre+(p.email?' ✉':'')+'</option>';
+    }).join('');
+}
+
+function getEmailProveedor(nombre){
+  var p=proveedoresData.find(function(p){return p.nombre===nombre;});
+  return p&&p.email?p.email:'';
+}
+
+function getProvsList(){return proveedoresData.length?proveedoresData.map(function(p){return p.nombre;}):['VISORNETS','LEON DE ORO','UNETRAMESAS','MULTIGARBEN','TORRES Y SAEZ','WURTH INDEXFIX','MARCELINO','INDE-K','CV TOOLS','AMAZON / BRICODEPOT'];}
+
+function renderListaReposicion(){
+  var cont=document.getElementById('rep-lista');
+  if(!reposicionItems.length){
+    cont.innerHTML='<p style="font-size:13px;color:var(--success);padding:8px 0">✅ Sin materiales bajo mínimo. Usa la búsqueda para añadir manualmente.</p>';
+    document.getElementById('rep-contador').textContent='0 seleccionados';
+    return;
+  }
+  cont.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="background:var(--accent-light)">'+
+    '<th style="padding:6px 4px">✔</th>'+
+    '<th style="padding:6px 4px;text-align:left">Material</th>'+
+    '<th style="padding:6px 4px;text-align:center;color:var(--danger)">Stock</th>'+
+    '<th style="padding:6px 4px;text-align:center">Mín</th>'+
+    '<th style="padding:6px 4px;text-align:center">Cantidad</th>'+
+    '<th style="padding:6px 4px;text-align:left">Proveedor</th>'+
+    '<th style="padding:6px 4px"></th>'+
+    '</tr></thead><tbody>'+
+    reposicionItems.map(function(item,i){
+      var urgente=item.stockActual===0;
+      var provSel=getProvsList().map(function(p){return '<option'+(p===item.prov?' selected':'')+'>'+p+'</option>';}).join('');
+      return '<tr style="border-bottom:0.5px solid var(--border);'+(urgente?'background:#fce8e6;':'')+'">'+
+        '<td style="padding:5px 4px;text-align:center"><input type="checkbox" '+(item.sel?'checked':'')+' onchange="toggleRepItem('+i+',this.checked)"></td>'+
+        '<td style="padding:5px 4px;font-size:11px">'+(urgente?'🔴 ':'🟡 ')+item.nombre+'</td>'+
+        '<td style="padding:5px 4px;text-align:center;color:'+(urgente?'var(--danger)':'var(--warn)')+';font-weight:600">'+item.stockActual+'</td>'+
+        '<td style="padding:5px 4px;text-align:center;color:var(--text2)">'+item.stockMin+'</td>'+
+        '<td style="padding:5px 4px;text-align:center">'+
+          '<div class="qty-ctrl" style="justify-content:center">'+
+          '<button onclick="chgRep('+i+',-1)">−</button>'+
+          '<input type="number" value="'+item.qty+'" min="1" style="width:48px" inputmode="numeric" onchange="setRepQty('+i+',this.value)">'+
+          '<button onclick="chgRep('+i+',1)">+</button>'+
+          '</div></td>'+
+        '<td style="padding:5px 4px">'+
+          '<select style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);width:100%;min-width:140px" onchange="setRepProv('+i+',this.value)">'+
+          '<option value=""'+(item.prov?'':' selected')+'>-- Proveedor --</option>'+provSel+'</select></td>'+
+        '<td style="padding:5px 4px">'+
+          '<button onclick="delRepItem('+i+')" class="btn danger" style="padding:3px 7px;font-size:11px">✕</button></td>'+
+        '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  var nSel=reposicionItems.filter(function(i){return i.sel;}).length;
+  document.getElementById('rep-contador').textContent=nSel+' seleccionados de '+reposicionItems.length;
+}
+
+function toggleRepItem(i,val){reposicionItems[i].sel=val;renderListaReposicion();}
+function chgRep(i,d){reposicionItems[i].qty=Math.max(1,reposicionItems[i].qty+d);renderListaReposicion();}
+function setRepQty(i,v){reposicionItems[i].qty=Math.max(1,parseInt(v)||1);renderListaReposicion();}
+function setRepProv(i,v){reposicionItems[i].prov=v;renderListaReposicion();}
+function delRepItem(i){reposicionItems.splice(i,1);renderListaReposicion();}
+
+function seleccionarPorProveedor(){
+  var prov=document.getElementById('rep-filtro-prov').value;
+  if(!prov){toast('Selecciona un proveedor del filtro primero',true);return;}
+  reposicionItems.forEach(function(item){
+    if(item.prov===prov){item.sel=true;}
+    else if(!item.prov){item.prov=prov;item.sel=true;}
+  });
+  renderListaReposicion();
+  // Auto-rellenar email del proveedor
+  var email=getEmailProveedor(prov);
+  if(email){
+    document.getElementById('rep-email').value=email;
+    toast('✔ '+prov.split(' ')[0]+' — email: '+email);
+  } else {
+    toast('✔ Materiales asignados a '+prov.split(' ')[0]+' (sin email en Sheets)');
+  }
+}
+
+function deseleccionarTodosRep(){reposicionItems.forEach(function(i){i.sel=false;});renderListaReposicion();}
+
+function renderSearchRep(){
+  var q=document.getElementById('buscar-rep').value.toLowerCase();
+  var cont=document.getElementById('search-rep-results');
+  if(q.length<2){cont.innerHTML='';return;}
+  var existing=reposicionItems.map(function(i){return i.nombre;});
+  var res=inventario.filter(function(i){return i.nombre.toLowerCase().indexOf(q)!==-1&&existing.indexOf(i.nombre)===-1;}).slice(0,6);
+  if(!res.length){cont.innerHTML='<p style="font-size:12px;color:var(--text2);padding:8px">Sin resultados</p>';return;}
+  cont.innerHTML='<div class="search-results">'+res.map(function(i){
+    var esc=i.nombre.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div class="search-item" onclick="addRepMaterial(\''+esc+'\')"><span>'+i.nombre+'</span><span style="font-size:12px;color:var(--text2)">Stock: '+i.stock+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function addRepMaterial(nombre){
+  var inv=inventario.find(function(i){return i.nombre===nombre;});
+  reposicionItems.push({nombre:nombre,qty:1,prov:'',sel:true,stockActual:inv?inv.stock:0,stockMin:inv?inv.stockMin:0});
+  renderListaReposicion();
+  document.getElementById('buscar-rep').value='';
+  document.getElementById('search-rep-results').innerHTML='';
+}
+
+function limpiarReposicion(){
+  reposicionItems=[];renderListaReposicion();
+  document.getElementById('rep-email').value='';
+  document.getElementById('rep-obs').value='';
+}
+
+function enviarPedidoAlmacen(){
+  var seleccionados=reposicionItems.filter(function(i){return i.sel;});
+  if(!seleccionados.length){toast('Selecciona al menos un material',true);return;}
+  var sinProv=seleccionados.filter(function(i){return !i.prov;});
+  if(sinProv.length){toast('Asigna proveedor a: '+sinProv[0].nombre.substring(0,25)+'...',true);return;}
+  var email=document.getElementById('rep-email').value.trim();
+  if(!email){toast('Introduce el email de destino',true);return;}
+  var obs=document.getElementById('rep-obs').value.trim();
+  var btn=document.getElementById('btn-rep-enviar');btn.disabled=true;btn.textContent='Enviando...';
+  var porProv={};
+  seleccionados.forEach(function(item){
+    if(!porProv[item.prov])porProv[item.prov]=[];
+    porProv[item.prov].push({nombre:item.nombre,qty:item.qty});
+  });
+  var proveedores=Object.keys(porProv);
+  var pendientes=proveedores.length;var errores=0;
+  function onDone(){
+    pendientes--;
+    if(pendientes>0)return;
+    btn.disabled=false;btn.textContent='📧 Enviar pedido y marcar en tránsito';
+    if(errores){toast('⚠️ Error parcial al guardar',true);}
+    else{
+      reposicionItems=reposicionItems.filter(function(i){return !i.sel;});
+      renderListaReposicion();renderInv();
+      callAPI('getHistorial',function(err,data){if(!err&&Array.isArray(data)){historial=data.reverse();renderHist();}});
+      toast('✅ Pedido enviado y registrado. Aparece como 📦 En camino en el stock.');
+    }
+  }
+  proveedores.forEach(function(prov){
+    var items=porProv[prov];
+    postAPI({action:'addHistorial',tipo:'pedido',fecha:today,obra:'ALMACEN',prov:prov,ref:'Pedido reposición almacén',obs:obs,tipoDestino:'almacen',origenPedido:'proveedor',estadoPedido:'en_transito',items:items},function(err,data){
+      if(err||!data||!data.ok){errores++;onDone();return;}
+      postAPI({action:'sendEmailPedido',email:email,prov:prov,obs:obs,fecha:today,items:items},function(err2){
+        if(err2)errores++;
+        onDone();
+      });
+    });
+  });
+}
+
 </script>
 
 <!-- Modal: salidas sin obra en sincronización -->
@@ -4481,5 +4928,23 @@ function aplicarSincManual(obraOrig) {
   </div>
 </div>
 
+<!-- ── PIN MODAL BORRADO ── -->
+<div id="pin-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:99999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px 24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.25);text-align:center;">
+    <div style="font-size:30px;margin-bottom:6px;">🔒</div>
+    <div style="font-size:17px;font-weight:700;color:#1a3353;margin-bottom:8px;">Confirmar eliminación</div>
+    <div id="pin-msg" style="color:#666;margin-bottom:18px;font-size:13px;line-height:1.4;"></div>
+    <input id="pin-input" type="password" placeholder="PIN administrador"
+      style="width:100%;padding:11px;border:1.5px solid #ddd;border-radius:8px;font-size:16px;box-sizing:border-box;margin-bottom:6px;text-align:center;letter-spacing:4px;"
+      onkeydown="if(event.key==='Enter')confirmarPin()">
+    <div id="pin-error" style="color:#dc2626;font-size:12px;margin-bottom:12px;display:none;">PIN incorrecto. Inténtalo de nuevo.</div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="cerrarPinModal()" style="flex:1;padding:11px;border:1px solid #ddd;border-radius:8px;cursor:pointer;background:#f5f5f5;font-size:14px;">Cancelar</button>
+      <button onclick="confirmarPin()" style="flex:1;padding:11px;border:none;border-radius:8px;cursor:pointer;background:#dc2626;color:#fff;font-weight:700;font-size:14px;">Eliminar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
+
+

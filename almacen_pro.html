@@ -386,6 +386,7 @@ function entrar(rol) {
   document.getElementById('user-pill').textContent = ri.icon+' '+ri.label+' · '+estado.usuario;
   document.getElementById('user-pill').style.cssText = `background:${ri.color}22;color:${ri.color};border:1px solid ${ri.color}44;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;`;
   cargar();
+  sincronizarObras();
   renderTabs();
   renderTab();
 }
@@ -648,6 +649,38 @@ function renderObras() {
     </div>`;
   }).join('')+'</div>';
   return html;
+}
+
+// Sincroniza obras desde CRM (segufija_crm_obras) y almacén (segufija_obras)
+function sincronizarObras() {
+  var fuentes = [];
+  // CRM obras
+  try { fuentes = fuentes.concat(JSON.parse(localStorage.getItem('segufija_crm_obras') || '[]')); } catch(e){}
+  // Obras almacén (guardadas por facturacion.html)
+  try {
+    var almObras = JSON.parse(localStorage.getItem('segufija_obras') || '[]');
+    almObras.forEach(function(o){ if(o.nombre) fuentes.push({obra: o.nombre, oferta: o.codObra||'', estado: o.estado||'activa'}); });
+  } catch(e){}
+
+  var cambiaron = false;
+  fuentes.forEach(function(src) {
+    var nombre = (src.obra || '').trim();
+    if (!nombre) return;
+    // No añadir si ya existe (por nombre)
+    var existe = estado.obras.find(function(o){ return o.nombre.toLowerCase() === nombre.toLowerCase(); });
+    if (!existe) {
+      estado.obras.push({
+        id: 'sync_' + nombre.replace(/\s+/g,'_').toLowerCase() + '_' + Date.now(),
+        nombre: nombre,
+        direccion: src.oferta || '',
+        activa: true,
+        creadoPor: 'Sistema',
+        creadoEn: new Date().toISOString()
+      });
+      cambiaron = true;
+    }
+  });
+  if (cambiaron) guardar();
 }
 
 function guardarObra() {
