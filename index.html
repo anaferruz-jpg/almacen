@@ -3766,7 +3766,13 @@ function recalcularSuministradoTodo() {
   var sinObra = {}, sinPartida = {};
   _sincSinObra = {};   // reset global para modal
   salidas.forEach(function(h) {
-    var obraObj = obraIdx[(h.obra||'').toLowerCase().trim()];
+    var obraKey = (h.obra||'').toLowerCase().trim();
+    var obraObj = obraIdx[obraKey];
+    if (!obraObj) {
+      // Buscar en alias guardados
+      var aliasNombre = _obraAliases[obraKey];
+      if (aliasNombre) obraObj = obraIdx[aliasNombre.toLowerCase().trim()];
+    }
     if (!obraObj) {
       sinObra[h.obra] = true;
       if (!_sincSinObra[h.obra]) _sincSinObra[h.obra] = [];
@@ -4641,6 +4647,7 @@ recargarTodo();
 
 /* ── MODAL SINCRONIZACIÓN: salidas sin obra ── */
 var _sincSinObra = {};   // key: nombre original, value: [{salida historial}]
+var _obraAliases = (function(){ try{ return JSON.parse(localStorage.getItem('segufija_obra_aliases')||'{}'); }catch(e){return {};} })();
 
 function mostrarModalSincErrores() {
   var keys = Object.keys(_sincSinObra);
@@ -4711,19 +4718,21 @@ function aplicarSincManual(obraOrig) {
     });
   });
 
+  // Guardar alias para futuras sincronizaciones
+  _obraAliases[obraOrig.toLowerCase().trim()] = obraObj.nombre;
+  try { localStorage.setItem('segufija_obra_aliases', JSON.stringify(_obraAliases)); } catch(e){}
+
   // Guardar la obra actualizada
   guardarObraSilencioso(obraObj, function() {
-    // Actualizar en memoria
     for (var i=0; i<OBRAS.length; i++) {
       if (OBRAS[i].nombre === obraObj.nombre) { OBRAS[i] = obraObj; break; }
     }
     if (obraSeleccionada && obraSeleccionada.nombre === obraObj.nombre) {
       obraSeleccionada = obraObj; renderPartidas();
     }
-    renderInv(); buildObrasGrid();
-    toast('✅ Salidas de "'+obraOrig+'" aplicadas a '+obraObj.nombre);
-    // Quitar del modal
     delete _sincSinObra[obraOrig];
+    renderInv(); buildObrasGrid();
+    toast('✅ Salidas de "'+obraOrig+'" vinculadas a '+obraObj.nombre+' (alias guardado)');
     var remaining = Object.keys(_sincSinObra).length;
     if (!remaining) {
       document.getElementById('sinc-modal').style.display = 'none';
