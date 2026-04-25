@@ -1,0 +1,98 @@
+# CLAUDE.md — SEGUFIJA-APP
+
+## Descripción del proyecto
+App web de gestión para **Segufija SL** (constructora, Sant Cugat del Vallès).
+Dos módulos principales: **Almacén/Producción** y **Facturación**.
+
+---
+
+## Empresa
+- **Nombre:** Segufija SL
+- **CIF:** B22898712
+- **Dirección:** Calle Granollers 47, 08173 Sant Cugat del Vallès
+- **Teléfono:** 623782259
+- **Email:** info@segufija.com
+- **Responsable de compras:** Emma García (recibe alertas de pedidos pendientes, tiene acceso Editor al Sheet y Apps Script)
+
+---
+
+## Arquitectura
+
+| Capa | Tecnología | Ubicación |
+|------|-----------|-----------|
+| Frontend | HTML + JS (vanilla) | GitHub Pages |
+| Backend | Google Apps Script | script.google.com |
+| Base de datos | Google Sheets | Sheet ID: `1YFu6po3AC_bg0k6lOMTy_IuBnVJX5Ng9_28C9TNWPYg` |
+| URL pública | GitHub Pages | https://anaferruz-jpg.github.io/almacen/ |
+| Repositorio | GitHub | github.com/anaferruz-jpg/almacen |
+
+**Archivos principales:**
+- `index.html` → módulo almacén/producción/personal
+- `facturacion.html` → módulo facturación contabilidad
+
+**Despliegue:** Los cambios se publican copiando el HTML directamente en el editor web de GitHub (no por descarga de archivos).
+
+---
+
+## Obras activas
+- ARCADI PLA ST ADRIA
+- GRUP MAS ST JOAN DESPI
+- LUIS PARES LLORET
+- VOPI 4 CUNIT
+- CORP ABRERA
+
+---
+
+## Módulos y estado
+
+### index.html — Almacén y Producción
+- **Inventario:** Materiales con precios actualizados en la app (no modificar precios sin indicación explícita). Referencia pendiente de añadir: `MOSQUITERA BLANCA 3X20 ML`
+- **Partidas:** Cada obra tiene partidas contratadas con materiales asignados. El descuento de material entregado debe hacerse **por partida específica elegida por el usuario**, no automático por nombre de material.
+- **Pedidos (sistema de 3 estados):** 🟡 pendiente → 🔵 en tránsito → ✅ entregado. El estado `en_transito` se guarda en **columna 10 de la hoja Historial** usando `rowIndex` para evitar pérdida al recargar página.
+- **Clave compuesta pedidos:** `partida|||material` (evita bug de descuento en múltiples partidas con mismo material)
+- **Historial:** Gestión mensual del día 25 al 24. Debe mostrar todos los registros (sin límite `.slice`). Filtrable por mes y por obra.
+- **Personal/Operarios:** Fichas de trabajadores con control de asistencia
+
+### facturacion.html — Facturación y Contabilidad
+- Emisión de facturas/proformas en PDF con logo, nº automático, IVA 21%, datos fiscales fijos
+- Registro de facturas de proveedores por obra
+- Control de cobros y pagos pendientes
+- Margen real por obra (ingresos vs gastos)
+- Gastos internos por categoría (oficina, nóminas, vehículos, financieros, impuestos, por obra)
+- Exportación CSV mensual para gestor externo (resumen IVA)
+
+---
+
+## Bugs conocidos / pendientes
+
+1. **Mosquitera Blanca** — añadir como referencia nueva en inventario
+2. **Historial** — verificar que no tiene `.slice(0,40)` limitando registros visibles
+3. **Archivos basura en GitHub** — hay duplicados: `facturacion (5).html`, `facturacion.html.html`, `índice.html` → eliminar
+4. **Google Drive** — verificar si está implementada la funcionalidad de guardar archivos desde la app (quedó pendiente)
+5. **Módulo segunda empresa** — se empezó una app similar para otra empresa (repo separado), pendiente conectar: `saveCliente`, `editCliente`, `saveObra` y módulo de documentos de personal
+
+---
+
+## Reglas de desarrollo
+
+- **No modificar precios** del inventario a menos que Ana lo pida explícitamente
+- **El descuento de material entregado** siempre debe ser manual por partida seleccionada por el usuario
+- **Despliegue siempre por GitHub web editor** (copiar/pegar el HTML), nunca descargar archivos
+- **Apps Script:** Para publicar cambios → Implementar → Gestionar implementaciones → lápiz → Nueva versión → Implementar
+- Comunicación en **español**
+
+---
+
+## Google Sheets — estructura de hojas relevantes
+
+| Hoja | Uso |
+|------|-----|
+| Historial | Registro de pedidos. Columna 10 = estado `en_transito` |
+| Inventario | Stock y precios de materiales |
+| Operarios | Fichas de personal |
+
+---
+
+## Contexto adicional
+- Hay una segunda app para otra empresa en construcción (iniciada abril 2026) — preguntar a Ana si es relevante antes de modificar
+- Claude Code está instalado y configurado con MCP: Gmail, Google Calendar y Google Drive (misma cuenta Google)
