@@ -446,6 +446,57 @@ function deleteArticulo(data) {
 }
 
 // ══════════════════════════════════════════════════════
+// DEDUPLICAR OBRAS — ejecutar UNA SOLA VEZ desde el editor
+// Elimina obras duplicadas: conserva la que tiene codObra, borra la sin código
+// ══════════════════════════════════════════════════════
+function deduplicarObras() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Obras');
+  if (!sheet) { Logger.log('Hoja Obras no encontrada'); return; }
+
+  function normNom(s) {
+    return (s||'').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var rowsToDelete = [];
+  // Agrupar filas por nombre normalizado
+  var grupos = {}; // normNom → [{ idx, codObra, stock(partidas len) }]
+  for (var i = 1; i < rows.length; i++) {
+    var nom = normNom(rows[i][0]);
+    if (!nom) continue;
+    // También agrupar si un nombre contiene al otro (ej: "vopi 4 cunit" ⊂ "vopi 4 cunit 52514 h")
+    var found = false;
+    for (var key in grupos) {
+      var shorter = nom.length <= key.length ? nom : key;
+      var longer  = nom.length <= key.length ? key  : nom;
+      if (shorter.length >= 6 && longer.indexOf(shorter) !== -1) {
+        grupos[key].push({ idx: i, codObra: (rows[i][18]||'').trim(), partidas: (rows[i][7]||'').length });
+        found = true; break;
+      }
+    }
+    if (!found) grupos[nom] = [{ idx: i, codObra: (rows[i][18]||'').trim(), partidas: (rows[i][7]||'').length }];
+  }
+
+  // Por cada grupo con duplicados: conservar la que tiene codObra (o más datos), borrar el resto
+  for (var g in grupos) {
+    var grupo = grupos[g];
+    if (grupo.length < 2) continue;
+    // Ordenar: primero las que tienen codObra, luego por más partidas
+    grupo.sort(function(a,b){ return (b.codObra?1:0)-(a.codObra?1:0) || b.partidas-a.partidas; });
+    // Conservar la primera, marcar el resto para borrar
+    for (var k = 1; k < grupo.length; k++) {
+      rowsToDelete.push(grupo[k].idx + 1);
+      Logger.log('Eliminar duplicado fila '+(grupo[k].idx+1)+': '+rows[grupo[k].idx][0]);
+    }
+  }
+
+  rowsToDelete.sort(function(a,b){ return b-a; });
+  rowsToDelete.forEach(function(r){ sheet.deleteRow(r); });
+  Logger.log('✅ Obras deduplicadas. Filas eliminadas: ' + rowsToDelete.length);
+}
+
+// ══════════════════════════════════════════════════════
 // MIGRACIÓN NOMBRES STOCK — ejecutar UNA SOLA VEZ desde el editor
 // ══════════════════════════════════════════════════════
 function migrateInventarioNames() {
