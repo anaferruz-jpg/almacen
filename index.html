@@ -4700,7 +4700,24 @@ var MAT_NORM_MAP = (function(){
     'garra horca':                              'garra horca',
     'polea m15':                                'poleas',
     'poleas':                                   'poleas',
-    'red tipo s':                               'red tipo s'
+    'red tipo s':                               'red tipo s',
+    // Nombres comerciales proveedor UNETRA / INDEXFIX
+    'barandilla d/40 2500mm':                   'barandilla d/35 100-150 en 13374',
+    'barandilla d/40':                          'barandilla d/35 100-150 en 13374',
+    'guardacuerpo sargento mordaza 1.3m':       'guardacuerpo usillo 1,300 doble cuerpo',
+    'guardacuerpo sargento mordaza':            'guardacuerpo usillo 1,300 doble cuerpo',
+    'guardacuerpo sargento':                    'guardacuerpo usillo 1,300 doble cuerpo',
+    'codo soporte de 160 en l para guardacuerpo emp': 'soporte de 160 en l para guardacuerpo',
+    'codo soporte de 160 en l':                 'soporte de 160 en l para guardacuerpo',
+    'soporte 160 en l':                         'soporte de 160 en l para guardacuerpo',
+    'red 2,10 x 10 pp q100':                   'red 2x10 pp en1263 ua2 q100 (verde)',
+    'red 2,10 x 10 pp':                        'red 2x10 pp en1263 ua2 q100 (verde)',
+    'red 2x10 pp q100':                        'red 2x10 pp en1263 ua2 q100 (verde)',
+    'red 2x10 pp bajo forjado':                'red 2x10 pp en1263 ua2 q100 (verde)',
+    'rodapie 2,5m. en 13374':                  'rodapie 2,5m. en 13374',
+    'rodapie 2,5m en 13374':                   'rodapie 2,5m. en 13374',
+    'rodapie 2,5m.':                           'rodapie 2,5m. en 13374',
+    'rodapie 2,5m':                            'rodapie 2,5m. en 13374'
   };
   // Construir reverse map: valor stock → sí mismo (para que nombres correctos también pasen)
   var rev = {};
@@ -4710,7 +4727,14 @@ var MAT_NORM_MAP = (function(){
 })();
 
 function normalizarMat(nombre) {
-  var k = (nombre||'').toLowerCase().trim()
+  var k = (nombre||'')
+    .replace(/\s*\([^)]*\)/g, '')                   // quitar (...)
+    .replace(/\s*\[[^\]]*\]/g, '')                   // quitar [...]
+    .replace(/\s*-\s*(unetra|indexfix|wurth|palet|paletizado|caja|bote|caja|pale|unidad|ud\.|uds\.?).*/i, '') // quitar info proveedor tras " - "
+    .replace(/\bune\b[\s\w]*\d{4,}/gi, '')           // quitar norma UNE con número
+    .replace(/\bune\s+en\d+/gi, '')                  // quitar UNE EN####
+    .replace(/\s+/g,' ')
+    .toLowerCase().trim()
     .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
     .replace(/×/g,'x');
   return MAT_NORM_MAP[k] || k;
