@@ -1356,8 +1356,9 @@ function recargarTodo(){
         var match=OBRAS.find(function(o){return o.nombre.toLowerCase()===nombre.toLowerCase();});
         if(match){
           if(crm.oferta&&!match.codObra)match.codObra=crm.oferta;
+          if(crm.carpetaDriveId&&!match.carpetaDriveId)match.carpetaDriveId=crm.carpetaDriveId;
         } else {
-          OBRAS.push({nombre:nombre,codObra:crm.oferta||'',icon:'🏗️',corto:nombre.substring(0,22),estado:crm.estado||'activa',partidas:[],personal:[],previsionPersonal:[]});
+          OBRAS.push({nombre:nombre,codObra:crm.oferta||'',carpetaDriveId:crm.carpetaDriveId||'',icon:'🏗️',corto:nombre.substring(0,22),estado:crm.estado||'activa',partidas:[],personal:[],previsionPersonal:[]});
         }
       });
     } catch(e){}
