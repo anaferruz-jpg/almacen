@@ -4728,12 +4728,14 @@ var MAT_NORM_MAP = (function(){
 
 function normalizarMat(nombre) {
   var k = (nombre||'')
-    .replace(/\s*\([^)]*\)/g, '')                   // quitar (...)
-    .replace(/\s*\[[^\]]*\]/g, '')                   // quitar [...]
-    .replace(/\s*-\s*(unetra|indexfix|wurth|palet|paletizado|caja|bote|caja|pale|unidad|ud\.|uds\.?).*/i, '') // quitar info proveedor tras " - "
-    .replace(/\bune\b[\s\w]*\d{4,}/gi, '')           // quitar norma UNE con número
-    .replace(/\bune\s+en\d+/gi, '')                  // quitar UNE EN####
-    .replace(/\s+/g,' ')
+    .replace(/\s*\([^)]*\)/g, '')           // quitar (...)
+    .replace(/\s*\[[^\]]*\]/g, '')           // quitar [...]
+    .replace(/\bune\s+en\s*\d+/gi, '')      // quitar UNE EN####
+    .replace(/\bune\s*\d+/gi, '')           // quitar UNE####
+    .replace(/\s*-\s*(unetra|indexfix|wurth|multigarben|visornets|palet|pale|caja|bote|unidad|uds?\.?).*/gi, '')
+    .replace(/\s*\b(unetra|indexfix)\b.*/gi, '')  // quitar nombre proveedor al final sin guión
+    .replace(/\bemp\.?\s*$/gi, '')           // quitar "emp." al final
+    .replace(/\s+/g,' ').replace(/\.\s*$/,'')
     .toLowerCase().trim()
     .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
     .replace(/×/g,'x');
