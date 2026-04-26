@@ -101,20 +101,22 @@ function getInventario() {
       nec:      rows[i][2] || 0,
       pvp:      rows[i][3] || 0,
       pcompra:  rows[i][4] || 0,
-      stockMin: rows[i][5] || 0
+      stockMin: rows[i][5] || 0,
+      cod:      rows[i][6] || ''
     });
   }
   return result;
 }
 
 function asegurarColumnas(sheet) {
-  var h = sheet.getRange(1,1,1,6).getValues()[0];
+  var h = sheet.getRange(1,1,1,7).getValues()[0];
   if (!h[0]) sheet.getRange(1,1).setValue('Nombre');
   if (!h[1]) sheet.getRange(1,2).setValue('Stock');
   if (!h[2]) sheet.getRange(1,3).setValue('Necesario');
   if (!h[3]) sheet.getRange(1,4).setValue('PVP');
   if (!h[4]) sheet.getRange(1,5).setValue('PrecioCompra');
   if (!h[5]) sheet.getRange(1,6).setValue('StockMinimo');
+  if (!h[6]) sheet.getRange(1,7).setValue('Codigo');
 }
 
 // ══════════════════════════════════════════════════════
@@ -405,7 +407,7 @@ function addArticulo(data) {
     sheet.appendRow(['Nombre','Stock','Necesario','PVP','PrecioCompra','StockMinimo']);
   }
   asegurarColumnas(sheet);
-  sheet.appendRow([data.nombre,data.stock||0,data.nec||0,data.pvp||0,data.pcompra||0,data.stockMin||0]);
+  sheet.appendRow([data.nombre,data.stock||0,data.nec||0,data.pvp||0,data.pcompra||0,data.stockMin||0,data.cod||'']);
   return {ok:true};
 }
 
@@ -416,12 +418,13 @@ function editArticulo(data) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.nombreOriginal) {
-      sheet.getRange(i+1,1).setValue(data.nombre);
+      // Nombre bloqueado — no se modifica. Solo datos y código.
       sheet.getRange(i+1,2).setValue(data.stock||0);
       sheet.getRange(i+1,3).setValue(data.nec||0);
       sheet.getRange(i+1,4).setValue(data.pvp||0);
       sheet.getRange(i+1,5).setValue(data.pcompra||0);
       sheet.getRange(i+1,6).setValue(data.stockMin||0);
+      sheet.getRange(i+1,7).setValue(data.cod||'');
       return {ok:true};
     }
   }
@@ -440,6 +443,213 @@ function deleteArticulo(data) {
     }
   }
   return {ok:false};
+}
+
+// ══════════════════════════════════════════════════════
+// MIGRACIÓN NOMBRES STOCK — ejecutar UNA SOLA VEZ desde el editor
+// ══════════════════════════════════════════════════════
+function migrateInventarioNames() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Inventario');
+  if (!sheet) { Logger.log('Hoja Inventario no encontrada'); return; }
+
+  // Nombres a RENOMBRAR: clave = nombre actual exacto en la hoja, valor = nombre limpio nuevo
+  var RENOMBRAR = {
+    'BARANDILLA D/40 2500mm UNE EN13374 (P 169 U.)':                          'Barandilla D/35 2500mm',
+    'BARANDILLA D/40 100-150 EN 13374 UNETRA (palé 169 uds)':                 'Barandilla D/35 2500mm',
+    'BASE RECTA para Guardacuerpo UNETRA':                                      'Pie recto',
+    'BASE PLASTICO CVTOOLS  POSTE LDV 60 X 40 UNETRA  (B.114 U)':             'Base plástico poste LDV 60x40',
+    'BASQUIT / CONIX para guardacuerpo (bolsa 200 uds)':                       'Basquit / Conix bolsa 200 uds',
+    'BRIDA   4,8X200 P100':                                                     'Brida 4,8x200',
+    'ESLINGA PLATAFORMA - ANCLAJE VERTICAL DE TECHO 1,5MTS':                  'Eslinga plataforma 1,5m',
+    'GUARDACUERPO 1,2M EN13374  (pale 250 ud)':                                'Guardacuerpo 1,200',
+    'GUARDACUERPO 1,5M EN13374  (pale 250 ud)':                                'Guardacuerpo 1,500',
+    'GUARDACUERPO SARGENTO MORDAZA 1.3m  - UNETRA  (Palet 120 Ud.)':          'Guardacuerpo usillo 1,300',
+    'GUARDACUERPO C/MORDAZA 1.3m  (inde-k PRECIO ALQUILER DIA/UNIDAD)  codigo 108541 (Falta barandilla)': 'Guardacuerpo usillo 1,300 (inde-k)',
+    'Guardacuerpo C/Mor. 1.3M INDE-K ref. 108541':                            'Guardacuerpo usillo 1,300 (inde-k)',
+    'LINEA DE VIDA 20 ML HORIZONTAL- LUISA 300  (2 personas) - CON MOCHILA -':'Línea vida horizontal 20m',
+    'MOSQUETON -  19mm-25KN':                                                   'Mosquetón 19mm 25KN',
+    'MOSQUETON SEG.C/ROSCA 18MM (más de 20 uds) - ':                          'Mosquetón 19mm 25KN',
+    'MOSQUITERA BLANCA 3X20 ML (34,20€ entera)':                              'Mosquitera blanca 3x20m',
+    'POSTE / MASTIL LINEA DE VIDA   BASE 60*40':                               'Poste mástil LDV 60x40',
+    'PUNTO DE ANCLAJE - AC02 (2 US) - oreja':                                  'Punto anclaje AC02 estela',
+    'RED 1X10 PP BAJO FORJADO) UNE 81652 Q100 (NARANJA)':                     'Red 1x10 PP bajo forjado',
+    'RED 1.10 X 10 BAJO FORJADO':                                               'Red 1x10 PP bajo forjado',
+    'RED 2,10 X 10 PP (BAJO FORJADO ) UNE 81652 Q100 (NARANJA)':              'Red 2x10 PP bajo forjado',
+    'RED 2.1 x 10 BF naranja':                                                  'Red 2x10 PP bajo forjado',
+    'RED 3,5 X 10 PP EN1263 (NARANJA)':                                        'Red 3,5x10 PP EN1263',
+    'Red 3 x 10 tipo U naranja':                                                'Red 3x10 PP tipo U',
+    'RED 5 X 10 PP EN1263,1 UA2 Q100 5 x 10':                                 'Red 5x10 PP EN1263',
+    'RODAPIE 2,5M  EN 13374  (P 100)':                                         'Rodapié 2,5m',
+    'Rodapie Acero INDE-K ; L=250 cm ref. 116211':                            'Rodapié 2,5m (inde-k)',
+    'SETA PROTECTORA 12-22 MM P300':                                            'Seta protectora 12-22mm',
+    'TACO D12  LARGO  M10X100':                                                 'Taco D12 largo M10x100',
+    'TACO D12 CORTO  M10X70  - 50 UDS':                                        'Taco D12 corto M10x70',
+    'CANCAMO ARGOLLA D12- M10X70 - ACHA12C':                                   'Cáncamo argolla D12 M10x70',
+    'CANCAMO ARGOLLA  D10  M 8X60 -  ACHA10C':                                 'Cáncamo argolla D10 M8x60',
+    'TELA ONIX SEÑALIZACIÓN. (malla naranja) - 1 M X 50 M':                   'Tela señalización naranja 1x50m',
+    'ZOCALO RAFIA   0,50 X 100 ML BLANCO':                                     'Zócalo rafia 0,50x100m',
+    'zocalo - MOSQUITERA MALLA 90GR/M2  1 X 100 ML blanco':                   'Zócalo rafia 0,50x100m',
+    'BASE CODO  DE 160 EN L  guardacuderpo  UNETRA':                          'Soporte 160 en L',
+    'CINTA SEÑALIZACION ROJA/BLANCA 200MTS X 7CM':                            'Cinta señalización roja/blanca 200m',
+    'BAUL 120 X 60 BRICOTRAIL':                                                 'Baúl 120x60',
+    'MALLA CORPORATIVA 60% OCULTACION BLANCO/LOGO 2mts x 50 ml (min 3 rollos) - PRECIO M2': 'Malla corporativa 60% 2x50m',
+    'BARANDILLA D/40 120 EN 13374  (P169 U)':                                  'Barandilla D/35 2500mm',
+    'GANCHO RED BAJO FORJADO 8MM':                                              'Gancho red bajo forjado 8mm',
+    '118861 Polea M15 INDE-K RED ; Inoxidable':                               'Polea M15 inde-k',
+    'Rollo Cuerda Atado INDE-K RED ; Ø10mm ; 100 ml ; UNE':                   'Cuerda atado inde-k 100m'
+  };
+
+  var rows = sheet.getDataRange().getValues();
+  var seenNombres = {}; // para detectar y eliminar duplicados tras renombrar
+  var rowsToDelete = [];
+
+  // Primera pasada: renombrar
+  for (var i = 1; i < rows.length; i++) {
+    var nombreActual = (rows[i][0] || '').toString().trim();
+    if (!nombreActual) continue;
+    var nuevoNombre = RENOMBRAR[nombreActual];
+    if (nuevoNombre) {
+      sheet.getRange(i + 1, 1).setValue(nuevoNombre);
+      rows[i][0] = nuevoNombre; // actualizar en memoria
+      Logger.log('Renombrado: "' + nombreActual + '" → "' + nuevoNombre + '"');
+    }
+  }
+
+  // Segunda pasada: eliminar duplicados (quedarse con el de mayor stock)
+  rows = sheet.getDataRange().getValues();
+  var bestRow = {}; // nombre limpio → { rowIdx, stock }
+  for (var j = 1; j < rows.length; j++) {
+    var nom = (rows[j][0] || '').toString().trim();
+    if (!nom) { rowsToDelete.push(j + 1); continue; }
+    var stk = parseFloat(rows[j][1]) || 0;
+    if (bestRow[nom] === undefined) {
+      bestRow[nom] = { rowIdx: j, stock: stk };
+    } else {
+      // Ya existe — marcar el de menor stock para eliminar, conservar el mayor
+      if (stk >= bestRow[nom].stock) {
+        rowsToDelete.push(bestRow[nom].rowIdx + 1);
+        bestRow[nom] = { rowIdx: j, stock: stk };
+      } else {
+        rowsToDelete.push(j + 1);
+      }
+      Logger.log('Duplicado eliminado fila ' + (j + 1) + ': ' + nom);
+    }
+  }
+
+  // Eliminar de abajo hacia arriba para no desplazar índices
+  rowsToDelete.sort(function(a, b) { return b - a; });
+  rowsToDelete.forEach(function(r) { sheet.deleteRow(r); });
+
+  Logger.log('✅ Migración Inventario completada. ' + rowsToDelete.length + ' filas eliminadas.');
+}
+
+// ── Paso 2: migrar partidas de obras ─────────────────────────────
+// Ejecutar DESPUÉS de migrateInventarioNames(). Actualiza partidas.material
+// en todas las obras usando el mismo mapa de renombrado.
+function migrateObraPartidaNames() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Obras');
+  if (!sheet) { Logger.log('Hoja Obras no encontrada'); return; }
+
+  // Mismo mapa que migrateInventarioNames — nombre antiguo → nombre limpio
+  var RENOMBRAR = {
+    'BARANDILLA D/40 2500mm UNE EN13374 (P 169 U.)':        'Barandilla D/35 2500mm',
+    'BARANDILLA D/40 100-150 EN 13374 UNETRA (palé 169 uds)':'Barandilla D/35 2500mm',
+    'BARANDILLA D/40 120 EN 13374  (P169 U)':                'Barandilla D/35 2500mm',
+    'BARANDILLA D/40 2500mm':                                'Barandilla D/35 2500mm',
+    'BARANDILLA D/35 100-150 EN 13374':                      'Barandilla D/35 2500mm',
+    'BASE RECTA para Guardacuerpo UNETRA':                   'Pie recto',
+    'BASE PLASTICO CVTOOLS  POSTE LDV 60 X 40 UNETRA  (B.114 U)': 'Base plástico poste LDV 60x40',
+    'BASQUIT / CONIX para guardacuerpo (bolsa 200 uds)':     'Basquit / Conix bolsa 200 uds',
+    'BRIDA   4,8X200 P100':                                  'Brida 4,8x200',
+    'BRIDA 4,8X200 P100':                                    'Brida 4,8x200',
+    'ESLINGA PLATAFORMA - ANCLAJE VERTICAL DE TECHO 1,5MTS': 'Eslinga plataforma 1,5m',
+    'GUARDACUERPO 1,2M EN13374  (pale 250 ud)':              'Guardacuerpo 1,200',
+    'GUARDACUERPO 1,2M EN13374 (pale 250 ud)':               'Guardacuerpo 1,200',
+    'GUARDACUERPO 1,5M EN13374  (pale 250 ud)':              'Guardacuerpo 1,500',
+    'GUARDACUERPO 1,5M EN13374 (pale 250 ud)':               'Guardacuerpo 1,500',
+    'GUARDACUERPO SARGENTO MORDAZA 1.3m  - UNETRA  (Palet 120 Ud.)': 'Guardacuerpo usillo 1,300',
+    'GUARDACUERPO SARGENTO MORDAZA 1.3m - UNETRA':           'Guardacuerpo usillo 1,300',
+    'GUARDACUERPO SARGENTO MORDAZA 1.3M':                    'Guardacuerpo usillo 1,300',
+    'GUARDACUERPO C/MORDAZA 1.3m  (inde-k PRECIO ALQUILER DIA/UNIDAD)  codigo 108541 (Falta barandilla)': 'Guardacuerpo usillo 1,300',
+    'guardacuerpo usillo 1,300 doble cuerpo':                'Guardacuerpo usillo 1,300',
+    'LINEA DE VIDA 20 ML HORIZONTAL- LUISA 300  (2 personas) - CON MOCHILA -': 'Línea vida horizontal 20m',
+    'MOSQUETON -  19mm-25KN':                                'Mosquetón 19mm 25KN',
+    'MOSQUETON SEG.C/ROSCA 18MM (más de 20 uds) - ':         'Mosquetón 19mm 25KN',
+    'mosqueton seg. c/rosca 18mm':                           'Mosquetón 19mm 25KN',
+    'MOSQUITERA BLANCA 3X20 ML (34,20€ entera)':            'Mosquitera blanca 3x20m',
+    'POSTE / MASTIL LINEA DE VIDA   BASE 60*40':             'Poste mástil LDV 60x40',
+    'PUNTO DE ANCLAJE - AC02 (2 US) - oreja':               'Punto anclaje AC02 estela',
+    'punto anclaje a1 cesar 1,5m eslinga':                   'Eslinga plataforma 1,5m',
+    'RED 1X10 PP BAJO FORJADO) UNE 81652 Q100 (NARANJA)':   'Red 1x10 PP bajo forjado',
+    'RED 1.10 X 10 BAJO FORJADO':                            'Red 1x10 PP bajo forjado',
+    'red pp en1263-1 1,10x10 bajo forjado':                  'Red 1x10 PP bajo forjado',
+    'RED 2,10 X 10 PP (BAJO FORJADO ) UNE 81652 Q100 (NARANJA)': 'Red 2x10 PP bajo forjado',
+    'RED 2.1 x 10 BF naranja':                              'Red 2x10 PP bajo forjado',
+    'red 2x10 pp en1263 ua2 q100 (verde)':                  'Red 2x10 PP bajo forjado',
+    'RED 3,5 X 10 PP EN1263 (NARANJA)':                     'Red 3,5x10 PP EN1263',
+    'Red 3 x 10 tipo U naranja':                            'Red 3x10 PP tipo U',
+    'RED 5 X 10 PP EN1263,1 UA2 Q100 5 x 10':              'Red 5x10 PP EN1263',
+    'red pp en1263-1 va2 q100 5x10m (horca)':              'Red 5x10 PP EN1263',
+    'RODAPIE 2,5M  EN 13374  (P 100)':                     'Rodapié 2,5m',
+    'rodapie 2,5m. en 13374':                              'Rodapié 2,5m',
+    'SETA PROTECTORA 12-22 MM P300':                        'Seta protectora 12-22mm',
+    'seta protectora 12-24':                               'Seta protectora 12-22mm',
+    'TACO D12  LARGO  M10X100':                             'Taco D12 largo M10x100',
+    'taco d12 m-10x70':                                    'Taco D12 corto M10x70',
+    'TACO D12 CORTO  M10X70  - 50 UDS':                    'Taco D12 corto M10x70',
+    'taco argolla d10 m-8x60':                             'Cáncamo argolla D10 M8x60',
+    'CANCAMO ARGOLLA D12- M10X70 - ACHA12C':               'Cáncamo argolla D12 M10x70',
+    'CANCAMO ARGOLLA  D10  M 8X60 -  ACHA10C':             'Cáncamo argolla D10 M8x60',
+    'TELA ONIX SEÑALIZACIÓN. (malla naranja) - 1 M X 50 M':'Tela señalización naranja 1x50m',
+    'ZOCALO RAFIA   0,50 X 100 ML BLANCO':                 'Zócalo rafia 0,50x100m',
+    'zocalo - MOSQUITERA MALLA 90GR/M2  1 X 100 ML blanco':'Zócalo rafia 0,50x100m',
+    'rafia zocalo h 50 cms 100m':                          'Zócalo rafia 0,50x100m',
+    'BASE CODO  DE 160 EN L  guardacuderpo  UNETRA':       'Soporte 160 en L',
+    'soporte de 160 en l para guardacuerpo':               'Soporte 160 en L',
+    'CINTA SEÑALIZACION ROJA/BLANCA 200MTS X 7CM':         'Cinta señalización roja/blanca 200m',
+    'BAUL 120 X 60 BRICOTRAIL':                            'Baúl 120x60',
+    'anclaje m 10x100 d/12 tornillo (taco d12 m10x100) 50uds': 'Taco D12 largo M10x100',
+    'PIE RECTO':                                           'Pie recto',
+    'pie recto':                                           'Pie recto',
+    'SOPORTE DE 160 EN L PARA GUARDACUERPO':               'Soporte 160 en L'
+  };
+
+  var rows = sheet.getDataRange().getValues();
+  var obrasActualizadas = 0;
+  var partidasActualizadas = 0;
+
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    var partidas;
+    try { partidas = JSON.parse(rows[i][7] || '[]'); } catch(e) { continue; }
+    var modificado = false;
+    partidas.forEach(function(p) {
+      var mat = (p.material || '').trim();
+      // Buscar coincidencia exacta primero
+      var nuevo = RENOMBRAR[mat] || RENOMBRAR[mat.toUpperCase()];
+      // Si no hay exacta, buscar insensible a mayúsculas
+      if (!nuevo) {
+        var matLow = mat.toLowerCase();
+        for (var k in RENOMBRAR) {
+          if (k.toLowerCase() === matLow) { nuevo = RENOMBRAR[k]; break; }
+        }
+      }
+      if (nuevo && nuevo !== mat) {
+        p.material = nuevo;
+        modificado = true;
+        partidasActualizadas++;
+      }
+    });
+    if (modificado) {
+      sheet.getRange(i + 1, 8).setValue(JSON.stringify(partidas));
+      obrasActualizadas++;
+      Logger.log('Obra actualizada: ' + rows[i][0] + ' — ' + partidas.filter(function(p){return RENOMBRAR[p.material];}).length + ' partidas');
+    }
+  }
+
+  Logger.log('✅ Partidas migradas. Obras: ' + obrasActualizadas + ', Partidas: ' + partidasActualizadas);
 }
 
 // ══════════════════════════════════════════════════════

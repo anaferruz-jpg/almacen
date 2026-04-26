@@ -621,8 +621,12 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <div class="card-title" style="color:var(--accent)">➕ Añadir artículo</div>
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1">
-          <label>Nombre del artículo *</label>
-          <input type="text" id="ninv-nombre" placeholder="Ej: GUARDACUERPO 2M EN13374...">
+          <label>Nombre del artículo * <span style="font-weight:400;color:var(--text2);font-size:11px">(bloqueado tras guardar — no se podrá cambiar)</span></label>
+          <input type="text" id="ninv-nombre" placeholder="Ej: guardacuerpo usillo 1,300 doble cuerpo">
+        </div>
+        <div class="form-group">
+          <label>Código interno <span style="font-weight:400;color:var(--text2);font-size:11px">(opcional)</span></label>
+          <input type="text" id="ninv-cod" placeholder="Ej: GC130, RED2X10..." style="text-transform:uppercase">
         </div>
         <div class="form-group">
           <label>Stock inicial (uds)</label>
@@ -653,14 +657,14 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
   <div class="tbl-wrap">
     <table><thead><tr>
-      <th>Material</th><th>Stock</th><th>Mínimo</th><th>Estado</th>
+      <th style="width:70px">Cód.</th><th>Material</th><th>Stock</th><th>Mínimo</th><th>Estado</th>
       <th style="color:#3498db" title="Pedidos en tránsito del proveedor">📦 En camino</th>
       <th style="color:#8e44ad" title="Stock reservado para pedidos de almacén pendientes">🔒 Reservado</th>
       <th style="color:#e67e22" title="Pendiente de servir a obras">🏗️ Pend. servir</th>
       <th style="color:#059669" title="Material pendiente de suministrar según partidas de obras activas (contratado − suministrado)">📋 Dem. Obras</th>
       <th>PVP</th><th>Compra</th><th></th>
     </tr></thead>
-    <tbody id="tbody-inv"><tr><td colspan="11" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+    <tbody id="tbody-inv"><tr><td colspan="12" class="empty"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
   </div>
 </div>
 
@@ -1265,7 +1269,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 </div>
 
 <script>
-var API='https://script.google.com/macros/s/AKfycbzINF8297a8gaGlZimxb3rwu-gmRFWpZVzvOSP0ezucVS-kolHOA-3YkuUOAOwTUlIY/exec';
+var API='https://script.google.com/macros/s/AKfycbzVvL9hJpkuAwR3-6wWcOTRLbuPXrWV6OeeT7UNQMCzwvi30g_-yOOxk83jLGwHTDO-/exec';
 var inventario=[],historial=[],carrito=[],pedidoItems=[],entradaItems=[],devolucionItems=[],traspasoItems=[];
 var today=new Date().toISOString().split('T')[0];
 var anularIdx=-1;
@@ -3548,7 +3552,7 @@ function renderInv(){
   });
 
   var tb=document.getElementById('tbody-inv');
-  if(!data.length){tb.innerHTML='<tr><td colspan="11" class="empty">Sin resultados</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="12" class="empty">Sin resultados</td></tr>';return;}
 
   // ── Calcular en camino / reservado / pendiente servir desde historial ─────
   var enCaminoMap={};
@@ -3589,7 +3593,9 @@ function renderInv(){
     // Color demanda: rojo si falta stock, verde si hay suficiente, gris si no hay demanda
     var demClr=demandaObras===0?'var(--text2)':i.stock>=demandaObras?'#059669':'#dc2626';
     var demWgt=demandaObras>0?'700':'400';
+    var codBadge=i.cod?'<span style="display:inline-block;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.03em">'+i.cod+'</span>':'<span style="color:var(--text2);font-size:11px">—</span>';
     return '<tr id="inv-row-'+idx+'">'+
+      '<td style="text-align:center">'+codBadge+'</td>'+
       '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
       '<td style="text-align:right;color:'+(i.stockMin>0?'var(--text2)':'inherit')+'">'+(i.stockMin>0?i.stockMin:'-')+'</td>'+
@@ -3608,10 +3614,14 @@ function renderInv(){
       '</td>'+
     '</tr>'+
 '<tr id="inv-edit-'+idx+'" style="display:none;background:var(--accent-light)">'+
-      '<td colspan="8" style="padding:10px 12px">'+
-        '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">'+
-          '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Nombre</div>'+
-            '<input id="edit-nombre-'+idx+'" type="text" value="'+i.nombre.replace(/"/g,'&quot;')+'" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
+      '<td colspan="9" style="padding:10px 12px">'+
+        '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:5px 10px;font-size:11px;color:#856404;margin-bottom:8px">'+
+          '🔒 El nombre del artículo está bloqueado para garantizar la sincronización. Solo se puede editar el código, cantidades y precios.</div>'+
+        '<div style="font-size:12px;font-weight:600;color:var(--text);background:#f8f9fa;border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:8px">'+
+          '📦 '+i.nombre+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">'+
+          '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Código ref.</div>'+
+            '<input id="edit-cod-'+idx+'" type="text" value="'+(i.cod||'')+'" placeholder="Ej: GC130" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;text-transform:uppercase"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Stock</div>'+
             '<input id="edit-stock-'+idx+'" type="number" value="'+(i.stock||0)+'" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Necesario</div>'+
@@ -3636,7 +3646,7 @@ function toggleFormNuevoArt(){
   var f=document.getElementById('form-nuevo-art');
   f.style.display=f.style.display==='none'?'block':'none';
   if(f.style.display==='block'){
-    ['ninv-nombre','ninv-stock','ninv-nec','ninv-pvp','ninv-pcompra','ninv-stockmin'].forEach(function(id){document.getElementById(id).value='';});
+    ['ninv-nombre','ninv-cod','ninv-stock','ninv-nec','ninv-pvp','ninv-pcompra','ninv-stockmin'].forEach(function(id){document.getElementById(id).value='';});
     document.getElementById('ninv-nombre').focus();
   }
 }
@@ -3652,9 +3662,10 @@ function guardarNuevoArt(){
   var btn=document.getElementById('btn-ninv');
   btn.disabled=true;btn.textContent='Guardando...';
   var stockMin=parseInt(document.getElementById('ninv-stockmin').value)||0;
-  postAPI({action:'addArticulo',nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
+  var cod=(document.getElementById('ninv-cod').value||'').trim().toUpperCase();
+  postAPI({action:'addArticulo',nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar. Comprueba la conexión.',true);btn.disabled=false;btn.textContent='✅ Añadir';return;}
-    inventario.push({nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin});
+    inventario.push({nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin});
     btn.disabled=false;btn.textContent='✅ Añadir';
     toggleFormNuevoArt();renderInv();
     toast('✅ '+nombre+' añadido al inventario');
@@ -3668,17 +3679,16 @@ function editarFila(idx){
 function cancelarEdicion(idx){document.getElementById('inv-edit-'+idx).style.display='none';}
 
 function guardarEdicionFila(idx){
-  var nombre=document.getElementById('edit-nombre-'+idx).value.trim();
-  if(!nombre){toast('El nombre no puede estar vacío',true);return;}
+  var nombreOriginal=inventario[idx].nombre;
+  var cod=(document.getElementById('edit-cod-'+idx).value||'').trim().toUpperCase();
   var stock=parseInt(document.getElementById('edit-stock-'+idx).value)||0;
   var nec=parseFloat(document.getElementById('edit-nec-'+idx).value)||0;
   var pvp=parseFloat(document.getElementById('edit-pvp-'+idx).value)||0;
   var pcompra=parseFloat(document.getElementById('edit-pc-'+idx).value)||0;
   var stockMin=parseInt(document.getElementById('edit-sm-'+idx).value)||0;
-  var nombreOriginal=inventario[idx].nombre;
-  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombre,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
+  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombreOriginal,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar',true);return;}
-    inventario[idx].nombre=nombre;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;inventario[idx].stockMin=stockMin;
+    inventario[idx].cod=cod;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;inventario[idx].stockMin=stockMin;
     renderInv();toast('✅ Artículo actualizado');
   });
 }
@@ -3870,11 +3880,14 @@ function recalcularSuministradoTodo() {
           var obra = m ? m[1] : 'Desconocida';
           var mat = m ? entry.replace(/\s*\([^)]+\)$/,'') : entry;
           if (!porObra[obra]) porObra[obra] = [];
-          porObra[obra].push(mat);
+          porObra[obra].push(mat.trim());
         });
+        window._lastSincPorObra = porObra;
         html += '<div style="background:#fef2f2;border-radius:8px;padding:10px 12px;font-size:12px">'
-          + '<b>⚠️ Salidas con nombre de proveedor — no sincronizan ('+sinPartList.length+'):</b>'
-          + '<p style="color:var(--text2);margin:4px 0 8px">Estas entradas fueron registradas directamente en Sheets con nombres de albarán. Tu compañera debe usar la app para registrar salidas.</p>';
+          + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
+          + '<b>⚠️ Salidas sin partida coincidente ('+sinPartList.length+'):</b>'
+          + '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button></div>'
+          + '<p style="color:var(--text2);margin:4px 0 8px">Tu compañera registró estas salidas directamente en Sheets con nombres de albarán. Descarga la lista y dísela para que los corrija usando la app.</p>';
         Object.keys(porObra).forEach(function(obra){
           html += '<div style="margin-top:6px"><b>📋 '+obra+' ('+porObra[obra].length+')</b><div style="padding-left:8px;color:#555">'
             + porObra[obra].map(function(mat){return '· '+mat;}).join('<br>') + '</div></div>';
@@ -3883,7 +3896,9 @@ function recalcularSuministradoTodo() {
       }
       var sm = document.getElementById('sinc-modal');
       document.getElementById('sinc-modal-body').innerHTML = html
-        + '<div style="margin-top:14px;text-align:right"><button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">'
+        + '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+        + (sinPartList.length ? '<button class="btn" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button>' : '')
+        + '<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">'
         + (sinObraList.length ? 'Continuar →' : 'Cerrar') + '</button></div>';
       sm.style.display = 'flex';
       if (sinObraList.length) setTimeout(function(){ sm.style.display='none'; mostrarModalSincErrores(); }, 0);
@@ -4681,66 +4696,239 @@ recargarTodo();
 /* ── MODAL SINCRONIZACIÓN: salidas sin obra ── */
 // Mapa de equivalencias: nombre Excel/despiece → nombre exacto de stock
 var MAT_NORM_MAP = (function(){
+  // Nombres canónicos = nombres limpios del stock tras migración
+  var C = {
+    BAR35:    'barandilla d/35 2500mm',
+    PIE:      'pie recto',
+    SOP160:   'soporte 160 en l',
+    ROD25:    'rodapie 2,5m',
+    GC120:    'guardacuerpo 1,200',
+    GC130:    'guardacuerpo usillo 1,300',
+    GC150:    'guardacuerpo 1,500',
+    RED1x10:  'red 1x10 pp bajo forjado',
+    RED2x10:  'red 2x10 pp bajo forjado',
+    RED35x10: 'red 3,5x10 pp en1263',
+    RED5x10:  'red 5x10 pp en1263',
+    RED110:   'red 1x10 pp bajo forjado',  // 1,10x10 = mismo artículo
+    RED3U:    'red 3x10 pp tipo u',
+    TAD12L:   'taco d12 largo m10x100',
+    TAD12C:   'taco d12 corto m10x70',
+    CAN10:    'cancamo argolla d10 m8x60',
+    CAN12:    'cancamo argolla d12 m10x70',
+    CU20:     'cuerda 20 kn/100m',
+    CU75:     'cuerda 7,5 kn/100m',
+    LV20:     'linea vida horizontal 20m',
+    POST60:   'poste mastil ldv 60x40',
+    BASPOST:  'base plastico poste ldv 60x40',
+    ANC02:    'punto anclaje ac02 estela',
+    ESLING:   'eslinga plataforma 1,5m',
+    MOSQ:     'mosqueton 19mm 25kn',
+    SETA:     'seta protectora 12-22mm',
+    BAS200:   'basquit / conix bolsa 200 uds',
+    BRI48:    'brida 4,8x200',
+    GANCH:    'gancho red bajo forjado 8mm',
+    ZOC100:   'zocalo rafia 0,50x100m',
+    TELA50:   'tela senalizacion naranja 1x50m',
+    CINT200:  'cinta senalizacion roja/blanca 200m',
+    MOSQB:    'mosquitera blanca 3x20m',
+    BAUL:     'baul 120x60'
+  };
   var m = {
-    'seta protectora 12-24':                   'seta protectora 12-24',
-    'red pp en1263-1 1,10×10m':                'red pp en1263-1 1,10x10 bajo forjado',
-    'red pp en1263-1 1,10x10m':                'red pp en1263-1 1,10x10 bajo forjado',
-    'red 1,10x10 bajo forjado':                'red pp en1263-1 1,10x10 bajo forjado',
-    'brida 4,8×200 (plástico)':                'brida 4,8x200 (plastico)',
-    'brida 4,8x200 (plastico)':                'brida 4,8x200 (plastico)',
-    'taco argolla d10':                         'taco argolla d10 m-8x60',
-    'taco argolla d10 m-8x60':                  'taco argolla d10 m-8x60',
-    'cuerda 20 kn / 100m':                      'cuerda 20 kn/100m',
-    'cuerda 20kn/100m':                         'cuerda 20 kn/100m',
-    'cuerda 7,5 kn / 100m':                    'cuerda 7,5 kn/100m',
-    'cuerda 7,5kn/100m':                        'cuerda 7,5 kn/100m',
-    'rafia zócalo':                             'rafia zocalo h 50 cms 100m',
-    'rafia zocalo':                             'rafia zocalo h 50 cms 100m',
-    'rafia':                                    'rafia zocalo h 50 cms 100m',
-    'red pp en1263 ua2':                        'red 2x10 pp en1263 ua2 q100 (verde)',
-    'red 2x10 ua2':                             'red 2x10 pp en1263 ua2 q100 (verde)',
-    'barandilla d/35':                          'barandilla d/35 100-150 en 13374',
-    'barandilla d/35 100-150':                  'barandilla d/35 100-150 en 13374',
-    'rodapié 2,5m':                             'rodapie 2,5m. en 13374',
-    'rodapie 2,5m':                             'rodapie 2,5m. en 13374',
-    'guardacuerpo / pie recto':                 'pie recto',
-    'pie recto guardacuerpo':                   'pie recto',
-    'soporte de 160 en l':                      'soporte de 160 en l para guardacuerpo',
-    'soporte 160 en l':                         'soporte de 160 en l para guardacuerpo',
-    'taco d12':                                 'taco d12 m-10x70',
-    'taco d12 m-10x70':                         'taco d12 m-10x70',
-    'anclaje rg horizontal':                    'anclaje rg horizontal',
-    'anclaje m 10×100':                         'anclaje m 10x100 d/12 tornillo (taco d12 m10x100) 50uds',
-    'anclaje m 10x100':                         'anclaje m 10x100 d/12 tornillo (taco d12 m10x100) 50uds',
-    'punto anclaje ldv074':                     'punto anclaje ldv074',
-    'mosquetón':                                'mosqueton seg. c/rosca 18mm',
-    'mosqueton':                                'mosqueton seg. c/rosca 18mm',
-    'punto anclaje a1 césar':                   'punto anclaje a1 cesar 1,5m eslinga',
-    'punto anclaje a1 cesar':                   'punto anclaje a1 cesar 1,5m eslinga',
-    'red va2':                                  'red pp en1263-1 va2 q100 5x10m (horca)',
-    'red pp en1263-1 va2':                      'red pp en1263-1 va2 q100 5x10m (horca)',
-    'soporte horca':                            'garra horca',
-    'garra horca':                              'garra horca',
-    'polea m15':                                'poleas',
-    'poleas':                                   'poleas',
-    'red tipo s':                               'red tipo s',
-    // Nombres comerciales proveedor UNETRA / INDEXFIX
-    'barandilla d/40 2500mm':                   'barandilla d/35 100-150 en 13374',
-    'barandilla d/40':                          'barandilla d/35 100-150 en 13374',
-    'guardacuerpo sargento mordaza 1.3m':       'guardacuerpo usillo 1,300 doble cuerpo',
-    'guardacuerpo sargento mordaza':            'guardacuerpo usillo 1,300 doble cuerpo',
-    'guardacuerpo sargento':                    'guardacuerpo usillo 1,300 doble cuerpo',
-    'codo soporte de 160 en l para guardacuerpo emp': 'soporte de 160 en l para guardacuerpo',
-    'codo soporte de 160 en l':                 'soporte de 160 en l para guardacuerpo',
-    'soporte 160 en l':                         'soporte de 160 en l para guardacuerpo',
-    'red 2,10 x 10 pp q100':                   'red 2x10 pp en1263 ua2 q100 (verde)',
-    'red 2,10 x 10 pp':                        'red 2x10 pp en1263 ua2 q100 (verde)',
-    'red 2x10 pp q100':                        'red 2x10 pp en1263 ua2 q100 (verde)',
-    'red 2x10 pp bajo forjado':                'red 2x10 pp en1263 ua2 q100 (verde)',
-    'rodapie 2,5m. en 13374':                  'rodapie 2,5m. en 13374',
-    'rodapie 2,5m en 13374':                   'rodapie 2,5m. en 13374',
-    'rodapie 2,5m.':                           'rodapie 2,5m. en 13374',
-    'rodapie 2,5m':                            'rodapie 2,5m. en 13374'
+    // ── BARANDILLA ────────────────────────────────────────────────
+    'barandilla d/35 2500mm':                  C.BAR35,
+    'barandilla d/35':                         C.BAR35,
+    'barandilla d/35 100-150':                 C.BAR35,
+    'barandilla d/35 100-150 en 13374':        C.BAR35,
+    'barandilla d/40 2500mm':                  C.BAR35,
+    'barandilla d/40':                         C.BAR35,
+    'barandilla d/40 120':                     C.BAR35,
+    // ── PIE RECTO ─────────────────────────────────────────────────
+    'pie recto':                               C.PIE,
+    'base recta':                              C.PIE,
+    'pie recto guardacuerpo':                  C.PIE,
+    'guardacuerpo / pie recto':                C.PIE,
+    'base metalica recta para guardacuerpo':   C.PIE,
+    'anclaje pletina recto':                   C.PIE,
+    'base metalica recta para guardacuerpo - anclaje pletina recto': C.PIE,
+    // ── SOPORTE 160 EN L ──────────────────────────────────────────
+    'soporte 160 en l':                        C.SOP160,
+    'soporte de 160 en l':                     C.SOP160,
+    'soporte de 160 en l para guardacuerpo':   C.SOP160,
+    'base codo de 160 en l':                   C.SOP160,
+    'codo soporte de 160 en l':                C.SOP160,
+    'codo soporte de 160 en l para guardacuerpo emp': C.SOP160,
+    'codo - anclaje lateral - soporte de 160 en l':   C.SOP160,
+    'codo anclaje lateral soporte de 160 en l':       C.SOP160,
+    'anclaje lateral soporte de 160 en l':     C.SOP160,
+    // ── RODAPIÉ ───────────────────────────────────────────────────
+    'rodapie 2,5m':                            C.ROD25,
+    'rodapié 2,5m':                            C.ROD25,
+    'rodapie 2,5m.':                           C.ROD25,
+    'rodapie 2,5m. en 13374':                  C.ROD25,
+    'rodapie 2,5m en 13374':                   C.ROD25,
+    // ── GUARDACUERPOS ─────────────────────────────────────────────
+    'guardacuerpo 1,200':                      C.GC120,
+    'guardacuerpo 1,2m':                       C.GC120,
+    'guardacuerpo usillo 1,300':               C.GC130,
+    'guardacuerpo usillo 1,300 doble cuerpo':  C.GC130,
+    'guardacuerpo sargento mordaza 1.3m':      C.GC130,
+    'guardacuerpo sargento mordaza':           C.GC130,
+    'guardacuerpo sargento':                   C.GC130,
+    'guardacuerpo c/mordaza 1.3m':             C.GC130,
+    'guardacuerpo c/mordaza':                  C.GC130,
+    'guardacuerpo 1,500':                      C.GC150,
+    'guardacuerpo 1,5m':                       C.GC150,
+    'guardacuerpo 1,5m en13374':               C.GC150,
+    // ── REDES 1x10 (bajo forjado) ─────────────────────────────────
+    'red 1x10 pp bajo forjado':               C.RED1x10,
+    'red 1 x 10 pp':                          C.RED1x10,
+    'red 1 x 10 pp bajo forjado':             C.RED1x10,
+    'red 1x10 pp bajo forjado q100':          C.RED1x10,
+    'red pp en1263-1 1,10x10 bajo forjado':   C.RED1x10,
+    'red pp en1263-1 1,10×10m':               C.RED1x10,
+    'red pp en1263-1 1,10x10m':               C.RED1x10,
+    'red 1,10x10 bajo forjado':               C.RED1x10,
+    'red 1.10 x 10 bajo forjado':             C.RED1x10,
+    // ── REDES 2x10 (bajo forjado) ─────────────────────────────────
+    'red 2x10 pp bajo forjado':               C.RED2x10,
+    'red 2,10 x 10 pp':                       C.RED2x10,
+    'red 2,10 x 10 pp q100':                  C.RED2x10,
+    'red 2x10 pp q100':                       C.RED2x10,
+    'red 2x10 pp bajo forjado q100':          C.RED2x10,
+    'red 2,10 x 10 pp bajo forjado q100':     C.RED2x10,
+    'red 2x10 ua2':                           C.RED2x10,
+    'red pp en1263 ua2':                      C.RED2x10,
+    'red 2x10 pp en1263 ua2 q100':            C.RED2x10,
+    'red 2x10 pp en1263 ua2 q100 (verde)':    C.RED2x10,
+    'red 2.1 x 10 bf':                        C.RED2x10,
+    // ── REDES 3,5x10 ──────────────────────────────────────────────
+    'red 3,5x10 pp en1263':                   C.RED35x10,
+    'red 3,5 x 10 pp':                        C.RED35x10,
+    'red 3,5 x 10 pp en1263':                 C.RED35x10,
+    // ── REDES 5x10 ────────────────────────────────────────────────
+    'red 5x10 pp en1263':                     C.RED5x10,
+    'red 5 x 10 pp':                          C.RED5x10,
+    'red 5x10 pp':                            C.RED5x10,
+    'red 5 x 10 pp en1263,1 ua2 q100 5x10':  C.RED5x10,
+    'red 5 x 10 pp en1263,1 sa2 q100':       C.RED5x10,
+    'red pp en1263-1 va2 q100 5x10m':         C.RED5x10,
+    'red va2':                                C.RED5x10,
+    // ── RED 3x10 TIPO U ───────────────────────────────────────────
+    'red 3x10 pp tipo u':                     C.RED3U,
+    'red 3 x 10 tipo u':                      C.RED3U,
+    // ── TACO D12 LARGO M10x100 ────────────────────────────────────
+    'taco d12 largo m10x100':                 C.TAD12L,
+    'taco d12 largo':                         C.TAD12L,
+    'taco d12 largo anclaje m10x100 d/12':    C.TAD12L,
+    'taco largo- anclaje m 10x100 d/12':      C.TAD12L,
+    'taco largo anclaje m 10x100 d/12':       C.TAD12L,
+    'taco largo- anclaje m 10x100 d/12 tornillo': C.TAD12L,
+    'taco largo anclaje m 10x100 d/12 tornillo':  C.TAD12L,
+    'anclaje m 10x100':                       C.TAD12L,
+    'anclaje m 10×100':                       C.TAD12L,
+    'anclaje m 10x100 d/12 tornillo':         C.TAD12L,
+    // ── TACO D12 CORTO M10x70 ─────────────────────────────────────
+    'taco d12 corto m10x70':                  C.TAD12C,
+    'taco d12 corto':                         C.TAD12C,
+    'taco d12 corto anclaje m10x70 d/12':     C.TAD12C,
+    'taco d12':                               C.TAD12C,
+    'taco d12 m-10x70':                       C.TAD12C,
+    // ── CÁNCAMO ARGOLLA D10 ───────────────────────────────────────
+    'cancamo argolla d10 m8x60':              C.CAN10,
+    'cancamo argolla d10 m 8x60':             C.CAN10,
+    'cancamo argolla d10 m-8x60':             C.CAN10,
+    'cancamo argolla':                        C.CAN10,
+    'taco argolla d10':                       C.CAN10,
+    'taco argolla d10 m-8x60':               C.CAN10,
+    'anclaje argolla m 8x60':                C.CAN10,
+    'cancamo argolla -- anclaje argolla m 8x60': C.CAN10,
+    'cancamo argolla -- anclaje argolla m 8x60 bro10': C.CAN10,
+    'cancamo argolla -- anclaje argolla m 8x60 bro10 - acha10c - d10 m-8x60 - 28689': C.CAN10,
+    // ── CÁNCAMO ARGOLLA D12 ───────────────────────────────────────
+    'cancamo argolla d12 m10x70':             C.CAN12,
+    'cancamo argolla d12':                    C.CAN12,
+    // ── CUERDAS ───────────────────────────────────────────────────
+    'cuerda 20 kn/100m':                      C.CU20,
+    'cuerda 20 kn / 100m':                    C.CU20,
+    'cuerda 20kn/100m':                       C.CU20,
+    'cuerda 7,5 kn/100m':                     C.CU75,
+    'cuerda 7,5 kn / 100m':                   C.CU75,
+    'cuerda 7,5kn/100m':                      C.CU75,
+    // ── LÍNEA DE VIDA ─────────────────────────────────────────────
+    'linea vida horizontal 20m':              C.LV20,
+    'linea de vida 20 ml horizontal':         C.LV20,
+    'linea de vida horizontal 20m':           C.LV20,
+    // ── POSTE / BASE LDV ──────────────────────────────────────────
+    'poste mastil ldv 60x40':                 C.POST60,
+    'poste / mastil linea de vida base 60x40':C.POST60,
+    'poste / mastil linea de vida base 60*40':C.POST60,
+    'base plastico poste ldv 60x40':          C.BASPOST,
+    // ── PUNTO ANCLAJE AC02 ────────────────────────────────────────
+    'punto anclaje ac02 estela':              C.ANC02,
+    'punto de anclaje - ac02':                C.ANC02,
+    'punto de anclaje - disp. anclaje estela ac02': C.ANC02,
+    'punto anclaje a1 cesar 1,5m eslinga':    C.ESLING,
+    'punto anclaje a1 cesar':                 C.ESLING,
+    'punto anclaje a1 césar':                 C.ESLING,
+    // ── ESLINGA PLATAFORMA ────────────────────────────────────────
+    'eslinga plataforma 1,5m':               C.ESLING,
+    'eslinga plataforma':                     C.ESLING,
+    'eslinga plataforma - anclaje vertical de techo 1,5mts': C.ESLING,
+    'eslinga plataforma anclaje vertical de techo 1,5mts':   C.ESLING,
+    // ── MOSQUETÓN ─────────────────────────────────────────────────
+    'mosqueton 19mm 25kn':                    C.MOSQ,
+    'mosqueton':                              C.MOSQ,
+    'mosquetón':                              C.MOSQ,
+    'mosqueton seg. c/rosca 18mm':            C.MOSQ,
+    'mosqueton - conector acero - mosqueton aprtura 19mm-25kn': C.MOSQ,
+    'mosqueton conector acero 19mm-25kn':     C.MOSQ,
+    'mosqueton conector acero':               C.MOSQ,
+    // ── SETA PROTECTORA ───────────────────────────────────────────
+    'seta protectora 12-22mm':               C.SETA,
+    'seta protectora 12-22 mm':              C.SETA,
+    'seta protectora 12-22':                 C.SETA,
+    'seta protectora 12-24':                 C.SETA,
+    // ── BASQUIT / CONIX ───────────────────────────────────────────
+    'basquit / conix bolsa 200 uds':         C.BAS200,
+    'basquit / conix':                       C.BAS200,
+    // ── BRIDA 4,8x200 ─────────────────────────────────────────────
+    'brida 4,8x200':                         C.BRI48,
+    'brida 4,8×200':                         C.BRI48,
+    'brida 4,8x200 (plastico)':              C.BRI48,
+    'brida 4,8×200 (plastico)':              C.BRI48,
+    'brida nylon negro index 4,8x200':       C.BRI48,
+    'brida nylon negro 4,8x200':             C.BRI48,
+    // ── GANCHO RED ────────────────────────────────────────────────
+    'gancho red bajo forjado 8mm':           C.GANCH,
+    'gancho red bajo forjado':               C.GANCH,
+    // ── ZÓCALO RAFIA ──────────────────────────────────────────────
+    'zocalo rafia 0,50x100m':               C.ZOC100,
+    'zocalo rafia':                          C.ZOC100,
+    'zocalo rafia 0,50 x 100 ml blanco':    C.ZOC100,
+    'zocalo - mosquitera malla 90gr/m2 1 x 100 ml blanco': C.ZOC100,
+    'zocalo - mosquitera malla':             C.ZOC100,
+    'mosquitera malla 90gr/m2 1 x 100 ml': C.ZOC100,
+    'rafia zocalo':                          C.ZOC100,
+    'rafia zócalo':                          C.ZOC100,
+    'rafia zocalo h 50 cms 100m':            C.ZOC100,
+    // ── TELA SEÑALIZACIÓN ─────────────────────────────────────────
+    'tela senalizacion naranja 1x50m':       C.TELA50,
+    'tela onix senalizacion':                C.TELA50,
+    // ── CINTA SEÑALIZACIÓN ────────────────────────────────────────
+    'cinta senalizacion roja/blanca 200m':   C.CINT200,
+    'cinta senalizacion roja/blanca 200mts': C.CINT200,
+    // ── MOSQUITERA BLANCA ─────────────────────────────────────────
+    'mosquitera blanca 3x20m':              C.MOSQB,
+    // ── BAÚL ──────────────────────────────────────────────────────
+    'baul 120x60':                           C.BAUL,
+    // ── OTROS ─────────────────────────────────────────────────────
+    'anclaje rg horizontal':                 'anclaje rg horizontal',
+    'punto anclaje ldv074':                  'punto anclaje ldv074',
+    'soporte horca':                         'garra horca',
+    'garra horca':                           'garra horca',
+    'polea m15':                             'polea m15 inde-k',
+    'poleas':                                'polea m15 inde-k',
+    'red tipo s':                            'red tipo s'
   };
   // Construir reverse map: valor stock → sí mismo (para que nombres correctos también pasen)
   var rev = {};
@@ -4756,6 +4944,8 @@ function normalizarMat(nombre) {
     .replace(/\bune\s+en\s*\d+/gi, '')      // quitar UNE EN####
     .replace(/\bune\s*\d+/gi, '')           // quitar UNE####
     .replace(/\s*-\s*(unetra|indexfix|wurth|multigarben|visornets|palet|pale|caja|bote|unidad|uds?\.?).*/gi, '')
+    .replace(/\s*-\s*\d+\s*uds?\.?.*/gi, '')       // quitar "- 50UDS - ACHT12L" etc
+    .replace(/\s+b-\d+\s*$/gi, '')                  // quitar " B-100" al final
     .replace(/\s*\b(unetra|indexfix)\b.*/gi, '')  // quitar nombre proveedor al final sin guión
     .replace(/\bemp\.?\s*$/gi, '')           // quitar "emp." al final
     .replace(/\s+/g,' ').replace(/\.\s*$/,'')
@@ -4767,6 +4957,21 @@ function normalizarMat(nombre) {
 
 var _sincSinObra = {};   // key: nombre original, value: [{salida historial}]
 var _obraAliases = (function(){ try{ return JSON.parse(localStorage.getItem('segufija_obra_aliases')||'{}'); }catch(e){return {};} })();
+
+function exportarSinPartidasCSV() {
+  var porObra = window._lastSincPorObra || {};
+  var rows = ['\uFEFF"Obra","Material (nombre en Sheets)"'];
+  Object.keys(porObra).forEach(function(obra) {
+    porObra[obra].forEach(function(mat) {
+      rows.push('"' + obra.replace(/"/g,'""') + '","' + mat.replace(/"/g,'""') + '"');
+    });
+  });
+  var blob = new Blob([rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'materiales_no_sincronizados.csv'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
 
 function mostrarModalSincErrores() {
   var keys = Object.keys(_sincSinObra);

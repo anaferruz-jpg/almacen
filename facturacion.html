@@ -1463,7 +1463,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 // ══════════════════════════════════════════════
 // CONFIGURACIÓN
 // ══════════════════════════════════════════════
-var API = 'https://script.google.com/macros/s/AKfycbzINF8297a8gaGlZimxb3rwu-gmRFWpZVzvOSP0ezucVS-kolHOA-3YkuUOAOwTUlIY/exec';
+var API = 'https://script.google.com/macros/s/AKfycbzVvL9hJpkuAwR3-6wWcOTRLbuPXrWV6OeeT7UNQMCzwvi30g_-yOOxk83jLGwHTDO-/exec';
 
 var EMPRESA = {
   nombre: 'SEGUFIJA SL',
@@ -4628,9 +4628,9 @@ function renderTablaObrasEj() {
       '<td style="padding:9px 12px;white-space:nowrap"><span style="color:'+(TIPO_CLR[tipo]||'#555')+';font-size:11px;font-weight:700">'+tipoLabel(tipo)+'</span></td>'+
       '<td style="padding:9px 12px">'+estBadge+
         '<div style="margin-top:3px;display:flex;gap:4px">'+
-          '<button onclick="obraEjSetEstado('+fi+',\'ejecucion\')" title="En Ejecución" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">▶</button>'+
-          '<button onclick="obraEjSetEstado('+fi+',\'pausada\')" title="Pausar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">⏸</button>'+
-          '<button onclick="obraEjSetEstado('+fi+',\'finalizada\')" title="Finalizar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">✓</button>'+
+          '<button onclick="obraEjSetEstado(\''+pKey+'\',\'ejecucion\')" title="En Ejecución" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">▶</button>'+
+          '<button onclick="obraEjSetEstado(\''+pKey+'\',\'pausada\')" title="Pausar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">⏸</button>'+
+          '<button onclick="obraEjSetEstado(\''+pKey+'\',\'finalizada\')" title="Finalizar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">✓</button>'+
         '</div>'+
       '</td>'+
       '<td style="padding:9px 12px;text-align:right;white-space:nowrap">'+fmtE(pres)+'</td>'+
@@ -4639,7 +4639,7 @@ function renderTablaObrasEj() {
         (pct>0?'<span style="font-size:10px;color:var(--text2);margin-left:4px">('+pct+'%)</span>':'')+
       '</td>'+
       '<td style="padding:9px 12px;white-space:nowrap">'+
-        '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="abrirProformasModal('+fi+')">📋 Proforma'+(nPrf?' ('+nPrf+')':'')+'</button>'+
+        '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="abrirProformasModal(\''+pKey+'\')">📋 Proforma'+(nPrf?' ('+nPrf+')':'')+'</button>'+
       '</td>'+
     '</tr>';
   });
@@ -4652,10 +4652,8 @@ function renderTablaObrasEj() {
   if(tb) tb.innerHTML=html;
 }
 
-function obraEjSetEstado(fi, estado) {
-  var allAcept = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
-  var p = allAcept[fi]; if(!p) return;
-  var est = getObrasEst(); est[getPresKey(p)]=estado; saveObrasEst(est); renderTablaObrasEj();
+function obraEjSetEstado(pKey, estado) {
+  var est = getObrasEst(); est[pKey]=estado; saveObrasEst(est); renderTablaObrasEj();
 }
 
 // ══════════════════════════════════════════════
@@ -4664,15 +4662,45 @@ function obraEjSetEstado(fi, estado) {
 var _prfObraIdx = -1;
 var _prfIdx     = -1;
 var _prfLineas  = [];   // lineas en edición activa
+var _prfPresKey = '';   // key de la obra/presupuesto activo
+var _prfPresObj = null; // objeto presupuesto/obra activo
 
 function prfGetPres() {
-  var all = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
-  return all[_prfObraIdx] || null;
+  if (_prfPresObj) return _prfPresObj;
+  // Fallback: buscar por key en todos los presupuestos
+  if (_prfPresKey) {
+    var found = presGetAll().find(function(p){ return getPresKey(p) === _prfPresKey; });
+    if (found) return found;
+  }
+  return null;
 }
 
-function abrirProformasModal(fi) {
-  _prfObraIdx = fi;
-  _prfIdx = -1;
+function abrirProformasModal(pKey) {
+  // pKey puede ser string (presKey) o number (índice legacy)
+  if (typeof pKey === 'number') {
+    // Compatibilidad con llamadas antiguas: convertir índice → key
+    var allAc = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
+    var ob = allAc[pKey]; if(!ob) return;
+    _prfPresKey = getPresKey(ob); _prfPresObj = ob;
+  } else {
+    _prfPresKey = pKey;
+    // Buscar el presupuesto en la lista de aceptados
+    var found = presGetAll().find(function(p){ return getPresKey(p) === pKey; });
+    if (found) {
+      _prfPresObj = found;
+    } else {
+      // Puede ser una obra del almacén sin presupuesto — construir objeto sintético
+      var obraAlm = (typeof OBRAS !== 'undefined' ? OBRAS : []).find(function(o){
+        return getPresKey({numOferta:o.codObra||'', proyecto:o.nombre}) === pKey ||
+               (o.nombre||'').replace(/\s+/g,'_').toLowerCase() === pKey;
+      });
+      _prfPresObj = obraAlm
+        ? { proyecto: obraAlm.nombre, numOferta: obraAlm.codObra||'', totalObra: obraAlm.presupuesto||0,
+            tipoContrato: 'cerrado', estado: 'aceptado', cliente: '' }
+        : { proyecto: pKey, numOferta: '', totalObra: 0, tipoContrato: 'cerrado', estado: 'aceptado' };
+    }
+  }
+  _prfObraIdx = -1; _prfIdx = -1;
   document.getElementById('crm-proforma-modal').style.display = '';
   prfRenderLista();
 }
