@@ -4851,6 +4851,7 @@ function prfRenderLineas() {
     var impAnt = ant * prc;
     var impOri = origen * prc;
     var impMes = mes * prc;
+    var contratado = l.origen || 0;
     html +=
       '<tr data-i="'+i+'" style="border-bottom:1px solid var(--border)">'+
       // Tipo (editable)
@@ -4866,6 +4867,8 @@ function prfRenderLineas() {
       '<td style="padding:4px 6px">'+
         '<input type="text" id="prf-desc-'+i+'" value="'+((l.desc||'').replace(/"/g,'&quot;'))+'" style="width:100%;min-width:180px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)">'+
       '</td>'+
+      // Contratado (del presupuesto — solo lectura)
+      '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#1d4ed8;background:#eff6ff;font-weight:600;border-right:1px solid var(--border)">'+fmtN(contratado)+'</td>'+
       // Med. Anterior (EDITABLE)
       '<td style="padding:4px 6px;text-align:center">'+
         '<input type="number" id="prf-ant-'+i+'" value="'+ant+'" min="0" step="0.001" style="width:75px;text-align:right;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
@@ -4931,10 +4934,15 @@ function prfAbrirEditor(pi) {
   // ── Construir líneas ─────────────────────────────────────────────────────
   if (isNew) {
     _prfLineas = [];
-    if (tipo === 'cerrado') {
+    var tieneItems = (pres.ventaItems||[]).some(function(it){return it.precio>0;}) ||
+                     (pres.alquilerItems||[]).some(function(it){return it.precio>0;}) ||
+                     (pres.moItems||[]).some(function(it){return it.precio>0;});
+    if (tipo === 'cerrado' && !tieneItems) {
+      // Sin partidas detalladas: una línea global
       _prfLineas.push({tipo:'cerrado', desc:'PRECIO CERRADO — '+(pres.proyecto||''),
         ud:'€', origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
     } else {
+      // Con partidas detalladas (incluso si es cerrado)
       (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
         _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
       });
@@ -5010,7 +5018,8 @@ function prfAbrirEditor(pi) {
         '<tr style="background:var(--bg2);border-bottom:1px solid var(--border)">'+
           '<th rowspan="2" style="padding:8px;text-align:left;min-width:95px;border-right:1px solid var(--border)">Tipo</th>'+
           '<th rowspan="2" style="padding:8px;text-align:left;min-width:180px;border-right:1px solid var(--border)">CONCEPTO</th>'+
-          '<th colspan="3" style="padding:6px 8px;text-align:center;border-right:1px solid var(--border);font-size:11px">MEDICIÓN</th>'+
+          '<th rowspan="2" style="padding:8px;text-align:right;white-space:nowrap;border-right:1px solid var(--border);background:#eff6ff;font-size:10px">CONTRATADO</th>'+
+          '<th colspan="3" style="padding:6px 8px;text-align:center;border-right:1px solid var(--border);font-size:11px">MEDICIÓN CERTIFICADA</th>'+
           '<th rowspan="2" style="padding:8px;text-align:right;white-space:nowrap;border-right:1px solid var(--border)">PRECIO UD.</th>'+
           '<th rowspan="2" style="padding:8px;text-align:right;white-space:nowrap;border-right:1px solid var(--border)">IMP. ANTERIOR</th>'+
           '<th rowspan="2" style="padding:8px;text-align:right;white-space:nowrap;border-right:1px solid var(--border)">IMP. A ORIGEN</th>'+
