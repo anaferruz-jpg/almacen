@@ -1970,8 +1970,7 @@ function renderPartidas(){
     var est=getEstadoPedido(h);
     if(est==='entregado')return;
     (Array.isArray(h.items)?h.items:[]).forEach(function(item){
-      // Clave: partida+material para distinguir mismo material en distintas partidas
-      var kMat=(item.nombre||'').toLowerCase();
+      var kMat=normalizarMat(item.nombre);
       var kPart=(item.partida||'').toLowerCase();
       var k= kPart ? kPart+'|||'+kMat : kMat;
       // También guardar por material solo (para partidas sin referencia)
@@ -2041,10 +2040,10 @@ function renderPartidas(){
               :'<span style="color:var(--text2);font-size:10px">—</span>')+
           '</td>'+
           (function(){
-  var kMat=l.material.toLowerCase();
+  var kMat=normalizarMat(l.material);
   var kPart=(l.partida||'').toLowerCase();
   var k= kPart ? kPart+'|||'+kMat : kMat;
-  var ep=enPedidoMap[k]||0;
+  var ep=(enPedidoMap[k]||0)||(enPedidoMap[kMat]||0);
   var et=enTransitoMap[k]||0;
   var epend=enPendienteMap[k]||0;
   if(ep===0) return '<td style="text-align:right;padding:5px 4px;color:var(--text2)">—</td>';
@@ -3764,10 +3763,14 @@ function recalcularSuministradoTodo() {
   var obraIdx = {};
   obrasAct.forEach(function(o) { obraIdx[(o.nombre||'').toLowerCase().trim()] = o; });
 
-  // 2 — Filtrar y ordenar salidas por fecha (más antigua primero)
+  // 2 — Filtrar y ordenar salidas + pedidos directos a obra entregados
   var salidas = historial.filter(function(h) {
-    return h.tipo === 'salida' && h.anulada !== true && h.anulada !== 'true'
-      && h.obra && Array.isArray(h.items) && h.items.length;
+    if (h.anulada === true || h.anulada === 'true') return false;
+    if (!h.obra || !Array.isArray(h.items) || !h.items.length) return false;
+    if (h.tipo === 'salida') return true;
+    // Pedidos directos a obra ya entregados cuentan como suministrado
+    if (h.tipo === 'pedido' && h.tipoDestino === 'obra' && getEstadoPedido(h) === 'entregado') return true;
+    return false;
   }).slice().sort(function(a, b) {
     return new Date(a.fecha||'2000-01-01') - new Date(b.fecha||'2000-01-01');
   });
@@ -4786,10 +4789,12 @@ function aplicarSincManual(obraOrig) {
     });
   });
 
-  // Guardar alias local y corregir historial en Sheets permanentemente
+  // Guardar alias local, corregir historial en Sheets Y en memoria
   _obraAliases[obraOrig.toLowerCase().trim()] = obraObj.nombre;
   try { localStorage.setItem('segufija_obra_aliases', JSON.stringify(_obraAliases)); } catch(e){}
   postAPI({action:'renameObraHistorial', oldObra:obraOrig, newObra:obraObj.nombre}, function(){});
+  // Actualizar nombre en memoria para que historial de obra funcione sin recargar
+  historial.forEach(function(h){ if((h.obra||'').toLowerCase().trim()===obraOrig.toLowerCase().trim()) h.obra=obraObj.nombre; });
 
   // Guardar la obra actualizada
   guardarObraSilencioso(obraObj, function() {
