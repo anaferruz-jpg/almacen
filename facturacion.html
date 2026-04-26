@@ -4167,7 +4167,7 @@ function guardarObra() {
       if (o.estado === 'ADJUDICADA') {
         // Buscar obra existente en almacén para no perder sus datos
         var almObras = OBRAS || [];
-        function _normN(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim(); }
+        var _normN = function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim(); };
         var _crmNom = _normN(o.obra), _crmCod = (o.oferta||'').trim();
         var almMatch = almObras.find(function(x){
           if (_crmCod && (x.codObra||'').trim() === _crmCod) return true;
