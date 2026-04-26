@@ -3860,8 +3860,22 @@ function recalcularSuministradoTodo() {
         msg += '\n⚠️ Salidas sin obra encontrada:\n  ' + sinObraList.slice(0,5).join('\n  ')
              + (sinObraList.length>5 ? '\n  ...y '+(sinObraList.length-5)+' más':'')
              + '\n\n→ Se abrirá un panel para asignarlas manualmente.';
-      if (sinPartList.length)
-        msg += '\n⚠️ Material sin partida en obra (' + sinPartList.length + '):\n  ' + sinPartList.join('\n  ');
+      if (sinPartList.length) {
+        // Agrupar por obra
+        var porObra = {};
+        sinPartList.forEach(function(entry){
+          var m = entry.match(/\(([^)]+)\)$/);
+          var obra = m ? m[1] : 'Desconocida';
+          var mat = m ? entry.replace(/\s*\([^)]+\)$/, '') : entry;
+          if (!porObra[obra]) porObra[obra] = [];
+          porObra[obra].push(mat);
+        });
+        msg += '\n⚠️ Salidas con nombre de proveedor (no sincronizan) — ' + sinPartList.length + ' entradas:\n';
+        Object.keys(porObra).forEach(function(obra){
+          msg += '\n  📋 ' + obra + ' (' + porObra[obra].length + '):\n';
+          porObra[obra].forEach(function(mat){ msg += '    · ' + mat + '\n'; });
+        });
+      }
       alert(msg);
       if (sinObraList.length) mostrarModalSincErrores();
       return;
