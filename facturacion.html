@@ -4009,7 +4009,16 @@ function renderTablaObras() {
         if(!pp) return '<span style="color:var(--text2);font-size:10px">—</span>';
         return '<span style="font-size:10px;font-weight:600;cursor:pointer;text-decoration:underline;color:var(--primary)" onclick="event.stopPropagation();presEditar('+(pp._idx!==undefined?pp._idx:presGetAll().indexOf(pp))+')" title="Ver presupuesto '+pp.numOferta+'">'+(pp.numOferta||pp.proyecto||'📋')+'</span>';
       })()+'</td>'+
-      '<td style="padding:9px 12px"><button class="btn" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();editarObra('+ri+')">✏️</button></td>'+
+      '<td style="padding:9px 12px;white-space:nowrap">'+
+        '<button class="btn" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="event.stopPropagation();editarObra('+ri+')">✏️</button>'+
+        (function(){
+          if (o.estado!=='ADJUDICADA') return '';
+          var pp2=presGetAll().find(function(p){return (o.oferta&&p.numOferta&&p.numOferta===o.oferta)||(o.obra&&p.proyecto&&p.proyecto.toLowerCase()===(o.obra||'').toLowerCase());});
+          var pKey2=pp2?getPresKey(pp2):(o.oferta||o.obra||'').replace(/\s+/g,'_').toLowerCase();
+          var nPrf2=getPrfForObra(pKey2).length;
+          return '<button class="btn primary" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();showTab(\'obras-ej\',this);setTimeout(function(){abrirProformasModal(\''+pKey2+'\');},400)">📋'+(nPrf2?' ('+nPrf2+')':'')+'</button>';
+        })()+
+      '</td>'+
     '</tr>';
   });
   if (!fil.length) html = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text2)">No hay obras con los filtros seleccionados</td></tr>';
@@ -4563,7 +4572,10 @@ function renderTablaObrasEj() {
     var constructora = looksLikeDriveId(ob.constructora||'')
       ? crmConstructora(ob.codObra, n)
       : (ob.constructora || crmConstructora(ob.codObra, n) || '');
-    var mp = presArr.find(function(p){ return (p.proyecto||'').trim().toLowerCase()===n.toLowerCase(); });
+    var mp = presArr.find(function(p){
+      return (p.proyecto||'').trim().toLowerCase()===n.toLowerCase() ||
+             (ob.codObra && p.numOferta && p.numOferta.trim().toLowerCase()===ob.codObra.trim().toLowerCase());
+    });
     if (mp) {
       var merged = Object.assign({}, mp);
       if (!merged.numOferta && ob.codObra) merged.numOferta = ob.codObra;
@@ -4574,9 +4586,35 @@ function renderTablaObrasEj() {
     }
   });
   presArr.forEach(function(p) {
-    var n = (p.proyecto||'').trim().toLowerCase();
-    if (!allAcept.find(function(x){ return (x.proyecto||'').trim().toLowerCase()===n; })) allAcept.push(p);
+    var n  = (p.proyecto||'').trim().toLowerCase();
+    var no = (p.numOferta||'').trim().toLowerCase();
+    if (!allAcept.find(function(x){
+      return (x.proyecto||'').trim().toLowerCase()===n ||
+             (no && x.numOferta && x.numOferta.trim().toLowerCase()===no);
+    })) allAcept.push(p);
   });
+  // Obras ADJUDICADAS del CRM que no estén ya en la lista
+  crmObras.filter(function(o){ return (o.estado||'').toUpperCase()==='ADJUDICADA'; })
+    .forEach(function(o) {
+      var n = (o.obra||'').trim();
+      if (!n) return;
+      var already = allAcept.find(function(a){
+        return (a.proyecto||'').trim().toLowerCase()===n.toLowerCase() ||
+               (o.oferta && a.numOferta && a.numOferta.trim().toLowerCase()===o.oferta.trim().toLowerCase());
+      });
+      if (already) return;
+      var mp2 = presArr.find(function(p){
+        return (o.oferta && p.numOferta && p.numOferta===o.oferta) ||
+               (p.proyecto||'').trim().toLowerCase()===n.toLowerCase();
+      });
+      if (mp2) {
+        var merged2 = Object.assign({}, mp2);
+        if (!merged2.cliente && o.constructora) merged2.cliente = o.constructora;
+        allAcept.push(merged2);
+      } else {
+        allAcept.push({ numOferta: o.oferta||'', cliente: o.constructora||'', proyecto: n, totalObra: o.importe||0, tipoContrato:'cerrado' });
+      }
+    });
 
   var fil = allAcept.filter(function(p){
     var est = estMap[getPresKey(p)] || 'ejecucion';
@@ -4684,20 +4722,43 @@ function abrirProformasModal(pKey) {
     _prfPresKey = getPresKey(ob); _prfPresObj = ob;
   } else {
     _prfPresKey = pKey;
-    // Buscar el presupuesto en la lista de aceptados
-    var found = presGetAll().find(function(p){ return getPresKey(p) === pKey; });
+    // Buscar presupuesto: por key exacto, por nombre o por numOferta
+    var pKeyDec = pKey.replace(/_/g,' ');
+    var found = presGetAll().find(function(p){
+      return getPresKey(p) === pKey ||
+             (p.proyecto||'').trim().toLowerCase() === pKeyDec.toLowerCase() ||
+             (p.numOferta||'').trim().toLowerCase() === pKeyDec.toLowerCase();
+    });
     if (found) {
       _prfPresObj = found;
+      // Actualizar la key para que sea consistente con el presupuesto encontrado
+      _prfPresKey = getPresKey(found);
     } else {
-      // Puede ser una obra del almacén sin presupuesto — construir objeto sintético
+      // Buscar en almacén por codObra o nombre
       var obraAlm = (typeof OBRAS !== 'undefined' ? OBRAS : []).find(function(o){
         return getPresKey({numOferta:o.codObra||'', proyecto:o.nombre}) === pKey ||
-               (o.nombre||'').replace(/\s+/g,'_').toLowerCase() === pKey;
+               (o.nombre||'').replace(/\s+/g,'_').toLowerCase() === pKey ||
+               (o.codObra||'').replace(/\s+/g,'_').toLowerCase() === pKey;
       });
-      _prfPresObj = obraAlm
-        ? { proyecto: obraAlm.nombre, numOferta: obraAlm.codObra||'', totalObra: obraAlm.presupuesto||0,
-            tipoContrato: 'cerrado', estado: 'aceptado', cliente: '' }
-        : { proyecto: pKey, numOferta: '', totalObra: 0, tipoContrato: 'cerrado', estado: 'aceptado' };
+      if (obraAlm) {
+        var crmMatch = (getObras()||[]).find(function(o){
+          return (obraAlm.codObra && o.oferta === obraAlm.codObra) ||
+                 (o.obra||'').toLowerCase() === (obraAlm.nombre||'').toLowerCase();
+        });
+        _prfPresObj = { proyecto: obraAlm.nombre, numOferta: obraAlm.codObra||'',
+          totalObra: obraAlm.presupuesto||0, tipoContrato:'cerrado', estado:'aceptado',
+          cliente: obraAlm.constructora || (crmMatch ? crmMatch.constructora : '') };
+      } else {
+        // Buscar en CRM
+        var crmOb = (getObras()||[]).find(function(o){
+          return (o.oferta||'').replace(/\s+/g,'_').toLowerCase() === pKey ||
+                 (o.obra||'').replace(/\s+/g,'_').toLowerCase() === pKey;
+        });
+        _prfPresObj = crmOb
+          ? { proyecto: crmOb.obra||pKey, numOferta: crmOb.oferta||'', totalObra: crmOb.importe||0,
+              tipoContrato:'cerrado', estado:'aceptado', cliente: crmOb.constructora||'' }
+          : { proyecto: pKeyDec, numOferta: '', totalObra: 0, tipoContrato:'cerrado', estado:'aceptado' };
+      }
     }
   }
   _prfObraIdx = -1; _prfIdx = -1;
