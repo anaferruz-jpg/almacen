@@ -449,6 +449,17 @@ function deleteArticulo(data) {
 // DEDUPLICAR OBRAS — ejecutar UNA SOLA VEZ desde el editor
 // Elimina obras duplicadas: conserva la que tiene codObra, borra la sin código
 // ══════════════════════════════════════════════════════
+function listarObras() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Obras');
+  if (!sheet) { Logger.log('No existe hoja Obras'); return; }
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    Logger.log('Fila '+(i+1)+' | nombre: "'+rows[i][0]+'" | codObra: "'+rows[i][18]+'"');
+  }
+}
+
 function deduplicarObras() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName('Obras');
