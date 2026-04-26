@@ -4167,9 +4167,15 @@ function guardarObra() {
       if (o.estado === 'ADJUDICADA') {
         // Buscar obra existente en almacén para no perder sus datos
         var almObras = OBRAS || [];
+        function _normN(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim(); }
+        var _crmNom = _normN(o.obra), _crmCod = (o.oferta||'').trim();
         var almMatch = almObras.find(function(x){
-          return (o.oferta && (x.codObra||'') === o.oferta) ||
-                 (x.nombre||'').toLowerCase() === (o.obra||'').toLowerCase();
+          if (_crmCod && (x.codObra||'').trim() === _crmCod) return true;
+          var xn = _normN(x.nombre);
+          if (xn === _crmNom) return true;
+          var shorter = _crmNom.length <= xn.length ? _crmNom : xn;
+          var longer  = _crmNom.length <= xn.length ? xn : _crmNom;
+          return shorter.length >= 6 && longer.indexOf(shorter) !== -1;
         });
         var obraAlmacen = {
           action:           'saveObra',
