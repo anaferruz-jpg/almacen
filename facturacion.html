@@ -4943,14 +4943,26 @@ function prfAbrirEditor(pi) {
         ud:'€', origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
     } else {
       // Con partidas detalladas (incluso si es cerrado)
+      var dtoV = pres.descuentoVenta || 0;
+      var dtoA = pres.descuentoAlquiler || 0;
       (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
+        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio*(1-dtoV/100)});
       });
       (pres.alquilerItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
+        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio*(1-dtoA/100)});
       });
-      (pres.moItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'mo', desc:it.desc, ud:'mes', origen:it.meses||0, anterior:0, mes:0, precioUnit:it.precio*(it.operarios||1)});
+      (pres.moItems||[]).filter(function(it){return it.precio>0||(it.operarios||0)>0||(it.meses||0)>0;}).forEach(function(it){
+        var _moMes = (it.meses||0) > 0;
+        var _prcUnit;
+        if (_moMes) {
+          // Precio mes equipo = precio × jornadas / meses (planSync) ó precio × ops (normal)
+          _prcUnit = it.planSync
+            ? it.precio * (it.operarios||1) / (it.meses||1)
+            : it.precio * (it.operarios||1);
+        } else {
+          _prcUnit = it.precio; // precio por unidad/jornada
+        }
+        _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
       });
     }
     proformas.forEach(function(prev){
