@@ -3861,8 +3861,7 @@ function recalcularSuministradoTodo() {
              + (sinObraList.length>5 ? '\n  ...y '+(sinObraList.length-5)+' más':'')
              + '\n\n→ Se abrirá un panel para asignarlas manualmente.';
       if (sinPartList.length)
-        msg += '\n⚠️ Material sin partida:\n  '  + sinPartList.slice(0,5).join('\n  ')
-             + (sinPartList.length>5 ? '\n  ...y '+(sinPartList.length-5)+' más':'');
+        msg += '\n⚠️ Material sin partida en obra (' + sinPartList.length + '):\n  ' + sinPartList.join('\n  ');
       alert(msg);
       if (sinObraList.length) mostrarModalSincErrores();
       return;
