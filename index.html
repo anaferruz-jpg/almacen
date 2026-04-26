@@ -1337,16 +1337,8 @@ function recargarTodo(){
   });
   callAPI('getObras',function(err,data){
     var iconos={'ARCADI PLA ST ADRIA':'🏢','GRUP MAS ST JOAN DESPI':'🏗️','LUIS PARES LLORET':'🏖️','VOPI 4 CUNIT':'🏠','CORP ABRERA':'🏭'};
-    var obrasFijas=[
-      {nombre:'ARCADI PLA ST ADRIA',lugar:'St Adrià de Besòs',icon:'🏢',estado:'activa',partidas:[],personal:[]},
-      {nombre:'GRUP MAS ST JOAN DESPI',lugar:'St Joan Despí',icon:'🏗️',estado:'activa',partidas:[],personal:[]},
-      {nombre:'LUIS PARES LLORET',lugar:'Lloret de Mar',icon:'🏖️',estado:'activa',partidas:[],personal:[]},
-      {nombre:'VOPI 4 CUNIT',lugar:'Cunit',icon:'🏠',estado:'activa',partidas:[],personal:[]},
-      {nombre:'CORP ABRERA',lugar:'Abrera',icon:'🏭',estado:'activa',partidas:[],personal:[]}
-    ];
     if(!err&&Array.isArray(data)){
       OBRAS=data.map(function(o){o.icon=iconos[o.nombre]||'🏗️';o.corto=o.nombre.substring(0,22);if(!o.partidas)o.partidas=[];if(!o.personal)o.personal=[];if(!o.previsionPersonal)o.previsionPersonal=[];return o;});
-      obrasFijas.forEach(function(of){if(!OBRAS.find(function(o){return o.nombre===of.nombre;})){of.corto=of.nombre.substring(0,22);OBRAS.push(of);}});
     } else {
       OBRAS=obrasFijas.map(function(o){o.corto=o.nombre.substring(0,22);return o;});
     }
