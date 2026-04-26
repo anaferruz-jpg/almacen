@@ -454,46 +454,58 @@ function deduplicarObras() {
   var sheet = ss.getSheetByName('Obras');
   if (!sheet) { Logger.log('Hoja Obras no encontrada'); return; }
 
-  function normNom(s) {
-    return (s||'').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+  function norm(s) {
+    return (s||'').toLowerCase()
+      .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
+      .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  }
+  function similar(a, b) {
+    if (a === b) return true;
+    var shorter = a.length <= b.length ? a : b;
+    var longer  = a.length <= b.length ? b : a;
+    return shorter.length >= 6 && longer.indexOf(shorter) !== -1;
   }
 
   var rows = sheet.getDataRange().getValues();
   var rowsToDelete = [];
-  // Agrupar filas por nombre normalizado
-  var grupos = {}; // normNom → [{ idx, codObra, stock(partidas len) }]
-  for (var i = 1; i < rows.length; i++) {
-    var nom = normNom(rows[i][0]);
-    if (!nom) continue;
-    // También agrupar si un nombre contiene al otro (ej: "vopi 4 cunit" ⊂ "vopi 4 cunit 52514 h")
-    var found = false;
-    for (var key in grupos) {
-      var shorter = nom.length <= key.length ? nom : key;
-      var longer  = nom.length <= key.length ? key  : nom;
-      if (shorter.length >= 6 && longer.indexOf(shorter) !== -1) {
-        grupos[key].push({ idx: i, codObra: (rows[i][18]||'').trim(), partidas: (rows[i][7]||'').length });
-        found = true; break;
-      }
-    }
-    if (!found) grupos[nom] = [{ idx: i, codObra: (rows[i][18]||'').trim(), partidas: (rows[i][7]||'').length }];
-  }
+  var procesados = []; // { normNom, idx, codObra, partidasLen }
 
-  // Por cada grupo con duplicados: conservar la que tiene codObra (o más datos), borrar el resto
-  for (var g in grupos) {
-    var grupo = grupos[g];
-    if (grupo.length < 2) continue;
-    // Ordenar: primero las que tienen codObra, luego por más partidas
-    grupo.sort(function(a,b){ return (b.codObra?1:0)-(a.codObra?1:0) || b.partidas-a.partidas; });
-    // Conservar la primera, marcar el resto para borrar
-    for (var k = 1; k < grupo.length; k++) {
-      rowsToDelete.push(grupo[k].idx + 1);
-      Logger.log('Eliminar duplicado fila '+(grupo[k].idx+1)+': '+rows[grupo[k].idx][0]);
+  for (var i = 1; i < rows.length; i++) {
+    var nombre = (rows[i][0]||'').toString().trim();
+    if (!nombre) continue;
+    var n = norm(nombre);
+    var codObra = (rows[i][18]||'').toString().trim();
+    var partidasLen = (rows[i][7]||'').toString().length;
+
+    // Buscar si ya hay una entrada similar
+    var matchIdx = -1;
+    for (var j = 0; j < procesados.length; j++) {
+      if (similar(procesados[j].normNom, n)) { matchIdx = j; break; }
+    }
+
+    if (matchIdx === -1) {
+      procesados.push({ normNom: n, idx: i, codObra: codObra, partidasLen: partidasLen });
+    } else {
+      // Decidir cuál conservar: la que tiene codObra gana; si empate, la de más partidas
+      var existente = procesados[matchIdx];
+      var existTiene = existente.codObra ? 1 : 0;
+      var nuevaTiene = codObra ? 1 : 0;
+      if (nuevaTiene > existTiene || (nuevaTiene === existTiene && partidasLen > existente.partidasLen)) {
+        // La nueva es mejor — borrar la existente
+        rowsToDelete.push(existente.idx + 1);
+        Logger.log('Borrar fila '+(existente.idx+1)+': '+rows[existente.idx][0]+' (reemplazada por '+nombre+')');
+        procesados[matchIdx] = { normNom: n, idx: i, codObra: codObra, partidasLen: partidasLen };
+      } else {
+        // La existente es mejor — borrar la nueva
+        rowsToDelete.push(i + 1);
+        Logger.log('Borrar fila '+(i+1)+': '+nombre+' (duplicado de '+rows[existente.idx][0]+')');
+      }
     }
   }
 
   rowsToDelete.sort(function(a,b){ return b-a; });
   rowsToDelete.forEach(function(r){ sheet.deleteRow(r); });
-  Logger.log('✅ Obras deduplicadas. Filas eliminadas: ' + rowsToDelete.length);
+  Logger.log('✅ Listo. Filas eliminadas: ' + rowsToDelete.length);
 }
 
 // ══════════════════════════════════════════════════════
