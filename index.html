@@ -3791,14 +3791,14 @@ function recalcularSuministradoTodo() {
     }
 
     h.items.forEach(function(c) {
-      var matNorm = (c.nombre||'').toLowerCase().trim();
+      var matNorm = normalizarMat(c.nombre);
       var qtyRestante = parseFloat(c.qty)||0;
       if (!matNorm || qtyRestante <= 0) return;
 
-      // First-fit: partidas con capacidad disponible
+      // First-fit: partidas con capacidad disponible (match por nombre normalizado)
       obraObj.partidas.forEach(function(p) {
         if (qtyRestante <= 0) return;
-        if ((p.material||'').toLowerCase().trim() !== matNorm) return;
+        if (normalizarMat(p.material) !== matNorm) return;
         var disponible = Math.max(0, (p.contratado||0) - (p.suministrado||0));
         if (disponible <= 0) return;
         var aSuministrar = Math.min(qtyRestante, disponible);
@@ -3807,12 +3807,10 @@ function recalcularSuministradoTodo() {
         qtyRestante -= aSuministrar;
       });
 
-      // Si sobra qty tras agotar todas las partidas con capacidad →
-      // acumular en la primera partida coincidente (sobre-suministro)
       if (qtyRestante > 0) {
         var firstMatch = null;
         for (var j=0; j<obraObj.partidas.length; j++) {
-          if ((obraObj.partidas[j].material||'').toLowerCase().trim() === matNorm) {
+          if (normalizarMat(obraObj.partidas[j].material) === matNorm) {
             firstMatch = obraObj.partidas[j]; break;
           }
         }
@@ -4656,6 +4654,66 @@ renderStats=function(){
 recargarTodo();
 
 /* ── MODAL SINCRONIZACIÓN: salidas sin obra ── */
+// Mapa de equivalencias: nombre Excel/despiece → nombre exacto de stock
+var MAT_NORM_MAP = (function(){
+  var m = {
+    'seta protectora 12-24':                   'seta protectora 12-24',
+    'red pp en1263-1 1,10×10m':                'red pp en1263-1 1,10x10 bajo forjado',
+    'red pp en1263-1 1,10x10m':                'red pp en1263-1 1,10x10 bajo forjado',
+    'red 1,10x10 bajo forjado':                'red pp en1263-1 1,10x10 bajo forjado',
+    'brida 4,8×200 (plástico)':                'brida 4,8x200 (plastico)',
+    'brida 4,8x200 (plastico)':                'brida 4,8x200 (plastico)',
+    'taco argolla d10':                         'taco argolla d10 m-8x60',
+    'taco argolla d10 m-8x60':                  'taco argolla d10 m-8x60',
+    'cuerda 20 kn / 100m':                      'cuerda 20 kn/100m',
+    'cuerda 20kn/100m':                         'cuerda 20 kn/100m',
+    'cuerda 7,5 kn / 100m':                    'cuerda 7,5 kn/100m',
+    'cuerda 7,5kn/100m':                        'cuerda 7,5 kn/100m',
+    'rafia zócalo':                             'rafia zocalo h 50 cms 100m',
+    'rafia zocalo':                             'rafia zocalo h 50 cms 100m',
+    'rafia':                                    'rafia zocalo h 50 cms 100m',
+    'red pp en1263 ua2':                        'red 2x10 pp en1263 ua2 q100 (verde)',
+    'red 2x10 ua2':                             'red 2x10 pp en1263 ua2 q100 (verde)',
+    'barandilla d/35':                          'barandilla d/35 100-150 en 13374',
+    'barandilla d/35 100-150':                  'barandilla d/35 100-150 en 13374',
+    'rodapié 2,5m':                             'rodapie 2,5m. en 13374',
+    'rodapie 2,5m':                             'rodapie 2,5m. en 13374',
+    'guardacuerpo / pie recto':                 'pie recto',
+    'pie recto guardacuerpo':                   'pie recto',
+    'soporte de 160 en l':                      'soporte de 160 en l para guardacuerpo',
+    'soporte 160 en l':                         'soporte de 160 en l para guardacuerpo',
+    'taco d12':                                 'taco d12 m-10x70',
+    'taco d12 m-10x70':                         'taco d12 m-10x70',
+    'anclaje rg horizontal':                    'anclaje rg horizontal',
+    'anclaje m 10×100':                         'anclaje m 10x100 d/12 tornillo (taco d12 m10x100) 50uds',
+    'anclaje m 10x100':                         'anclaje m 10x100 d/12 tornillo (taco d12 m10x100) 50uds',
+    'punto anclaje ldv074':                     'punto anclaje ldv074',
+    'mosquetón':                                'mosqueton seg. c/rosca 18mm',
+    'mosqueton':                                'mosqueton seg. c/rosca 18mm',
+    'punto anclaje a1 césar':                   'punto anclaje a1 cesar 1,5m eslinga',
+    'punto anclaje a1 cesar':                   'punto anclaje a1 cesar 1,5m eslinga',
+    'red va2':                                  'red pp en1263-1 va2 q100 5x10m (horca)',
+    'red pp en1263-1 va2':                      'red pp en1263-1 va2 q100 5x10m (horca)',
+    'soporte horca':                            'garra horca',
+    'garra horca':                              'garra horca',
+    'polea m15':                                'poleas',
+    'poleas':                                   'poleas',
+    'red tipo s':                               'red tipo s'
+  };
+  // Construir reverse map: valor stock → sí mismo (para que nombres correctos también pasen)
+  var rev = {};
+  Object.keys(m).forEach(function(k){ rev[m[k]] = m[k]; });
+  Object.keys(rev).forEach(function(k){ if(!m[k]) m[k] = rev[k]; });
+  return m;
+})();
+
+function normalizarMat(nombre) {
+  var k = (nombre||'').toLowerCase().trim()
+    .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
+    .replace(/×/g,'x');
+  return MAT_NORM_MAP[k] || k;
+}
+
 var _sincSinObra = {};   // key: nombre original, value: [{salida historial}]
 var _obraAliases = (function(){ try{ return JSON.parse(localStorage.getItem('segufija_obra_aliases')||'{}'); }catch(e){return {};} })();
 
@@ -4703,12 +4761,12 @@ function aplicarSincManual(obraOrig) {
 
   salidas.forEach(function(h) {
     h.items.forEach(function(c) {
-      var matNorm = (c.nombre||'').toLowerCase().trim();
+      var matNorm = normalizarMat(c.nombre);
       var qtyRestante = parseFloat(c.qty)||0;
       if (!matNorm || qtyRestante <= 0) return;
       obraObj.partidas.forEach(function(p) {
         if (qtyRestante <= 0) return;
-        if ((p.material||'').toLowerCase().trim() !== matNorm) return;
+        if (normalizarMat(p.material) !== matNorm) return;
         var disponible = Math.max(0, (p.contratado||0) - (p.suministrado||0));
         if (disponible <= 0) return;
         var aSuministrar = Math.min(qtyRestante, disponible);
@@ -4718,7 +4776,7 @@ function aplicarSincManual(obraOrig) {
         qtyRestante -= aSuministrar;
       });
       if (qtyRestante > 0) {
-        var firstMatch = obraObj.partidas.find(function(p){ return (p.material||'').toLowerCase().trim()===matNorm; });
+        var firstMatch = obraObj.partidas.find(function(p){ return normalizarMat(p.material)===matNorm; });
         if (firstMatch) {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
           if (!firstMatch.entregas) firstMatch.entregas = [];
