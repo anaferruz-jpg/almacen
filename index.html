@@ -4786,9 +4786,10 @@ function aplicarSincManual(obraOrig) {
     });
   });
 
-  // Guardar alias para futuras sincronizaciones
+  // Guardar alias local y corregir historial en Sheets permanentemente
   _obraAliases[obraOrig.toLowerCase().trim()] = obraObj.nombre;
   try { localStorage.setItem('segufija_obra_aliases', JSON.stringify(_obraAliases)); } catch(e){}
+  postAPI({action:'renameObraHistorial', oldObra:obraOrig, newObra:obraObj.nombre}, function(){});
 
   // Guardar la obra actualizada
   guardarObraSilencioso(obraObj, function() {
