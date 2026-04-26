@@ -1346,20 +1346,29 @@ function recargarTodo(){
     } else {
       OBRAS=obrasFijas.map(function(o){o.corto=o.nombre.substring(0,22);return o;});
     }
-    // Enriquecer con datos del CRM (códigos y nombres actualizados)
+    // Enriquecer con datos del CRM (códigos y carpetas Drive) y guardar si hay novedades
     try {
       var crmObras=JSON.parse(localStorage.getItem('segufija_crm_obras')||'[]');
+      var obrasSincronizar=[];
       crmObras.forEach(function(crm){
         var nombre=(crm.obra||'').trim();
         if(!nombre)return;
         if(crm.estado!=='aceptado')return;
         var match=OBRAS.find(function(o){return o.nombre.toLowerCase()===nombre.toLowerCase();});
         if(match){
-          if(crm.oferta&&!match.codObra)match.codObra=crm.oferta;
-          if(crm.carpetaDriveId&&!match.carpetaDriveId)match.carpetaDriveId=crm.carpetaDriveId;
+          var actualizado=false;
+          if(crm.oferta&&!match.codObra){match.codObra=crm.oferta;actualizado=true;}
+          if(crm.carpetaDriveId&&!match.carpetaDriveId){match.carpetaDriveId=crm.carpetaDriveId;actualizado=true;}
+          if(actualizado)obrasSincronizar.push(match);
         } else {
-          OBRAS.push({nombre:nombre,codObra:crm.oferta||'',carpetaDriveId:crm.carpetaDriveId||'',icon:'🏗️',corto:nombre.substring(0,22),estado:crm.estado||'activa',partidas:[],personal:[],previsionPersonal:[]});
+          var nueva={nombre:nombre,codObra:crm.oferta||'',carpetaDriveId:crm.carpetaDriveId||'',icon:'🏗️',corto:nombre.substring(0,22),estado:'activa',partidas:[],personal:[],previsionPersonal:[]};
+          OBRAS.push(nueva);
+          obrasSincronizar.push(nueva);
         }
+      });
+      // Guardar en Sheets las obras que recibieron datos nuevos del CRM
+      obrasSincronizar.forEach(function(o){
+        postAPI({action:'saveObra',nombreOriginal:o.nombre,nombre:o.nombre,codObra:o.codObra||'',carpetaDriveId:o.carpetaDriveId||'',lugar:o.lugar||'—',presupuesto:o.presupuesto||0,ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',partidas:o.partidas||[],personal:o.personal||[]},function(){});
       });
     } catch(e){}
     buildObrasGrid();actualizarSelectsObras();
