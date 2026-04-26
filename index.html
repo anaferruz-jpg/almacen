@@ -3850,34 +3850,43 @@ function recalcularSuministradoTodo() {
       renderInv();
       buildObrasGrid();
 
-      // Resumen final con alert para que no desaparezca
-      var sinObraList  = Object.keys(sinObra);
-      var sinPartList  = Object.keys(sinPartida);
-      var msg = '✅ SINCRONIZACIÓN COMPLETADA\n\n'
-        + total    + ' obras actualizadas\n'
-        + salidas.length + ' salidas procesadas\n';
+      // Resumen final en modal propio (scrollable)
+      var sinObraList = Object.keys(sinObra);
+      var sinPartList = Object.keys(sinPartida);
+      var html = '<div style="font-size:15px;font-weight:700;color:#16a34a;margin-bottom:12px">✅ Sincronización completada</div>'
+        + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">'
+        + '<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600">'+total+' obras actualizadas</span>'
+        + '<span style="background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600">'+salidas.length+' salidas procesadas</span>'
+        + '</div>';
       if (sinObraList.length)
-        msg += '\n⚠️ Salidas sin obra encontrada:\n  ' + sinObraList.slice(0,5).join('\n  ')
-             + (sinObraList.length>5 ? '\n  ...y '+(sinObraList.length-5)+' más':'')
-             + '\n\n→ Se abrirá un panel para asignarlas manualmente.';
+        html += '<div style="background:#fef3c7;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px">'
+          + '<b>⚠️ Obras no encontradas ('+sinObraList.length+'):</b><br>'
+          + sinObraList.map(function(o){return '· '+o;}).join('<br>')
+          + '<br><span style="color:var(--accent)">→ Se abrirá el panel para asignarlas.</span></div>';
       if (sinPartList.length) {
-        // Agrupar por obra
         var porObra = {};
         sinPartList.forEach(function(entry){
           var m = entry.match(/\(([^)]+)\)$/);
           var obra = m ? m[1] : 'Desconocida';
-          var mat = m ? entry.replace(/\s*\([^)]+\)$/, '') : entry;
+          var mat = m ? entry.replace(/\s*\([^)]+\)$/,'') : entry;
           if (!porObra[obra]) porObra[obra] = [];
           porObra[obra].push(mat);
         });
-        msg += '\n⚠️ Salidas con nombre de proveedor (no sincronizan) — ' + sinPartList.length + ' entradas:\n';
+        html += '<div style="background:#fef2f2;border-radius:8px;padding:10px 12px;font-size:12px">'
+          + '<b>⚠️ Salidas con nombre de proveedor — no sincronizan ('+sinPartList.length+'):</b>'
+          + '<p style="color:var(--text2);margin:4px 0 8px">Estas entradas fueron registradas directamente en Sheets con nombres de albarán. Tu compañera debe usar la app para registrar salidas.</p>';
         Object.keys(porObra).forEach(function(obra){
-          msg += '\n  📋 ' + obra + ' (' + porObra[obra].length + '):\n';
-          porObra[obra].forEach(function(mat){ msg += '    · ' + mat + '\n'; });
+          html += '<div style="margin-top:6px"><b>📋 '+obra+' ('+porObra[obra].length+')</b><div style="padding-left:8px;color:#555">'
+            + porObra[obra].map(function(mat){return '· '+mat;}).join('<br>') + '</div></div>';
         });
+        html += '</div>';
       }
-      alert(msg);
-      if (sinObraList.length) mostrarModalSincErrores();
+      var sm = document.getElementById('sinc-modal');
+      document.getElementById('sinc-modal-body').innerHTML = html
+        + '<div style="margin-top:14px;text-align:right"><button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">'
+        + (sinObraList.length ? 'Continuar →' : 'Cerrar') + '</button></div>';
+      sm.style.display = 'flex';
+      if (sinObraList.length) setTimeout(function(){ sm.style.display='none'; mostrarModalSincErrores(); }, 0);
       return;
     }
     // Mostrar progreso
