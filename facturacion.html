@@ -4813,8 +4813,9 @@ function prfRenderLista() {
       '<td style="padding:9px 12px;text-align:right;font-weight:700">'+fmtE(total)+'</td>'+
       '<td style="padding:9px 12px;white-space:nowrap">'+
         '<button class="btn" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="prfAbrirEditor('+pi+')">✏️ Ver/Editar</button>'+
-        (prf.estado==='aprobada' ? '<button class="btn primary" style="font-size:11px;padding:3px 8px" onclick="prfGenerarFactura('+pi+')">🧾 Factura</button>' : '')+
-        (prf.estado==='facturada' ? (facturas.find(function(f){return f.numero===prf.facturaNum;}) ? '<span style="font-size:11px;color:var(--text2);margin-left:4px">'+prf.facturaNum+'</span>' : '<button class="btn" style="font-size:11px;padding:3px 8px" onclick="prfGenerarFactura('+pi+')">🔄 Regenerar factura</button>') : '')+
+        (prf.estado==='aprobada' ? '<button class="btn primary" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="prfGenerarFactura('+pi+')">🧾 Factura</button>' : '')+
+        (prf.estado==='facturada' ? (facturas.find(function(f){return f.numero===prf.facturaNum;}) ? '<span style="font-size:11px;color:var(--text2);margin-left:4px;margin-right:4px">'+prf.facturaNum+'</span>' : '<button class="btn" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="prfGenerarFactura('+pi+')">🔄 Regenerar factura</button>') : '')+
+        '<button class="btn" style="font-size:11px;padding:3px 8px;color:#dc2626;border-color:#dc2626" onclick="prfEliminar('+pi+')">🗑️</button>'+
       '</td>'+
     '</tr>';
   });
@@ -5296,6 +5297,20 @@ function prfGuardarEnDrive() {
       toast('Error al guardar en Drive: ' + (resp&&resp.error||'sin respuesta'), true);
     }
   });
+}
+
+function prfEliminar(pi) {
+  var pres    = prfGetPres() || {};
+  var presKey = getPresKey(pres);
+  var prfs    = getPrfForObra(presKey);
+  var prf     = prfs[pi];
+  if (!prf) return;
+  var num = prf.numProforma || ('PRF-'+(pi+1).toString().padStart(3,'0'));
+  if (!confirm('¿Eliminar '+num+'? Esta acción no se puede deshacer.')) return;
+  prfs.splice(pi, 1);
+  savePrfForObra(presKey, prfs);
+  toast('🗑️ '+num+' eliminada');
+  prfRenderLista();
 }
 
 function prfGuardar() {
