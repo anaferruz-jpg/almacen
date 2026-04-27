@@ -4574,6 +4574,14 @@ function renderTablaObrasEj() {
   var presArr  = presGetAll().filter(function(p){ return p.estado==='aceptado'; });
   var crmObras = getObras(); // CRM local — fuente fiable para constructora
   var allAcept = [];
+  var _normOb = function(s){ return (s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); };
+  var _inAllAcept = function(nombre, oferta){
+    return allAcept.some(function(x){
+      return _normOb(x.proyecto)===_normOb(nombre) ||
+             (oferta && x.numOferta && _normOb(x.numOferta)===_normOb(oferta));
+    });
+  };
+  var ESTADOS_EXCLUIDOS = ['cerrada','perdida','inactiva','desestimada','cancelada'];
 
   function crmConstructora(codObra, nombreObra) {
     // Buscar en CRM por codObra o nombre para obtener constructora fiable
@@ -4590,12 +4598,15 @@ function renderTablaObrasEj() {
 
   (OBRAS||[]).forEach(function(ob) {
     var n = (ob.nombre||'').trim();
+    // Excluir obras cerradas/perdidas/desestimadas
+    if (ESTADOS_EXCLUIDOS.indexOf((ob.estado||'').toLowerCase()) !== -1) return;
+    if (_inAllAcept(n, ob.codObra)) return;
     var constructora = looksLikeDriveId(ob.constructora||'')
       ? crmConstructora(ob.codObra, n)
       : (ob.constructora || crmConstructora(ob.codObra, n) || '');
     var mp = presArr.find(function(p){
-      return (p.proyecto||'').trim().toLowerCase()===n.toLowerCase() ||
-             (ob.codObra && p.numOferta && p.numOferta.trim().toLowerCase()===ob.codObra.trim().toLowerCase());
+      return _normOb(p.proyecto||'')===_normOb(n) ||
+             (ob.codObra && p.numOferta && _normOb(p.numOferta)===_normOb(ob.codObra));
     });
     if (mp) {
       var merged = Object.assign({}, mp);
@@ -4607,26 +4618,16 @@ function renderTablaObrasEj() {
     }
   });
   presArr.forEach(function(p) {
-    var n  = (p.proyecto||'').trim().toLowerCase();
-    var no = (p.numOferta||'').trim().toLowerCase();
-    if (!allAcept.find(function(x){
-      return (x.proyecto||'').trim().toLowerCase()===n ||
-             (no && x.numOferta && x.numOferta.trim().toLowerCase()===no);
-    })) allAcept.push(p);
+    if (!_inAllAcept(p.proyecto, p.numOferta)) allAcept.push(p);
   });
   // Obras ADJUDICADAS del CRM que no estén ya en la lista
   crmObras.filter(function(o){ return (o.estado||'').toUpperCase()==='ADJUDICADA'; })
     .forEach(function(o) {
       var n = (o.obra||'').trim();
-      if (!n) return;
-      var already = allAcept.find(function(a){
-        return (a.proyecto||'').trim().toLowerCase()===n.toLowerCase() ||
-               (o.oferta && a.numOferta && a.numOferta.trim().toLowerCase()===o.oferta.trim().toLowerCase());
-      });
-      if (already) return;
+      if (!n || _inAllAcept(n, o.oferta)) return;
       var mp2 = presArr.find(function(p){
-        return (o.oferta && p.numOferta && p.numOferta===o.oferta) ||
-               (p.proyecto||'').trim().toLowerCase()===n.toLowerCase();
+        return (o.oferta && p.numOferta && _normOb(p.numOferta)===_normOb(o.oferta)) ||
+               _normOb(p.proyecto||'')===_normOb(n);
       });
       if (mp2) {
         var merged2 = Object.assign({}, mp2);
