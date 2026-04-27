@@ -5331,17 +5331,15 @@ function prfGenerarFactura(pi) {
   var prf     = prfs[pi];
   if (!prf) return;
   var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
-  var lineasFac;
-  if (isCerrado) {
-    // Para precio cerrado: una única línea con el importe del mes
-    var total = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0); },0);
-    if (!total) { toast('La proforma no tiene importe. Complétala primero.', true); return; }
-    lineasFac = [{desc:'Certificación '+(prf.mes||'')+ ' — '+(pres.proyecto||''), uds:1, precio:total, dto:0}];
-  } else {
-    lineasFac = (prf.lineas||[])
-      .filter(function(l){ return (l.precioUnit||0)>0; })
-      .map(function(l){ return {desc:l.desc, uds:l.mes||0, precio:l.precioUnit, dto:0}; });
-    if (!lineasFac.length) { toast('La proforma no tiene partidas con precio. Complétala primero.', true); return; }
+  // Siempre usar el desglose de la proforma (todas las partidas con precio)
+  var lineasFac = (prf.lineas||[])
+    .filter(function(l){ return (l.precioUnit||0)>0; })
+    .map(function(l){ return {desc:l.desc, uds:l.mes||0, precio:l.precioUnit, dto:0}; });
+  if (!lineasFac.length) {
+    // Fallback: contrato cerrado sin partidas → línea única con total del mes
+    var totalFallback = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||1); },0);
+    if (!totalFallback) { toast('La proforma no tiene importe. Complétala primero.', true); return; }
+    lineasFac = [{desc:'Certificación '+(prf.mes||'')+' — '+(pres.proyecto||''), uds:1, precio:totalFallback, dto:0}];
   }
   var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
   var numF = nextNumFac();
