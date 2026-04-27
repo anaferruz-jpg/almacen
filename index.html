@@ -1578,7 +1578,18 @@ function detectarPresupuestoCRM() {
       if (presEl && !presEl.value) presEl.value = presMatch.totalObra;
     }
     var pDef = [];
-    (presMatch.ventaItems||[]).filter(function(it){ return it.medicion>0 && it.precio>0; }).forEach(function(it){
+    // Expandir ventaItems con EQUIPOS_DEF (materiales reales de stock)
+    var secciones = calcDespiecePresAlmacen(presMatch);
+    var conDespiece = secciones.map(function(s){return s.desc;});
+    secciones.forEach(function(sec){
+      sec.materiales.filter(function(mat){return mat.cantidad>0;}).forEach(function(mat){
+        pDef.push({partida:sec.desc, material:mat.n, ud:'ud', contratado:mat.cantidad, suministrado:0, entregas:[], tipo:'venta'});
+      });
+    });
+    // Items de venta sin EQUIPOS_DEF: añadir directamente
+    (presMatch.ventaItems||[]).filter(function(it){
+      return it.medicion>0 && it.precio>0 && conDespiece.indexOf(it.desc)===-1;
+    }).forEach(function(it){
       pDef.push({partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:it.medicion, suministrado:0, entregas:[], tipo:'venta'});
     });
     (presMatch.alquilerItems||[]).filter(function(it){ return it.medicion>0; }).forEach(function(it){
@@ -5240,6 +5251,115 @@ function enviarPedidoAlmacen(){
       });
     });
   });
+}
+
+// ── EQUIPOS_DEF: materiales por partida de presupuesto ──────────────────────
+var _eqCeil = function(n){return Math.ceil(n);};
+var _eqEven = function(n){return Math.ceil(n/2)*2;};
+var EQUIPOS_DEF_ALM = {
+  'Protección de esperas - Setas':[
+    {n:'SETA PROTECTORA 12-22 MM P300', f:function(m){return m;}}
+  ],
+  'Red bajo forjado':[
+    {n:'RED 1X10 PP (BAJO FORJADO) UNE 81652 Q100', f:function(m){return _eqCeil((m/10)*1.15);}},
+    {n:'GANCHO RED BAJO FORJADO 8MM',               f:function(m){return _eqCeil(_eqCeil((m/10)*1.15)*10);}}
+  ],
+  'Sistema de protección: PROTECCION PERIMETRAL (INDEK)':[
+    {n:'Viga R120 INDE-K RED L=150cm',              f:function(m){return _eqEven(m/3.2);}},
+    {n:'Poste R100 INDE-K RED L=100cm',             f:function(m){return _eqEven(m/3.2);}},
+    {n:'Tuerca Placa Articulada TEIDE Ø15mm',       f:function(m){return _eqEven(m/3.2);}},
+    {n:'Barra Roscada TEIDE Ø15mm L=0,50m',        f:function(m){return _eqEven(m/3.2);}},
+    {n:'Marco INDE-K RED 150x25cm',                 f:function(m){return _eqEven(m/3.2);}},
+    {n:'Marco INDE-K RED 300x25cm',                 f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}},
+    {n:'Pantalla INDE-K RED 400x150cm',             f:function(m,np){np=np||3;var v=_eqEven(m/3.2);return v*2*np+v;}},
+    {n:'Puntal Estabilizador INDE-K RED L=300cm',   f:function(m){return _eqEven(m/3.2);}},
+    {n:'Brida Marco INDE-K RED Ø48/48mm',           f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}},
+    {n:'Tirante Horizontal INDE-K RED L=100cm',     f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}},
+    {n:'Soporte Pantalla INDE-K RED',               f:function(m,np){np=np||3;var v=_eqEven(m/3.2);return v*2*np+v;}},
+    {n:'Tornillo Anclaje Hormigón Ø8x70mm',         f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}},
+    {n:'Anclaje Argolla Ø23 M12x160mm',             f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}},
+    {n:'Taco Anclaje Argolla Ø14x130mm',            f:function(m,np){np=np||3;return _eqEven(m/3.2)*np;}}
+  ],
+  'Mosquitera protección':[
+    {n:'MOSQUITERA BLANCA 3x20ml',  f:function(m){return m/60;}},
+    {n:'BRIDA 4,8x200 P100',        f:function(m){return _eqCeil((m/60)*100);}}
+  ],
+  'Protección red huecos horizontales > 1 m2':[
+    {n:'CANCAMO ARGOLLA D10 M8x60', f:function(m){return m*4;}},
+    {n:'CUERDA 20KN/100m',          f:function(m){return _eqEven(m*0.06);}},
+    {n:'CUERDA 7,5KN/100m',         f:function(m){return _eqEven(m*0.06);}}
+  ],
+  'Protección red huecos verticales':[
+    {n:'CANCAMO ARGOLLA D10 M8x60', f:function(m){return m*4;}},
+    {n:'CUERDA 20KN/100m',          f:function(m){return _eqEven(m*0.06);}},
+    {n:'CUERDA 7,5KN/100m',         f:function(m){return _eqEven(m*0.06);}},
+    {n:'ZOCALO RAFIA 0,50x100ml BLANCO', f:function(m){return _eqCeil(m/100);}},
+    {n:'BRIDA 4,8x200 P100',        f:function(m){return _eqCeil(m/100)*200;}}
+  ],
+  'Protección vertical escalera con red':[
+    {n:'CANCAMO ARGOLLA D10 M8x60', f:function(m){return m*4;}},
+    {n:'CUERDA 7,5KN/100m',         f:function(m){return _eqEven(m/100);}},
+    {n:'CUERDA 20KN/100m',          f:function(m){return _eqEven(m/100);}},
+    {n:'ZOCALO RAFIA 0,50x100ml BLANCO', f:function(m){return _eqCeil(m/100);}},
+    {n:'BRIDA 4,8x200 P100',        f:function(m){return _eqCeil(m/100)*200;}}
+  ],
+  'Red protección de fachada':[
+    {n:'RED 3,5x10 PP EN1263 (NARANJA)', f:function(m){return _eqCeil(m/10);}},
+    {n:'CUERDA 20KN/100m',               f:function(m){return _eqCeil(_eqCeil(m/10)/8);}},
+    {n:'CUERDA 7,5KN/100m',              f:function(m){return _eqEven(m/30);}},
+    {n:'CANCAMO ARGOLLA D10 M8x60',      f:function(m){return m*2;}},
+    {n:'ZOCALO RAFIA 0,50x100ml BLANCO', f:function(m){return _eqCeil(m/100);}},
+    {n:'BRIDA 4,8x200 P100',             f:function(m){return _eqCeil(m/100)*200;}}
+  ],
+  'Material fungible para barandilla perimetral forjado':[
+    {n:'GUARDACUERPO 1,2M EN13374',        f:function(m){return _eqCeil(m/2);}},
+    {n:'BASE RECTA para Guardacuerpo',     f:function(m){return _eqCeil(m*0.06);}},
+    {n:'BARANDILLA D/40 2500mm UNE EN13374', f:function(m){return m;}},
+    {n:'RODAPIE 2,5M EN13374',             f:function(m){return _eqCeil(m/2);}},
+    {n:'TACO D10 ANCLAJE M8x60',           f:function(m){return _eqCeil(m*0.06)*4;}},
+    {n:'BASQUIT/CONIX para GUARDACUERPO',  f:function(m,np){np=np||5;return m*np;}}
+  ],
+  'Protección perimetral codos y mástil 2m con red':[
+    {n:'BASE CODO 160 EN L guardacuerpo',  f:function(m){return m/2;}},
+    {n:'GUARDACUERPO 1,5M EN13374',        f:function(m){return m/2;}},
+    {n:'BARANDILLA D/40 2500mm UNE EN13374', f:function(m){return (m/2)*3;}},
+    {n:'RED 2X10 PP (BAJO FORJADO) UNE 81652 Q100', f:function(m){return _eqCeil(m/10);}},
+    {n:'CUERDA 7,5KN/100m',               f:function(m){return _eqCeil(_eqCeil(m/10)*0.3);}},
+    {n:'TACO D12 CORTO M10x70',           f:function(m){return (m/2)*4;}},
+    {n:'CANCAMO ARGOLLA D10 M8x60',       f:function(m){return m*2;}}
+  ],
+  'Líneas de vida provisionales horizontales':[
+    {n:'LINEA DE VIDA 20ML HORIZONTAL LUISA 300', f:function(m){return _eqCeil(m/20);}},
+    {n:'TACO D12 LARGO M10x100',                  f:function(m){return m/4;}},
+    {n:'PUNTO DE ANCLAJE AC02 - oreja',           f:function(m){return m/4;}},
+    {n:'MOSQUETON 19mm-25KN',                     f:function(m){return m/4;}}
+  ],
+  'Eslingas para plataformas descarga 1,5m':[
+    {n:'ESLINGA PLATAFORMA ANCLAJE VERTICAL 1,5MTS', f:function(m){return m;}},
+    {n:'TACO D12 LARGO M10x100',                     f:function(m){return m;}},
+    {n:'PUNTO DE ANCLAJE AC02 - oreja',              f:function(m){return m;}}
+  ],
+  'Barandilla provisional en encofrado':[
+    {n:'GUARDACUERPO SARGENTO MORDAZA 1.3m UNETRA', f:function(m){return _eqCeil(m/1.6);}},
+    {n:'BARANDILLA D/40 2500mm UNE EN13374',        f:function(m){return _eqCeil((m/1.8)*3);}},
+    {n:'RODAPIE 2,5M EN13374',                      f:function(m){return _eqCeil(m/2.5);}}
+  ]
+};
+
+function calcDespiecePresAlmacen(p) {
+  var nPlants = p.nPlants || 3;
+  var items = (p.ventaItems||[]).filter(function(it){return it.medicion>0;});
+  var result = [];
+  items.forEach(function(it){
+    var def = EQUIPOS_DEF_ALM[it.desc];
+    if (!def) return;
+    var mats = def.map(function(d){
+      var cant = Math.round(d.f(it.medicion, nPlants) * 100) / 100;
+      return {n:d.n, cantidad:cant};
+    });
+    result.push({desc:it.desc, medicion:it.medicion, materiales:mats});
+  });
+  return result;
 }
 
 </script>
