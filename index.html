@@ -1610,10 +1610,15 @@ function detectarPresupuestoCRM() {
 function importarPartidasDePres() {
   var pDef = window._foPresDef || [];
   if (!pDef.length) { return; }
-  _foPartidas = pDef.map(function(p){ return Object.assign({}, p); });
+  var existing = _foPartidas || [];
+  var existingMats = existing.map(function(p){ return (p.material||'').trim().toLowerCase(); });
+  var nuevas = pDef.filter(function(p){
+    return existingMats.indexOf((p.material||'').trim().toLowerCase()) === -1;
+  });
+  _foPartidas = existing.concat(nuevas.map(function(p){ return Object.assign({}, p); }));
   renderLineasFO();
   document.getElementById('fo-import-pres-wrap').style.display = 'none';
-  toast('✓ '+_foPartidas.length+' partidas importadas del presupuesto');
+  toast('✓ '+nuevas.length+' partidas nuevas añadidas del presupuesto'+(existing.length?' ('+existing.length+' del Excel conservadas)':''));
 }
 
 function buscarMaterialFO(){
