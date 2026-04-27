@@ -4804,7 +4804,7 @@ function prfRenderLista() {
       '<td style="padding:9px 12px;white-space:nowrap">'+
         '<button class="btn" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="prfAbrirEditor('+pi+')">✏️ Ver/Editar</button>'+
         (prf.estado==='aprobada' ? '<button class="btn primary" style="font-size:11px;padding:3px 8px" onclick="prfGenerarFactura('+pi+')">🧾 Factura</button>' : '')+
-        (prf.estado==='facturada' ? '<span style="font-size:11px;color:var(--text2);margin-left:4px">'+( prf.facturaNum||'')+'</span>' : '')+
+        (prf.estado==='facturada' ? (facturas.find(function(f){return f.numero===prf.facturaNum;}) ? '<span style="font-size:11px;color:var(--text2);margin-left:4px">'+prf.facturaNum+'</span>' : '<button class="btn" style="font-size:11px;padding:3px 8px" onclick="prfGenerarFactura('+pi+')">🔄 Regenerar factura</button>') : '')+
       '</td>'+
     '</tr>';
   });
