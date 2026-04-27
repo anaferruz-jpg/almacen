@@ -5346,16 +5346,22 @@ function prfGenerarFactura(pi) {
   var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
   var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
+  // Buscar datos completos del cliente
+  var cliNombre = pres.cliente || '';
+  var cliObj = (clientes||[]).find(function(c){ return c.nombre && c.nombre.toLowerCase()===cliNombre.toLowerCase(); }) || {};
+  var condPago = cliObj.plazo || cliObj.formaPago || '';
+  var vencDias = parseInt(condPago) || 30;
+  var vencDate = new Date(); vencDate.setDate(vencDate.getDate() + vencDias);
   var fac  = {
     id:         'FAC-'+Date.now(),
     numero:     numF,
-    cliente:    pres.cliente||'',
-    cifCliente: '',
-    dirCliente: '',
+    cliente:    cliNombre,
+    cifCliente: cliObj.cif  || '',
+    dirCliente: cliObj.dir  || '',
     obra:       pres.proyecto||'',
     fecha:      hoy,
-    vencimiento:'',
-    condiciones:'',
+    vencimiento: condPago ? vencDate.toISOString().slice(0,10) : '',
+    condiciones: condPago || '',
     obs:        'Proforma PRF-'+String(pi+1).padStart(3,'0')+' | '+(pres.proyecto||'')+' — '+(prf.mes||''),
     lineas:     lineasFac,
     base:       base,
