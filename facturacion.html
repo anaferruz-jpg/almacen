@@ -5339,9 +5339,9 @@ function prfGenerarFactura(pi) {
     lineasFac = [{desc:'Certificación '+(prf.mes||'')+ ' — '+(pres.proyecto||''), uds:1, precio:total, dto:0}];
   } else {
     lineasFac = (prf.lineas||[])
-      .filter(function(l){ return (l.mes||0)>0 && (l.precioUnit||0)>0; })
-      .map(function(l){ return {desc:l.desc, uds:l.mes, precio:l.precioUnit, dto:0}; });
-    if (!lineasFac.length) { toast('La proforma no tiene cantidades o precios. Complétala primero.', true); return; }
+      .filter(function(l){ return (l.precioUnit||0)>0; })
+      .map(function(l){ return {desc:l.desc, uds:l.mes||0, precio:l.precioUnit, dto:0}; });
+    if (!lineasFac.length) { toast('La proforma no tiene partidas con precio. Complétala primero.', true); return; }
   }
   var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
   var numF = nextNumFac();
