@@ -1654,7 +1654,7 @@ function nextNumFac() {
 function recargarTodo() {
   setSyncBadge('loading', 'Cargando...');
   // Cargar todo desde Sheets en paralelo
-  var pendientes = 9;
+  var pendientes = 10;
   function check() { pendientes--; if (pendientes <= 0) { renderTodo(); setSyncBadge('ok', 'Conectado ✓'); } }
   function renderTodo() {
     actualizarSelectsObras();
@@ -1750,8 +1750,18 @@ function recargarTodo() {
     check();
   });
   callAPI('getProformas', function(err, data) {
-    if (!err && data && typeof data === 'object') {
-      try { localStorage.setItem('segufija_obras_prf', JSON.stringify(data)); } catch(e) {}
+    if (!err && data && typeof data === 'object' && Object.keys(data).length) {
+      // Merge: Sheets tiene prioridad (es la fuente compartida entre usuarios)
+      var localPrf = getPrfStore();
+      var merged = Object.assign({}, localPrf, data);
+      savePrfStore(merged);
+    }
+    check();
+  });
+  callAPI('getCRM', function(err, data) {
+    if (!err && Array.isArray(data) && data.length) {
+      var local = getObras();
+      if (data.length >= local.length) saveObrasLocal(data);
     }
     check();
   });
