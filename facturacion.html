@@ -267,10 +267,10 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <thead><tr>
         <th>Mes</th>
         <th style="text-align:right;color:#1a5276">Previsión</th>
-        <th style="text-align:right">Facturado</th>
+        <th style="text-align:right">Facturado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha factura)</span></th>
         <th style="text-align:right">% Cumpl.</th>
-        <th style="text-align:right;color:#1a7c3e">Cobrado</th>
-        <th style="text-align:right">Gastos prov.</th>
+        <th style="text-align:right;color:#1a7c3e">Cobrado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha cobro)</span></th>
+        <th style="text-align:right">Gastos prov. <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha pago)</span></th>
         <th style="text-align:right">Gastos intern.</th>
         <th style="text-align:right">Total gastos</th>
         <th style="text-align:right">Resultado</th>
@@ -650,6 +650,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
           <option value="ejecucion">▶️ En Ejecución</option>
           <option value="pausada">⏸ Pausada</option>
           <option value="finalizada">✅ Finalizada</option>
+          <option value="perdida">❌ Perdida/Oculta</option>
         </select>
         <select id="obras-filtro-tipo" onchange="renderTablaObrasEj()" style="min-width:150px">
           <option value="">Todos los tipos</option>
@@ -1596,10 +1597,46 @@ function subirArchivoDrive(file, carpeta, nombreBase, fecha, callback) {
   }).catch(function() { callback(null); });
 }
 
+// ── Cola de pendientes (persiste entre recargas) ──
+var SF_PENDING_KEY = 'sf_pending_facturas';
+function getPendingFacturas() {
+  try { return JSON.parse(localStorage.getItem(SF_PENDING_KEY) || '{}'); } catch(e) { return {}; }
+}
+function addPendingFactura(fac) {
+  var p = getPendingFacturas(); p[fac.id] = fac;
+  try { localStorage.setItem(SF_PENDING_KEY, JSON.stringify(p)); } catch(e) {}
+}
+function removePendingFactura(id) {
+  var p = getPendingFacturas(); delete p[id];
+  try { localStorage.setItem(SF_PENDING_KEY, JSON.stringify(p)); } catch(e) {}
+}
+function flushPendingFacturas() {
+  // Reintentar subir a Sheets las facturas pendientes (se llama en cada recargarTodo)
+  var p = getPendingFacturas();
+  var ids = Object.keys(p);
+  if (!ids.length) return;
+  console.log('[Pending] Reintentando ' + ids.length + ' factura(s) pendiente(s)...');
+  ids.forEach(function(id) {
+    postAPI({ action: 'saveFactura', factura: p[id] }, function(err, res) {
+      if (!err && res && res.ok) {
+        removePendingFactura(id);
+        console.log('[Pending] Factura sincronizada:', id);
+      }
+    });
+  });
+}
+
 // ── Guardado en Google Sheets ──
-function saveFacturaSheets(fac) {
-  postAPI({ action: 'saveFactura', factura: fac }, function(err) {
-    if (err) console.warn('Error guardando factura en Sheets:', err);
+function saveFacturaSheets(fac, onDone, silent) {
+  addPendingFactura(fac); // añadir a cola antes del POST
+  postAPI({ action: 'saveFactura', factura: fac }, function(err, res) {
+    if (!err && res && res.ok) {
+      removePendingFactura(fac.id); // confirmado: quitar de cola
+    } else {
+      console.warn('Error guardando factura en Sheets:', err || (res && res.error));
+      if (!silent) toast('⚠️ Factura guardada localmente. Se sincronizará en la próxima carga.', true);
+    }
+    if (onDone) onDone(err);
   });
 }
 function deleteFacturaSheets(id) {
@@ -1653,6 +1690,7 @@ function nextNumFac() {
 
 function recargarTodo() {
   setSyncBadge('loading', 'Cargando...');
+  flushPendingFacturas(); // reintentar subida de facturas pendientes
   // Cargar todo desde Sheets en paralelo
   var pendientes = 10;
   function check() { pendientes--; if (pendientes <= 0) { renderTodo(); setSyncBadge('ok', 'Conectado ✓'); } }
@@ -1671,6 +1709,9 @@ function recargarTodo() {
     renderGastosInternos();
     presRenderLista();
     mostrarBannerAlertas();
+    // Si el modal de proformas está abierto, refresca la lista
+    var prfModal = document.getElementById('crm-proforma-modal');
+    if (prfModal && prfModal.style.display !== 'none') prfRenderLista();
   }
 
   callAPI('getObras', function(err, data) {
@@ -1678,11 +1719,35 @@ function recargarTodo() {
     check();
   });
   callAPI('getFacturas', function(err, data) {
+    var localFacs = [];
+    try { localFacs = JSON.parse(localStorage.getItem('sf_facturas')||'[]'); } catch(e) {}
+    // Triple fuente: Sheets + localStorage + cola de pendientes
+    var _pendObj = getPendingFacturas();
+    var pendingFacs = Object.keys(_pendObj).map(function(k){ return _pendObj[k]; });
     if (!err && Array.isArray(data)) {
-      facturas = data;
+      var merged = data.slice();
+      // Añadir facturas locales no presentes en Sheets
+      localFacs.forEach(function(lf) {
+        if (!merged.some(function(sf){ return sf.id === lf.id; })) {
+          merged.push(lf);
+          saveFacturaSheets(lf, null, true);
+        }
+      });
+      // Añadir facturas de cola de pendientes no presentes en el merge
+      pendingFacs.forEach(function(pf) {
+        if (!merged.some(function(sf){ return sf.id === pf.id; })) {
+          merged.push(pf);
+        }
+      });
+      facturas = merged;
       try { localStorage.setItem('sf_facturas', JSON.stringify(facturas)); } catch(e) {}
     } else {
-      try { facturas = JSON.parse(localStorage.getItem('sf_facturas') || '[]'); } catch(e) { facturas = []; }
+      // Sheets no disponible: usar local + pendientes
+      var combined = localFacs.slice();
+      pendingFacs.forEach(function(pf) {
+        if (!combined.some(function(cf){ return cf.id === pf.id; })) combined.push(pf);
+      });
+      facturas = combined;
     }
     check();
   });
@@ -1751,9 +1816,10 @@ function recargarTodo() {
   });
   callAPI('getProformas', function(err, data) {
     if (!err && data && typeof data === 'object' && Object.keys(data).length) {
-      // Merge: Sheets tiene prioridad (es la fuente compartida entre usuarios)
+      // Merge: local tiene prioridad sobre Sheets para preservar estado reciente
+      // (ej: proforma marcada como 'facturada' antes de que el POST a Sheets completara)
       var localPrf = getPrfStore();
-      var merged = Object.assign({}, localPrf, data);
+      var merged = Object.assign({}, data, localPrf);
       savePrfStore(merged);
     }
     check();
@@ -2180,7 +2246,7 @@ function eliminarFactura(idx) {
     var facId = facturas[idx].id;
     facturas.splice(idx, 1);
     saveFacturas();
-    if (facId) deleteFacturaSheets(facId);
+    if (facId) { deleteFacturaSheets(facId); removePendingFactura(facId); }
     renderFacturas();
     renderDashboard();
     toast('Factura eliminada');
@@ -4675,11 +4741,14 @@ function renderTablaObrasEj() {
     var pct  = pres>0 ? Math.round(cert/pres*100) : 0;
     var nPrf = getPrfForObra(pKey).length;
     var est  = estMap[pKey] || 'ejecucion';
+    if (est === 'perdida' && fEst !== 'perdida') return;
     var tipo = p.tipoContrato||'cerrado';
     var estBadge = est==='ejecucion'
       ? '<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">▶️ Ejecución</span>'
       : est==='pausada'
       ? '<span style="background:#fef9c3;color:#713f12;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">⏸ Pausada</span>'
+      : est==='perdida'
+      ? '<span style="background:#fce8e6;color:#c0392b;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">❌ Perdida</span>'
       : '<span style="background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">✅ Finalizada</span>';
     html+='<tr style="border-bottom:1px solid var(--border)">'+
       '<td style="padding:9px 12px;font-weight:700;white-space:nowrap">'+(p.numOferta||'—')+'</td>'+
@@ -4691,6 +4760,7 @@ function renderTablaObrasEj() {
           '<button onclick="obraEjSetEstado(\''+pKey+'\',\'ejecucion\')" title="En Ejecución" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">▶</button>'+
           '<button onclick="obraEjSetEstado(\''+pKey+'\',\'pausada\')" title="Pausar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">⏸</button>'+
           '<button onclick="obraEjSetEstado(\''+pKey+'\',\'finalizada\')" title="Finalizar" style="font-size:9px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer">✓</button>'+
+          '<button onclick="if(confirm(\'¿Marcar como perdida/ocultar esta obra?\'))obraEjSetEstado(\''+pKey+'\',\'perdida\')" title="Marcar como Perdida/Ocultar" style="font-size:9px;padding:1px 5px;border:1px solid #fca5a5;border-radius:4px;background:#fce8e6;color:#c0392b;cursor:pointer">✕</button>'+
         '</div>'+
       '</td>'+
       '<td style="padding:9px 12px;text-align:right;white-space:nowrap">'+fmtE(pres)+'</td>'+
@@ -4806,8 +4876,11 @@ function prfRenderLista() {
     var badge = prf.estado==='aprobada'  ? '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">✅ Aprobada</span>'
               : prf.estado==='facturada' ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">🧾 Facturada</span>'
               : '<span style="background:#fef9c3;color:#713f12;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">✏️ Borrador</span>';
+    var cliLine = (prf.clienteNombre||pres.cliente||'');
+    var codLine = prf.codObra ? '<span style="font-size:10px;background:#e0e7ff;color:#3730a3;border-radius:4px;padding:1px 5px;margin-left:4px">'+prf.codObra+'</span>' : '';
     rowsHtml += '<tr style="border-bottom:1px solid var(--border)">'+
       '<td style="padding:9px 12px;font-weight:700">'+(prf.numProforma||'PRF-'+(pi+1).toString().padStart(3,'0'))+'</td>'+
+      '<td style="padding:9px 12px;font-size:12px">'+(cliLine||'—')+codLine+'</td>'+
       '<td style="padding:9px 12px">'+(prf.mes||'—')+'</td>'+
       '<td style="padding:9px 12px">'+(prf.fecha||'—')+'</td>'+
       '<td style="padding:9px 12px">'+badge+'</td>'+
@@ -4820,7 +4893,7 @@ function prfRenderLista() {
       '</td>'+
     '</tr>';
   });
-  if (!proformas.length) rowsHtml = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text2)">No hay proformas todavía. Crea la primera.</td></tr>';
+  if (!proformas.length) rowsHtml = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text2)">No hay proformas todavía. Crea la primera.</td></tr>';
   var tipoTxt = pres.tipoContrato==='produccion'?'📐 A Producción':pres.tipoContrato==='ml'?'📏 A ml':'🔒 Precio Cerrado';
   el.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'+
@@ -4837,6 +4910,7 @@ function prfRenderLista() {
       '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
         '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
           '<th style="padding:9px 12px;text-align:left">Nº</th>'+
+          '<th style="padding:9px 12px;text-align:left">Cliente / Obra</th>'+
           '<th style="padding:9px 12px;text-align:left">Periodo</th>'+
           '<th style="padding:9px 12px;text-align:left">Fecha</th>'+
           '<th style="padding:9px 12px;text-align:left">Estado</th>'+
@@ -4855,57 +4929,80 @@ function prfRenderLineas() {
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtE = function(n){ return fmtN(n)+' €'; };
   var html = '';
+  var selectBase = 'font-size:11px;padding:3px 4px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);width:90px';
   _prfLineas.forEach(function(l,i){
-    var ant    = l.anterior||0;
-    var mes    = l.mes||0;
-    var prc    = l.precioUnit||0;
+    var isDto = (l.tipo==='dto_venta'||l.tipo==='dto_alquiler');
+    var ant   = isDto ? 0 : (l.anterior||0);
+    var mes   = l.mes||0;
+    var prc   = l.precioUnit||0;
     var origen = ant + mes;
-    var impAnt = ant * prc;
-    var impOri = origen * prc;
     var impMes = mes * prc;
     var contratado = l.origen || 0;
-    html +=
-      '<tr data-i="'+i+'" style="border-bottom:1px solid var(--border)">'+
-      // Tipo (editable)
-      '<td style="padding:4px 6px">'+
-        '<select id="prf-tipo-'+i+'" style="font-size:11px;padding:3px 4px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);width:90px">'+
-          '<option value="venta"'+(l.tipo==='venta'?' selected':'')+'>🟢 Venta</option>'+
-          '<option value="alquiler"'+(l.tipo==='alquiler'?' selected':'')+'>🔵 Alquiler</option>'+
-          '<option value="cerrado"'+(l.tipo==='cerrado'?' selected':'')+'>🔒 Cerrado</option>'+
-          '<option value="mo"'+(l.tipo==='mo'?' selected':'')+'>🟠 M.O.</option>'+
-        '</select>'+
-      '</td>'+
-      // Concepto (editable)
-      '<td style="padding:4px 6px">'+
-        '<input type="text" id="prf-desc-'+i+'" value="'+((l.desc||'').replace(/"/g,'&quot;'))+'" style="width:100%;min-width:180px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)">'+
-      '</td>'+
-      // Contratado (del presupuesto — solo lectura)
-      '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#1d4ed8;background:#eff6ff;font-weight:600;border-right:1px solid var(--border)">'+fmtN(contratado)+'</td>'+
-      // Med. Anterior (EDITABLE)
-      '<td style="padding:4px 6px;text-align:center">'+
-        '<input type="number" id="prf-ant-'+i+'" value="'+ant+'" min="0" step="0.001" style="width:75px;text-align:right;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
-      '</td>'+
-      // Med. Mes (editable)
-      '<td style="padding:4px 6px;text-align:center">'+
-        '<input type="number" id="prf-mes-'+i+'" value="'+mes+'" min="0" step="0.001" style="width:75px;text-align:right;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
-      '</td>'+
-      // Med. Origen (calculado = ant + mes)
-      '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-orig-'+i+'">'+fmtN(origen)+'</td>'+
-      // Precio UD (editable)
-      '<td style="padding:4px 6px;text-align:center">'+
-        '<input type="number" id="prf-prc-'+i+'" value="'+prc+'" min="0" step="0.01" style="width:85px;text-align:right;padding:3px 5px;border:1px solid '+(prc>0?'var(--border)':'#fca5a5')+';border-radius:5px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()" placeholder="€">'+
-      '</td>'+
-      // Imp. Anterior (calculado)
-      '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-imp-ant-'+i+'">'+fmtE(impAnt)+'</td>'+
-      // Imp. a Origen (calculado)
-      '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-imp-ori-'+i+'">'+fmtE(impOri)+'</td>'+
-      // Importe Mes (calculado)
-      '<td style="padding:4px 10px;text-align:right;font-weight:700;font-size:13px;color:var(--primary);background:#f0fdf4" id="prf-imp-mes-'+i+'">'+fmtE(impMes)+'</td>'+
-      // Borrar línea
-      '<td style="padding:4px 6px;text-align:center">'+
-        '<button onclick="prfBorrarLinea('+i+')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#ef4444" title="Borrar línea">🗑</button>'+
-      '</td>'+
-      '</tr>';
+
+    if (isDto) {
+      // ── Línea de descuento ────────────────────────────────────────────────
+      html +=
+        '<tr data-i="'+i+'" style="background:#fff5f5;border-bottom:1px solid #fca5a5">'+
+        '<td style="padding:4px 6px">'+
+          '<select id="prf-tipo-'+i+'" style="'+selectBase+';color:#dc2626">'+
+            '<option value="dto_venta"'+(l.tipo==='dto_venta'?' selected':'')+'>💸 Dto Venta</option>'+
+            '<option value="dto_alquiler"'+(l.tipo==='dto_alquiler'?' selected':'')+'>💸 Dto Alquiler</option>'+
+          '</select>'+
+        '</td>'+
+        '<td style="padding:4px 6px">'+
+          '<input type="text" id="prf-desc-'+i+'" value="'+((l.desc||'').replace(/\n/g,' ').replace(/"/g,'&quot;'))+'" style="width:100%;min-width:180px;font-size:11px;padding:3px 6px;border:1px solid #fca5a5;border-radius:5px;background:#fff5f5;color:#dc2626;font-weight:600">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:center;font-size:12px;color:#dc2626;font-weight:700;background:#fff5f5;border-right:1px solid #fca5a5">'+Math.round((l.dtoRate||Math.abs(mes))*100)+'%</td>'+
+        '<td style="padding:4px 6px;text-align:center" colspan="2">'+
+          '<input type="number" id="prf-mes-'+i+'" value="'+mes+'" step="0.01" style="width:80px;text-align:right;padding:3px 5px;border:1px solid #fca5a5;border-radius:5px;font-size:11px;background:#fff5f5;color:#dc2626" oninput="prfCalcTotales()" title="Tasa negativa (ej: -0.10)">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#dc2626" id="prf-orig-'+i+'">'+fmtN(origen)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<input type="number" id="prf-prc-'+i+'" value="'+prc.toFixed(2)+'" readonly style="width:85px;text-align:right;padding:3px 5px;border:1px solid #fca5a5;border-radius:5px;font-size:11px;background:#fef2f2;color:#dc2626" title="Suma de la sección (auto)">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#dc2626" id="prf-imp-ant-'+i+'">'+fmtE(0)+'</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#dc2626" id="prf-imp-ori-'+i+'">'+fmtE(impMes)+'</td>'+
+        '<td style="padding:4px 10px;text-align:right;font-weight:700;font-size:13px;color:#dc2626;background:#fff5f5" id="prf-imp-mes-'+i+'">'+fmtE(impMes)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<button onclick="prfBorrarLinea('+i+')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#ef4444">🗑</button>'+
+        '</td>'+
+        '</tr>';
+    } else {
+      // ── Línea normal ──────────────────────────────────────────────────────
+      var impAnt = ant * prc;
+      var impOri = origen * prc;
+      html +=
+        '<tr data-i="'+i+'" style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:4px 6px">'+
+          '<select id="prf-tipo-'+i+'" style="'+selectBase+'">'+
+            '<option value="venta"'+(l.tipo==='venta'?' selected':'')+'>🟢 Venta</option>'+
+            '<option value="alquiler"'+(l.tipo==='alquiler'?' selected':'')+'>🔵 Alquiler</option>'+
+            '<option value="cerrado"'+(l.tipo==='cerrado'?' selected':'')+'>🔒 Cerrado</option>'+
+            '<option value="mo"'+(l.tipo==='mo'?' selected':'')+'>🟠 M.O.</option>'+
+          '</select>'+
+        '</td>'+
+        '<td style="padding:4px 6px">'+
+          '<input type="text" id="prf-desc-'+i+'" value="'+((l.desc||'').replace(/"/g,'&quot;'))+'" style="width:100%;min-width:180px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:#1d4ed8;background:#eff6ff;font-weight:600;border-right:1px solid var(--border)">'+fmtN(contratado)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<input type="number" id="prf-ant-'+i+'" value="'+ant+'" min="0" step="0.001" style="width:75px;text-align:right;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
+        '</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<input type="number" id="prf-mes-'+i+'" value="'+mes+'" min="0" step="0.001" style="width:75px;text-align:right;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-orig-'+i+'">'+fmtN(origen)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<input type="number" id="prf-prc-'+i+'" value="'+prc+'" min="0" step="0.01" style="width:85px;text-align:right;padding:3px 5px;border:1px solid '+(prc>0?'var(--border)':'#fca5a5')+';border-radius:5px;font-size:11px;background:var(--bg);color:var(--text)" oninput="prfCalcTotales()" placeholder="€">'+
+        '</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-imp-ant-'+i+'">'+fmtE(impAnt)+'</td>'+
+        '<td style="padding:4px 8px;text-align:right;font-size:11px;color:var(--text2)" id="prf-imp-ori-'+i+'">'+fmtE(impOri)+'</td>'+
+        '<td style="padding:4px 10px;text-align:right;font-weight:700;font-size:13px;color:var(--primary);background:#f0fdf4" id="prf-imp-mes-'+i+'">'+fmtE(impMes)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center">'+
+          '<button onclick="prfBorrarLinea('+i+')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#ef4444">🗑</button>'+
+        '</td>'+
+        '</tr>';
+    }
   });
   var tbody = document.getElementById('prf-lineas-tbody');
   if (tbody) tbody.innerHTML = html || '<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text2)">Sin líneas — pulsa ➕ Añadir línea</td></tr>';
@@ -4924,12 +5021,18 @@ function prfBorrarLinea(i) {
 
 function prfLeerLineasDOM() {
   _prfLineas = _prfLineas.map(function(l, i) {
+    var isDto = (l.tipo==='dto_venta'||l.tipo==='dto_alquiler');
+    var tipo  = (document.getElementById('prf-tipo-'+i)||{value:l.tipo||'cerrado'}).value;
+    isDto = (tipo==='dto_venta'||tipo==='dto_alquiler');
+    var mes = parseFloat((document.getElementById('prf-mes-'+i)||{value:0}).value)||0;
+    var prc = parseFloat((document.getElementById('prf-prc-'+i)||{value:l.precioUnit||0}).value)||0;
     return Object.assign({}, l, {
-      tipo:      (document.getElementById('prf-tipo-'+i)||{value:l.tipo||'cerrado'}).value,
+      tipo:      tipo,
       desc:      (document.getElementById('prf-desc-'+i)||{value:l.desc||''}).value,
-      anterior:  parseFloat((document.getElementById('prf-ant-'+i)||{value:0}).value)||0,
-      mes:       parseFloat((document.getElementById('prf-mes-'+i)||{value:0}).value)||0,
-      precioUnit:parseFloat((document.getElementById('prf-prc-'+i)||{value:l.precioUnit||0}).value)||0,
+      anterior:  isDto ? 0 : parseFloat((document.getElementById('prf-ant-'+i)||{value:0}).value)||0,
+      mes:       mes,
+      precioUnit: prc,
+      dtoRate:   isDto ? Math.abs(mes) : (l.dtoRate||0),
     });
   });
 }
@@ -4958,11 +5061,13 @@ function prfAbrirEditor(pi) {
       var dtoV = pres.descuentoVenta || 0;
       var dtoA = pres.descuentoAlquiler || 0;
       (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio*(1-dtoV/100)});
+        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
       });
+      if (dtoV > 0) _prfLineas.push({tipo:'dto_venta', desc:'DESCUENTO '+dtoV+'%\n(Contrato)', ud:'PA', dtoRate:dtoV/100, origen:0, anterior:0, mes:-(dtoV/100), precioUnit:0});
       (pres.alquilerItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio*(1-dtoA/100)});
+        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
       });
+      if (dtoA > 0) _prfLineas.push({tipo:'dto_alquiler', desc:'DESCUENTO '+dtoA+'%\n(Contrato)', ud:'PA', dtoRate:dtoA/100, origen:0, anterior:0, mes:-(dtoA/100), precioUnit:0});
       (pres.moItems||[]).filter(function(it){return it.precio>0||(it.operarios||0)>0||(it.meses||0)>0;}).forEach(function(it){
         var _moMes = (it.meses||0) > 0;
         var _prcUnit;
@@ -4979,14 +5084,18 @@ function prfAbrirEditor(pi) {
     }
     proformas.forEach(function(prev){
       (prev.lineas||[]).forEach(function(pl){
-        _prfLineas.forEach(function(l){ if(l.desc===pl.desc) l.anterior+=(pl.mes||0); });
+        _prfLineas.forEach(function(l){
+          if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
+        });
       });
     });
   } else {
-    _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({},l,{anterior:0}); });
+    _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({},l,{anterior:(l.tipo==='dto_venta'||l.tipo==='dto_alquiler')?0:0}); });
     proformas.forEach(function(prev,prevIdx){
       if (prevIdx<pi) (prev.lineas||[]).forEach(function(pl){
-        _prfLineas.forEach(function(l){ if(l.desc===pl.desc) l.anterior+=(pl.mes||0); });
+        _prfLineas.forEach(function(l){
+          if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
+        });
       });
     });
   }
@@ -5034,7 +5143,17 @@ function prfAbrirEditor(pi) {
         '<label style="font-size:11px;color:var(--text2)">Importe contratado total (€)</label>'+
         '<input type="number" id="prf-contratado-total" value="'+(prf?prf.contratadoTotal||pres.totalObra||0 : pres.totalObra||0)+'" min="0" step="0.01" style="font-size:13px;font-weight:700;background:var(--bg);color:var(--text)">'+
       '</div>'+
+      '<div class="form-group" style="margin:0">'+
+        '<label style="font-size:11px;color:var(--text2)">Cliente (facturación)</label>'+
+        '<input type="text" id="prf-cliente" list="prf-clientes-dl" value="'+(prf?(prf.clienteNombre||pres.cliente||''):(pres.cliente||''))+'" placeholder="Seleccionar cliente..." style="font-size:13px" oninput="prfOnClienteChange()" onchange="prfOnClienteChange()">'+
+        '<datalist id="prf-clientes-dl">'+clientes.map(function(c){return '<option value="'+((c.nombre||'').replace(/"/g,'&quot;'))+'">'+((c.cif||'')+(c.dir?' · '+c.dir:''))+'</option>';}).join('')+'</datalist>'+
+      '</div>'+
+      '<div class="form-group" style="margin:0">'+
+        '<label style="font-size:11px;color:var(--text2)">Código de obra</label>'+
+        '<input type="text" id="prf-cod-obra" value="'+(prf?prf.codObra||'' : '')+'" placeholder="Ej: OB-2024-001" style="font-size:13px">'+
+      '</div>'+
     '</div>'+
+    '<div id="prf-cli-info" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--text2)"></div>'+
     // Tabla de líneas — todas editables
     '<div style="overflow:auto;margin-bottom:12px;border:1px solid var(--border);border-radius:8px">'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px" id="prf-tabla">'+
@@ -5070,33 +5189,72 @@ function prfAbrirEditor(pi) {
       '</div>'+
     '</div>';
   prfRenderLineas();
+  prfOnClienteChange();
+}
+
+function prfGetCliInfoHtml(nombre) {
+  if (!nombre) return '';
+  var arr = (clientes && clientes.length) ? clientes : (function(){ try{ return JSON.parse(localStorage.getItem('sf_clientes')||'[]'); }catch(e){ return []; } })();
+  var norm = function(s){ return (s||'').trim().toLowerCase(); };
+  var c = arr.find(function(x){ return norm(x.nombre)===norm(nombre); });
+  if (!c) return '';
+  var items = [];
+  if (c.cif) items.push('<b>CIF:</b> '+c.cif);
+  if (c.dir) items.push('<b>Dir:</b> '+c.dir);
+  if (c.plazo||c.formaPago) items.push('<b>Pago:</b> '+(c.plazo||c.formaPago));
+  if (c.tel) items.push('<b>Tel:</b> '+c.tel);
+  if (c.email) items.push('<b>Email:</b> '+c.email);
+  return items.length ? '<span style="font-size:11px;font-weight:600;color:var(--brand2);margin-right:8px">'+nombre+'</span>'+items.map(function(i){return '<span style="margin-right:14px">'+i+'</span>';}).join('') : '';
+}
+
+function prfOnClienteChange() {
+  var nombre = (document.getElementById('prf-cliente')||{value:''}).value;
+  var box = document.getElementById('prf-cli-info');
+  if (!box) return;
+  var html = prfGetCliInfoHtml(nombre);
+  box.innerHTML = html;
+  box.style.display = html ? '' : 'none';
 }
 
 function prfCalcTotales() {
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtE = function(n){ return fmtN(n)+' €'; };
   var totAnt = 0, totOri = 0, totMes = 0;
+  var ventaAcc = 0, alquilerAcc = 0; // sumas acumuladas por sección para calcular descuento
   _prfLineas.forEach(function(l,i){
     var antEl = document.getElementById('prf-ant-'+i);
     var mesEl = document.getElementById('prf-mes-'+i);
     var prcEl = document.getElementById('prf-prc-'+i);
     if (!mesEl) return;
-    var ant = parseFloat(antEl ? antEl.value : 0)||0;
+    var isDtoV = l.tipo==='dto_venta', isDtoA = l.tipo==='dto_alquiler';
+    var isDto  = isDtoV || isDtoA;
+    // Para líneas de descuento: precioUnit = suma acumulada de la sección
+    if (isDtoV) { if (prcEl) prcEl.value = ventaAcc.toFixed(2);    ventaAcc    = 0; }
+    if (isDtoA) { if (prcEl) prcEl.value = alquilerAcc.toFixed(2); alquilerAcc = 0; }
+    var ant = isDto ? 0 : (parseFloat(antEl ? antEl.value : 0)||0);
     var mes = parseFloat(mesEl.value)||0;
     var prc = prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||0);
     var origen = ant + mes;
-    var impAnt = ant * prc;
+    var impAnt = isDto ? 0 : ant * prc;
     var impOri = origen * prc;
     var impMes = mes * prc;
+    // Acumular importes de sección para la siguiente línea de descuento
+    if (!isDto) {
+      if (l.tipo==='venta')    ventaAcc    += impMes;
+      if (l.tipo==='alquiler') alquilerAcc += impMes;
+    }
     totAnt += impAnt; totOri += impOri; totMes += impMes;
     var elOrig = document.getElementById('prf-orig-'+i);
     if (elOrig) elOrig.textContent = fmtN(origen);
     var elA = document.getElementById('prf-imp-ant-'+i);
     if (elA) elA.textContent = fmtE(impAnt);
     var elO = document.getElementById('prf-imp-ori-'+i);
-    if (elO) elO.textContent = fmtE(impOri);
+    if (elO) elO.textContent = fmtE(isDto ? impMes : impOri);
     var elM = document.getElementById('prf-imp-mes-'+i);
-    if (elM) { elM.textContent = fmtE(impMes); elM.style.color = impMes>0?'var(--primary)':'var(--text2)'; }
+    if (elM) {
+      elM.textContent = fmtE(impMes);
+      elM.style.color = isDto ? '#dc2626' : (impMes>0?'var(--primary)':'var(--text2)');
+    }
   });
   var iva = totMes * 0.21;
   var totalIva = totMes * 1.21;
@@ -5141,17 +5299,33 @@ function prfImprimirCertificacion() {
   var fmtE = function(n){ return fmtN(n)+' \u20ac'; };
 
   var totalAnt=0, totalOri=0, totalMes=0;
+  var _ventaAcc=0, _alqAcc=0;
+  var _secHdrs={venta:false,alquiler:false,mo:false};
   var lineasHtml = _prfLineas.map(function(l){
-    var ant=l.anterior||0, mes=l.mes||0, prc=l.precioUnit||0;
+    var isDtoV=l.tipo==='dto_venta', isDtoA=l.tipo==='dto_alquiler', isDto=isDtoV||isDtoA;
+    var ant=isDto?0:(l.anterior||0), mes=l.mes||0;
+    var prc=isDto?(isDtoV?_ventaAcc:_alqAcc):(l.precioUnit||0);
+    if(isDtoV) _ventaAcc=0; if(isDtoA) _alqAcc=0;
     var ori=ant+mes, impAnt=ant*prc, impOri=ori*prc, impMes=mes*prc;
+    if(!isDto){ if(l.tipo==='venta') _ventaAcc+=impMes; if(l.tipo==='alquiler') _alqAcc+=impMes; }
     totalAnt+=impAnt; totalOri+=impOri; totalMes+=impMes;
-    return '<tr style="border-bottom:1px solid #ddd">'+
-      '<td style="padding:9px 14px;font-size:12px">'+(l.desc||'')+'</td>'+
-      '<td style="padding:9px;text-align:center;font-size:12px">'+(ant?fmtN(ant):'')+'</td>'+
+    var secKey=isDtoV?'venta':isDtoA?'alquiler':l.tipo;
+    var secHtml='';
+    if(!_secHdrs[secKey]&&!isDto){
+      _secHdrs[secKey]=true;
+      var lbl=secKey==='venta'?'MATERIAL VENTA':secKey==='alquiler'?'MATERIAL ALQUILER':secKey==='mo'?'MANO OBRA':'';
+      if(lbl) secHtml='<tr><td colspan="7" style="padding:6px 14px;background:#f5f0e8;font-weight:700;font-size:11px;letter-spacing:.05em;color:#7a5c3e;border-top:2px solid #c8a96e">'+lbl+'</td></tr>';
+    }
+    var rowStyle=isDto?'border-bottom:1px solid #fca5a5;color:#dc2626;font-weight:600;background:#fff8f8':'border-bottom:1px solid #ddd';
+    var descLines=(l.desc||'').split('\n');
+    var descHtml='<b>'+descLines[0]+'</b>'+(descLines[1]?'<br><span style="font-size:10px;color:#888">'+descLines[1]+'</span>':'');
+    return secHtml+'<tr style="'+rowStyle+'">'+
+      '<td style="padding:9px 14px;font-size:12px">'+descHtml+'</td>'+
+      '<td style="padding:9px;text-align:center;font-size:12px">'+(ant&&!isDto?fmtN(ant):'')+'</td>'+
       '<td style="padding:9px;text-align:center;font-size:12px">'+fmtN(mes)+'</td>'+
       '<td style="padding:9px;text-align:center;font-size:12px">'+fmtN(ori)+'</td>'+
       '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(prc)+'</td>'+
-      '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(impOri)+'</td>'+
+      '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(isDto?impMes:impOri)+'</td>'+
       '<td style="padding:9px 14px;text-align:right;font-size:12px;font-weight:700">'+fmtN(impMes)+'</td>'+
       '</tr>';
   }).join('');
@@ -5249,17 +5423,32 @@ function prfGuardarEnDrive() {
   if (periodo) { var _d=new Date(periodo+'-01'); periodoStr=_d.toLocaleDateString('es-ES',{month:'short',year:'2-digit'}); }
 
   var totalAnt=0, totalOri=0, totalMes=0;
+  var _vA2=0, _aA2=0, _sH2={venta:false,alquiler:false,mo:false};
   var lineasHtml = _prfLineas.map(function(l){
-    var ant=l.anterior||0, mes=l.mes||0, prc=l.precioUnit||0;
+    var isDtoV=l.tipo==='dto_venta', isDtoA=l.tipo==='dto_alquiler', isDto=isDtoV||isDtoA;
+    var ant=isDto?0:(l.anterior||0), mes=l.mes||0;
+    var prc=isDto?(isDtoV?_vA2:_aA2):(l.precioUnit||0);
+    if(isDtoV) _vA2=0; if(isDtoA) _aA2=0;
     var ori=ant+mes, impAnt=ant*prc, impOri=ori*prc, impMes=mes*prc;
+    if(!isDto){ if(l.tipo==='venta') _vA2+=impMes; if(l.tipo==='alquiler') _aA2+=impMes; }
     totalAnt+=impAnt; totalOri+=impOri; totalMes+=impMes;
-    return '<tr style="border-bottom:1px solid #ddd">'+
-      '<td style="padding:9px 14px;font-size:12px">'+(l.desc||'')+'</td>'+
-      '<td style="padding:9px;text-align:center;font-size:12px">'+(ant?fmtN(ant):'')+'</td>'+
+    var secKey=isDtoV?'venta':isDtoA?'alquiler':l.tipo;
+    var secHtml='';
+    if(!_sH2[secKey]&&!isDto){
+      _sH2[secKey]=true;
+      var lbl=secKey==='venta'?'MATERIAL VENTA':secKey==='alquiler'?'MATERIAL ALQUILER':secKey==='mo'?'MANO OBRA':'';
+      if(lbl) secHtml='<tr><td colspan="7" style="padding:6px 14px;background:#f5f0e8;font-weight:700;font-size:11px;letter-spacing:.05em;color:#7a5c3e;border-top:2px solid #c8a96e">'+lbl+'</td></tr>';
+    }
+    var rowStyle=isDto?'border-bottom:1px solid #fca5a5;color:#dc2626;font-weight:600;background:#fff8f8':'border-bottom:1px solid #ddd';
+    var descLines=(l.desc||'').split('\n');
+    var descHtml='<b>'+descLines[0]+'</b>'+(descLines[1]?'<br><span style="font-size:10px;color:#888">'+descLines[1]+'</span>':'');
+    return secHtml+'<tr style="'+rowStyle+'">'+
+      '<td style="padding:9px 14px;font-size:12px">'+descHtml+'</td>'+
+      '<td style="padding:9px;text-align:center;font-size:12px">'+(ant&&!isDto?fmtN(ant):'')+'</td>'+
       '<td style="padding:9px;text-align:center;font-size:12px">'+fmtN(mes)+'</td>'+
       '<td style="padding:9px;text-align:center;font-size:12px">'+fmtN(ori)+'</td>'+
       '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(prc)+'</td>'+
-      '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(impOri)+'</td>'+
+      '<td style="padding:9px 14px;text-align:right;font-size:12px">'+fmtN(isDto?impMes:impOri)+'</td>'+
       '<td style="padding:9px 14px;text-align:right;font-size:12px;font-weight:700">'+fmtN(impMes)+'</td>'+
       '</tr>';
   }).join('');
@@ -5314,25 +5503,32 @@ function prfEliminar(pi) {
   prfRenderLista();
 }
 
+function prfLeerCamposDOM(existing) {
+  prfLeerLineasDOM();
+  var lineas = _prfLineas.slice();
+  var total  = lineas.reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||0); }, 0);
+  return {
+    id:              existing ? existing.id : Date.now().toString(),
+    numProforma:     (document.getElementById('prf-num')||{value:existing?existing.numProforma||'':''}).value,
+    mes:             (document.getElementById('prf-periodo')||{value:existing?existing.mes||'':''}).value,
+    fecha:           (document.getElementById('prf-fecha-emision')||{value:existing?existing.fecha||'':''}).value,
+    contratadoTotal: parseFloat((document.getElementById('prf-contratado-total')||{value:0}).value)||0,
+    clienteNombre:   (document.getElementById('prf-cliente')||{value:existing?existing.clienteNombre||'':''}).value,
+    codObra:         (document.getElementById('prf-cod-obra')||{value:existing?existing.codObra||'':''}).value,
+    facturaNum:      existing ? (existing.facturaNum||'') : '',
+    total:           total,
+    lineas:          lineas
+  };
+}
+
 function prfGuardar() {
   var pres    = prfGetPres() || {};
   var presKey = getPresKey(pres);
   var prfs    = getPrfForObra(presKey);
-  // Leer todos los campos del DOM antes de guardar
-  prfLeerLineasDOM();
-  var lineas = _prfLineas.slice();
-  var total = lineas.reduce(function(a,l){ return a + (l.mes||0)*(l.precioUnit||0); }, 0);
   var existing = (_prfIdx>=0) ? prfs[_prfIdx] : null;
-  var prf = {
-    id:              existing ? existing.id : Date.now().toString(),
-    numProforma:     (document.getElementById('prf-num')||{value:''}).value,
-    mes:             (document.getElementById('prf-periodo')||{value:''}).value,
-    fecha:           (document.getElementById('prf-fecha-emision')||{value:''}).value,
-    contratadoTotal: parseFloat((document.getElementById('prf-contratado-total')||{value:0}).value)||0,
-    estado:          existing ? (existing.estado||'borrador') : 'borrador',
-    total:           total,
-    lineas:          lineas
-  };
+  var prf = Object.assign(prfLeerCamposDOM(existing), {
+    estado: existing ? (existing.estado||'borrador') : 'borrador'
+  });
   if (_prfIdx>=0) prfs[_prfIdx]=prf; else { prfs.push(prf); _prfIdx=prfs.length-1; }
   savePrfForObra(presKey, prfs);
   toast('Proforma guardada ✓');
@@ -5343,9 +5539,13 @@ function prfAprobar() {
   var pres    = prfGetPres() || {};
   var presKey = getPresKey(pres);
   if (_prfIdx < 0) return;
-  prfGuardar();
-  var prfs = getPrfForObra(presKey);
-  if (prfs[_prfIdx]) { prfs[_prfIdx].estado='aprobada'; savePrfForObra(presKey, prfs); }
+  var prfs    = getPrfForObra(presKey);
+  var existing = prfs[_prfIdx];
+  if (!existing) return;
+  // Una sola operación de guardado con estado='aprobada' — evita race condition
+  var prf = Object.assign(prfLeerCamposDOM(existing), { estado: 'aprobada' });
+  prfs[_prfIdx] = prf;
+  savePrfForObra(presKey, prfs);
   toast('Proforma aprobada ✓');
   prfRenderLista();
 }
@@ -5370,26 +5570,27 @@ function prfGenerarFactura(pi) {
   var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
   var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
-  // Buscar datos completos del cliente
-  var cliNombre = pres.cliente || '';
-  // Buscar cliente: memoria activa → localStorage → vacío
+  // Buscar datos completos del cliente (proforma tiene prioridad sobre presupuesto)
+  var cliNombre = prf.clienteNombre || pres.cliente || '';
   var _cliArr = (clientes && clientes.length) ? clientes : (function(){ try{ return JSON.parse(localStorage.getItem('sf_clientes')||'[]'); }catch(e){ return []; } })();
   var _normC = function(s){ return (s||'').trim().toLowerCase(); };
   var cliObj = _cliArr.find(function(c){ return _normC(c.nombre)===_normC(cliNombre); }) || {};
   var condPago = cliObj.plazo || cliObj.formaPago || '';
   var vencDias = parseInt((condPago||'').match(/\d+/)||[30]) || 30;
   var vencDate = new Date(); vencDate.setDate(vencDate.getDate() + vencDias);
+  var codObraStr = prf.codObra || pres.numOferta || '';
   var fac  = {
     id:         'FAC-'+Date.now(),
     numero:     numF,
     cliente:    cliNombre,
     cifCliente: cliObj.cif  || '',
-    dirCliente: cliObj.dir  || '',
+    dirCliente: cliObj.dir  || cliObj.direccion || '',
     obra:       pres.proyecto||'',
+    codObra:    codObraStr,
     fecha:      hoy,
     vencimiento: condPago ? vencDate.toISOString().slice(0,10) : '',
     condiciones: condPago || '',
-    obs:        'Proforma PRF-'+String(pi+1).padStart(3,'0')+' | '+(pres.proyecto||'')+' — '+(prf.mes||''),
+    obs:        'Proforma '+(prf.numProforma||'PRF-'+String(pi+1).padStart(3,'0'))+(codObraStr?' | Obra: '+codObraStr:'')+' | '+(pres.proyecto||'')+' — '+(prf.mes||''),
     lineas:     lineasFac,
     base:       base,
     iva:        base*0.21,
@@ -5401,6 +5602,7 @@ function prfGenerarFactura(pi) {
   };
   facturas.push(fac);
   saveFacturas();
+  saveFacturaSheets(fac, null, false);   // ← sincronizar a Sheets (muestra aviso si falla)
   prfs[pi].estado     = 'facturada';
   prfs[pi].facturaNum = numF;
   savePrfForObra(presKey, prfs);
@@ -7188,7 +7390,7 @@ function renderResumenMensual(){
   // Acumular por mes
   var meses=Array.from({length:12},function(){return{facturado:0,cobrado:0,gastoProv:0,gastoInt:0};});
 
-  // Facturado = facturas emitidas/cobradas (base sin IVA)
+  // FACTURADO → por fecha de emisión de factura (base sin IVA)
   (facturas||[]).forEach(function(f){
     if(!f.fecha||f.estado==='borrador')return;
     var d=new Date(f.fecha);
@@ -7196,23 +7398,26 @@ function renderResumenMensual(){
     meses[d.getMonth()].facturado+=(parseFloat(f.base)||0);
   });
 
-  // Cobrado = facturas con estado cobrada (base sin IVA)
+  // COBRADO → por fecha real de cobro (fechaCobro), no por fecha de factura
   (facturas||[]).forEach(function(f){
-    if(!f.fecha||f.estado!=='cobrada')return;
-    var d=new Date(f.fecha);
+    if(f.estado!=='cobrada')return;
+    var fechaC=f.fechaCobro||f.fecha; // usar fechaCobro si existe, si no fecha factura
+    if(!fechaC)return;
+    var d=new Date(fechaC);
     if(d.getFullYear()!==ano)return;
     meses[d.getMonth()].cobrado+=(parseFloat(f.base)||0);
   });
 
-  // Gastos proveedores (base sin IVA)
+  // GASTOS PROVEEDORES → por fecha de vencimiento de pago (no fecha factura recibida)
   (gastos||[]).forEach(function(g){
-    if(!g.fecha)return;
-    var d=new Date(g.fecha);
+    var fechaP=g.vencimiento||g.fecha; // vencimiento = cuándo se paga
+    if(!fechaP)return;
+    var d=new Date(fechaP);
     if(d.getFullYear()!==ano)return;
     meses[d.getMonth()].gastoProv+=(parseFloat(g.base||g.total)||0);
   });
 
-  // Gastos internos
+  // GASTOS INTERNOS → por fecha (no tienen vencimiento)
   (gastosInternos||[]).forEach(function(g){
     if(!g.fecha)return;
     var d=new Date(g.fecha);
@@ -7255,9 +7460,8 @@ function renderResumenMensual(){
     var prev=parseFloat(prevision[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
     var esFuturo=(ano===hoy.getFullYear()&&i>mesActual);
-    var sinDatos=!m.facturado&&!m.cobrado&&!m.gastoProv&&!m.gastoInt&&!prev;
-    if(esFuturo&&sinDatos)return;
-    var rowStyle=esFuturo?'opacity:0.5':'';
+    // Siempre mostrar los 12 meses del año seleccionado
+    var rowStyle=esFuturo?'opacity:0.45;font-style:italic':'';
     tbody+='<tr style="'+rowStyle+'">'+
       '<td><b>'+MESES[i]+'</b></td>'+
       '<td style="text-align:right"><input type="number" min="0" step="100" value="'+(prev||'')+'" placeholder="0"'+
