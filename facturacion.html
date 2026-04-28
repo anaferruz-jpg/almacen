@@ -266,11 +266,12 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
     <table id="resumen-tabla">
       <thead><tr>
         <th>Mes</th>
-        <th style="text-align:right;color:#1a5276">Previsión</th>
+        <th style="text-align:right;color:#1a5276">Prev. facturación</th>
         <th style="text-align:right">Facturado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha factura)</span></th>
         <th style="text-align:right">% Cumpl.</th>
         <th style="text-align:right;color:#1a7c3e">Cobrado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha cobro)</span></th>
         <th style="text-align:right">Gastos prov. <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha pago)</span></th>
+        <th style="text-align:right;color:#7c3aed">Prev. g. internos</th>
         <th style="text-align:right">Gastos intern.</th>
         <th style="text-align:right">Total gastos</th>
         <th style="text-align:right">Resultado</th>
@@ -7434,30 +7435,40 @@ function renderResumenMensual(){
   function fmtR(v){return(v<0?'-':'')+Math.abs(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
   function colorRes(v){return v>=0?'color:#1a7c3e':'color:#c0392b';}
 
-  // Cargar previsiones guardadas
+  // Cargar previsiones guardadas — facturación
   var prevKey='sf_prevision_'+ano;
   var prevision=[];
   try{prevision=JSON.parse(localStorage.getItem(prevKey)||'[]');}catch(e){}
   if(!prevision.length)prevision=Array(12).fill(0);
 
+  // Cargar previsiones guardadas — gastos internos
+  var prevGIKey='sf_prevision_gi_'+ano;
+  var prevGI=[];
+  try{prevGI=JSON.parse(localStorage.getItem(prevGIKey)||'[]');}catch(e){}
+  if(!prevGI.length)prevGI=Array(12).fill(0);
+
   var totPrev=prevision.reduce(function(a,v){return a+(parseFloat(v)||0);},0);
+  var totPrevGI=prevGI.reduce(function(a,v){return a+(parseFloat(v)||0);},0);
 
   // Cards resumen año
   var cumplPct=totPrev>0?Math.round(totFac/totPrev*100):null;
   document.getElementById('resumen-cards').innerHTML=
-    '<div class="stat-card"><div class="stat-val" style="color:#1a5276">'+fmtR(totPrev)+'</div><div class="stat-lbl">Previsión '+ano+'</div></div>'+
+    '<div class="stat-card"><div class="stat-val" style="color:#1a5276">'+fmtR(totPrev)+'</div><div class="stat-lbl">Prev. facturación '+ano+'</div></div>'+
     '<div class="stat-card"><div class="stat-val">'+fmtR(totFac)+'</div><div class="stat-lbl">Facturado '+ano+(cumplPct!==null?' · <b>'+cumplPct+'%</b>':'')+' cumplido</div></div>'+
     '<div class="stat-card"><div class="stat-val" style="color:#1a7c3e">'+fmtR(totCob)+'</div><div class="stat-lbl">Cobrado '+ano+'</div></div>'+
+    '<div class="stat-card"><div class="stat-val" style="color:#7c3aed">'+fmtR(totPrevGI)+'</div><div class="stat-lbl">Prev. gastos internos '+ano+'</div></div>'+
     '<div class="stat-card"><div class="stat-val" style="color:#c0392b">'+fmtR(totGas)+'</div><div class="stat-lbl">Total gastos '+ano+'</div></div>'+
     '<div class="stat-card"><div class="stat-val" style="'+colorRes(totRes)+'">'+fmtR(totRes)+'</div><div class="stat-lbl">Resultado (cobrado − gastos)</div></div>';
 
   // Tabla mensual
   var mesActual=hoy.getMonth();
   var tbody='';
+  var inputStyle='width:90px;text-align:right;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px';
   meses.forEach(function(m,i){
     var gasTotal=m.gastoProv+m.gastoInt;
     var resultado=m.cobrado-gasTotal;
     var prev=parseFloat(prevision[i])||0;
+    var prevgi=parseFloat(prevGI[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
     var esFuturo=(ano===hoy.getFullYear()&&i>mesActual);
     // Siempre mostrar los 12 meses del año seleccionado
@@ -7465,12 +7476,15 @@ function renderResumenMensual(){
     tbody+='<tr style="'+rowStyle+'">'+
       '<td><b>'+MESES[i]+'</b></td>'+
       '<td style="text-align:right"><input type="number" min="0" step="100" value="'+(prev||'')+'" placeholder="0"'+
-        ' style="width:100px;text-align:right;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px"'+
+        ' style="'+inputStyle+';border-color:#bfdbfe"'+
         ' onchange="guardarPrevision('+ano+','+i+',this.value)"></td>'+
       '<td style="text-align:right">'+fmtR(m.facturado)+'</td>'+
       '<td style="text-align:right;font-weight:600;color:'+(pct===null?'var(--text2)':pct>=100?'#1a7c3e':pct>=80?'#f39c12':'#c0392b')+'">'+(pct!==null?pct+'%':'—')+'</td>'+
       '<td style="text-align:right;color:#1a7c3e">'+fmtR(m.cobrado)+'</td>'+
       '<td style="text-align:right">'+fmtR(m.gastoProv)+'</td>'+
+      '<td style="text-align:right"><input type="number" min="0" step="100" value="'+(prevgi||'')+'" placeholder="0"'+
+        ' style="'+inputStyle+';border-color:#ddd6fe"'+
+        ' onchange="guardarPrevisionGI('+ano+','+i+',this.value)"></td>'+
       '<td style="text-align:right">'+fmtR(m.gastoInt)+'</td>'+
       '<td style="text-align:right;color:#c0392b">'+fmtR(gasTotal)+'</td>'+
       '<td style="text-align:right;font-weight:700;'+colorRes(resultado)+'">'+fmtR(resultado)+'</td>'+
@@ -7480,16 +7494,27 @@ function renderResumenMensual(){
   var totCumpl=totPrev>0?Math.round(totFac/totPrev*100):null;
   tbody+='<tr style="border-top:2px solid var(--border);font-weight:700;background:var(--accent-light)">'+
     '<td>TOTAL '+ano+'</td>'+
-    '<td style="text-align:right">'+fmtR(totPrev)+'</td>'+
+    '<td style="text-align:right;color:#1a5276">'+fmtR(totPrev)+'</td>'+
     '<td style="text-align:right">'+fmtR(totFac)+'</td>'+
     '<td style="text-align:right">'+(totCumpl!==null?totCumpl+'%':'—')+'</td>'+
     '<td style="text-align:right;color:#1a7c3e">'+fmtR(totCob)+'</td>'+
     '<td style="text-align:right">'+fmtR(totGProv)+'</td>'+
+    '<td style="text-align:right;color:#7c3aed">'+fmtR(totPrevGI)+'</td>'+
     '<td style="text-align:right">'+fmtR(totGInt)+'</td>'+
     '<td style="text-align:right;color:#c0392b">'+fmtR(totGas)+'</td>'+
     '<td style="text-align:right;'+colorRes(totRes)+'">'+fmtR(totRes)+'</td>'+
   '</tr>';
   document.getElementById('resumen-tbody').innerHTML=tbody;
+}
+
+function guardarPrevisionGI(ano,mes,valor){
+  var prevGIKey='sf_prevision_gi_'+ano;
+  var prevGI=[];
+  try{prevGI=JSON.parse(localStorage.getItem(prevGIKey)||'[]');}catch(e){}
+  if(!prevGI.length)prevGI=Array(12).fill(0);
+  prevGI[mes]=parseFloat(valor)||0;
+  try{localStorage.setItem(prevGIKey,JSON.stringify(prevGI));}catch(e){}
+  renderResumenMensual();
 }
 
 function guardarPrevision(ano,mes,valor){
