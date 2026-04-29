@@ -3893,6 +3893,8 @@ function recalcularSuministradoTodo() {
   // 3 — Aplicar cada salida (first-fit por material con capacidad disponible)
   var sinObra = {}, sinPartida = {};
   _sincSinObra = {};   // reset global para modal
+  _sincExtrasInfo = {}; // reset info de extras para modal
+  var _matMap = getMaterialMapping(); // mapeo manual guardado
   salidas.forEach(function(h) {
     var obraKey = (h.obra||'').toLowerCase().trim();
     var obraObj = obraIdx[obraKey];
@@ -3936,19 +3938,45 @@ function recalcularSuministradoTodo() {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
           firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
         } else {
-          // No hay partida con ese nombre → crear partida extra para que quede registrada
-          var nuevaPartida = {
-            partida:     '⚠️ EXTRAS (no planificadas)',
-            material:    c.nombre,
-            contratado:  0,          // no estaba planificada
-            suministrado: qtyRestante,
-            ud:          c.ud || 'ud',
-            tipo:        'venta',
-            extra:       true,        // marcada como extra (no planificada)
-            entregas:    [{ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' }]
-          };
-          obraObj.partidas.push(nuevaPartida);
-          sinPartida[c.nombre + ' (' + h.obra + ')'] = true; // seguimos avisando, pero ya está registrada
+          // Comprobar si el usuario ha guardado un mapeo manual para este material+obra
+          var _obraKeyMap = (h.obra||'').toLowerCase().trim();
+          var _mappedNorm = _matMap[_obraKeyMap+':'+matNorm];
+          if (_mappedNorm) {
+            // Usar el nombre de partida mapeado por el usuario
+            var mappedMatch = null;
+            for (var jj=0; jj<obraObj.partidas.length; jj++) {
+              if (normalizarMat(obraObj.partidas[jj].material) === _mappedNorm) {
+                mappedMatch = obraObj.partidas[jj]; break;
+              }
+            }
+            if (mappedMatch) {
+              mappedMatch.suministrado = (mappedMatch.suministrado||0) + qtyRestante;
+              if (!mappedMatch.entregas) mappedMatch.entregas = [];
+              mappedMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
+            } else { _mappedNorm = null; } // mapeo ya no existe, tratar como extra
+          }
+          if (!_mappedNorm) {
+            // No hay partida con ese nombre → crear partida extra para que quede registrada
+            var nuevaPartida = {
+              partida:     '⚠️ EXTRAS (no planificadas)',
+              material:    c.nombre,
+              contratado:  0,
+              suministrado: qtyRestante,
+              ud:          c.ud || 'ud',
+              tipo:        'venta',
+              extra:       true,
+              entregas:    [{ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' }]
+            };
+            obraObj.partidas.push(nuevaPartida);
+            sinPartida[c.nombre + ' (' + h.obra + ')'] = true;
+            // Guardar info para modal: partidas reales disponibles en esta obra
+            if (!_sincExtrasInfo[h.obra]) _sincExtrasInfo[h.obra] = {};
+            var _partsReales = obraObj.partidas
+              .filter(function(pp){ return !pp.extra; })
+              .map(function(pp){ return pp.material; })
+              .filter(function(v,i,a){ return a.indexOf(v)===i; });
+            _sincExtrasInfo[h.obra][c.nombre] = { norm: matNorm, partidas: _partsReales };
+          }
         }
       }
     });
@@ -4002,12 +4030,26 @@ function recalcularSuministradoTodo() {
         window._lastSincPorObra = porObra;
         html += '<div style="background:#fef9c3;border-radius:8px;padding:10px 12px;font-size:12px">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
-          + '<b>⚠️ Partidas nuevas registradas como extras ('+sinPartList.length+'):</b>'
+          + '<b>⚠️ Materiales sin partida coincidente ('+sinPartList.length+') — registrados como extras</b>'
           + '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button></div>'
-          + '<p style="color:#92400e;margin:4px 0 8px">✅ Estas partidas no existían en el plan de obra pero <b>se han registrado igualmente</b> como entradas extra. Aparecerán marcadas en cada obra. Revísalas para añadirlas al presupuesto si procede.</p>';
+          + '<p style="color:#92400e;margin:4px 0 8px">Asigna la partida correcta en cada material y pulsa <b>Guardar y re-sincronizar</b> para reasignarlos. Si no hay partida equivalente, se mantendrán como extras.</p>';
         Object.keys(porObra).forEach(function(obra){
-          html += '<div style="margin-top:6px"><b>📋 '+obra+' ('+porObra[obra].length+')</b><div style="padding-left:8px;color:#555">'
-            + porObra[obra].map(function(mat){return '· '+mat;}).join('<br>') + '</div></div>';
+          var matsObra = _sincExtrasInfo[obra] || {};
+          html += '<div style="margin-top:8px"><b>📋 '+obra+'</b>';
+          html += '<table style="width:100%;border-collapse:collapse;margin-top:4px">';
+          html += '<tr style="background:#fef08a;font-size:11px"><th style="padding:3px 6px;text-align:left">Material en Sheets</th><th style="padding:3px 6px;text-align:left">Asignar a partida</th></tr>';
+          porObra[obra].forEach(function(mat){
+            var info = matsObra[mat] || { norm: normalizarMat(mat), partidas: [] };
+            var opts = '<option value="">— Mantener como EXTRA —</option>'
+              + info.partidas.map(function(p){
+                  return '<option value="'+p.replace(/"/g,'&quot;')+'">'+p+'</option>';
+                }).join('');
+            html += '<tr style="border-bottom:1px solid #fde68a">'
+              + '<td style="padding:4px 6px;color:#78350f">'+mat+'</td>'
+              + '<td style="padding:4px 6px"><select class="sinc-mat-sel" data-obra="'+obra.replace(/"/g,'&quot;')+'" data-mat="'+info.norm+'" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid #d97706;border-radius:4px">'+opts+'</select></td>'
+              + '</tr>';
+          });
+          html += '</table></div>';
         });
         html += '</div>';
       }
@@ -4015,8 +4057,9 @@ function recalcularSuministradoTodo() {
       document.getElementById('sinc-modal-body').innerHTML = html
         + '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
         + (sinPartList.length ? '<button class="btn" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button>' : '')
+        + (sinPartList.length ? '<button class="btn primary" onclick="guardarMapeoYResincronizar()" style="background:#d97706">💾 Guardar y re-sincronizar</button>' : '')
         + '<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">'
-        + (sinObraList.length ? 'Continuar →' : 'Cerrar') + '</button></div>';
+        + (sinObraList.length ? 'Continuar →' : 'Cerrar sin cambios') + '</button></div>';
       sm.style.display = 'flex';
       if (sinObraList.length) setTimeout(function(){ sm.style.display='none'; mostrarModalSincErrores(); }, 0);
       return;
@@ -5073,7 +5116,30 @@ function normalizarMat(nombre) {
 }
 
 var _sincSinObra = {};   // key: nombre original, value: [{salida historial}]
+var _sincExtrasInfo = {}; // key: obraName, value: {matNombre: [partidaMats disponibles]}
 var _obraAliases = (function(){ try{ return JSON.parse(localStorage.getItem('segufija_obra_aliases')||'{}'); }catch(e){return {};} })();
+
+// ── Mapeo manual material→partida ─────────────────────────────────────────────
+var SF_MAT_MAP_KEY = 'sf_mat_partida_map';
+function getMaterialMapping() {
+  try { return JSON.parse(localStorage.getItem(SF_MAT_MAP_KEY)||'{}'); } catch(e) { return {}; }
+}
+function saveMaterialMapping(map) {
+  try { localStorage.setItem(SF_MAT_MAP_KEY, JSON.stringify(map)); } catch(e) {}
+}
+function guardarMapeoYResincronizar() {
+  var map = getMaterialMapping();
+  var sels = document.querySelectorAll('.sinc-mat-sel');
+  sels.forEach(function(sel) {
+    if (!sel.value) return;
+    var obraKey = (sel.dataset.obra||'').toLowerCase().trim();
+    var matNorm = sel.dataset.mat;
+    map[obraKey+':'+matNorm] = normalizarMat(sel.value);
+  });
+  saveMaterialMapping(map);
+  document.getElementById('sinc-modal').style.display='none';
+  setTimeout(function(){ sincronizarConHistorial(); }, 100);
+}
 
 function exportarSinPartidasCSV() {
   var porObra = window._lastSincPorObra || {};
