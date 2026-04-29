@@ -5084,15 +5084,19 @@ var MAT_NORM_MAP = (function(){
     'anclaje pletina recto':                   C.PIE,
     'base metalica recta para guardacuerpo - anclaje pletina recto': C.PIE,
     // ── SOPORTE 160 EN L ──────────────────────────────────────────
-    'soporte 160 en l':                        C.SOP160,
-    'soporte de 160 en l':                     C.SOP160,
-    'soporte de 160 en l para guardacuerpo':   C.SOP160,
-    'base codo de 160 en l':                   C.SOP160,
-    'codo soporte de 160 en l':                C.SOP160,
-    'codo soporte de 160 en l para guardacuerpo emp': C.SOP160,
-    'codo - anclaje lateral - soporte de 160 en l':   C.SOP160,
-    'codo anclaje lateral soporte de 160 en l':       C.SOP160,
-    'anclaje lateral soporte de 160 en l':     C.SOP160,
+    'soporte 160 en l':                              C.SOP160,
+    'soporte de 160 en l':                           C.SOP160,
+    'soporte de 160 en l para guardacuerpo':         C.SOP160,
+    'base codo de 160 en l':                         C.SOP160,
+    'codo soporte de 160 en l':                      C.SOP160,
+    'codo soporte de 160 en l para guardacuerpo':    C.SOP160,
+    'codo soporte de 160 en l para guardacuderpo':   C.SOP160, // typo frecuente
+    'codo soporte de 160 en l para guardacuerpo emp':C.SOP160,
+    'codo - anclaje lateral - soporte de 160 en l':  C.SOP160,
+    'codo - anclaje lateral - soporte de 160 en l para guardacuerpo':  C.SOP160,
+    'codo - anclaje lateral - soporte de 160 en l para guardacuderpo': C.SOP160,
+    'codo anclaje lateral soporte de 160 en l':      C.SOP160,
+    'anclaje lateral soporte de 160 en l':           C.SOP160,
     // ── RODAPIÉ ───────────────────────────────────────────────────
     'rodapie 2,5m':                            C.ROD25,
     'rodapié 2,5m':                            C.ROD25,
@@ -5114,9 +5118,11 @@ var MAT_NORM_MAP = (function(){
     'guardacuerpo 1,5m en13374':               C.GC150,
     // ── REDES 1x10 (bajo forjado) ─────────────────────────────────
     'red 1x10 pp bajo forjado':               C.RED1x10,
+    'red 1x10 pp':                            C.RED1x10,
     'red 1 x 10 pp':                          C.RED1x10,
     'red 1 x 10 pp bajo forjado':             C.RED1x10,
     'red 1x10 pp bajo forjado q100':          C.RED1x10,
+    'red 1x10 pp q100':                       C.RED1x10,
     'red pp en1263-1 1,10x10 bajo forjado':   C.RED1x10,
     'red pp en1263-1 1,10×10m':               C.RED1x10,
     'red pp en1263-1 1,10x10m':               C.RED1x10,
@@ -5124,6 +5130,7 @@ var MAT_NORM_MAP = (function(){
     'red 1.10 x 10 bajo forjado':             C.RED1x10,
     // ── REDES 2x10 (bajo forjado) ─────────────────────────────────
     'red 2x10 pp bajo forjado':               C.RED2x10,
+    'red 2x10 pp':                            C.RED2x10,
     'red 2,10 x 10 pp':                       C.RED2x10,
     'red 2,10 x 10 pp q100':                  C.RED2x10,
     'red 2x10 pp q100':                       C.RED2x10,
@@ -5168,10 +5175,12 @@ var MAT_NORM_MAP = (function(){
     'taco d12 m-10x70':                       C.TAD12C,
     // ── CÁNCAMO ARGOLLA D10 ───────────────────────────────────────
     'cancamo argolla d10 m8x60':              C.CAN10,
-    'cancamo argolla d10 m 8x60':             C.CAN10,
-    'cancamo argolla d10 m-8x60':             C.CAN10,
-    'cancamo argolla':                        C.CAN10,
-    'taco argolla d10':                       C.CAN10,
+    'cancamo argolla d10 m 8x60':            C.CAN10,
+    'cancamo argolla d10 m-8x60':            C.CAN10,
+    'cancamo argolla d10 m 8x60 acha10c':   C.CAN10, // tras quitar "- ACHA10C" por la regla de códigos
+    'cancamo argolla d10':                   C.CAN10,
+    'cancamo argolla':                       C.CAN10,
+    'taco argolla d10':                      C.CAN10,
     'taco argolla d10 m-8x60':               C.CAN10,
     'anclaje argolla m 8x60':                C.CAN10,
     'cancamo argolla -- anclaje argolla m 8x60': C.CAN10,
@@ -5188,9 +5197,15 @@ var MAT_NORM_MAP = (function(){
     'cuerda 7,5 kn / 100m':                   C.CU75,
     'cuerda 7,5kn/100m':                      C.CU75,
     // ── LÍNEA DE VIDA ─────────────────────────────────────────────
-    'linea vida horizontal 20m':              C.LV20,
-    'linea de vida 20 ml horizontal':         C.LV20,
-    'linea de vida horizontal 20m':           C.LV20,
+    'linea vida horizontal 20m':                        C.LV20,
+    'linea de vida 20 ml horizontal':                   C.LV20,
+    'linea de vida horizontal 20m':                     C.LV20,
+    'linea de vida luisa 300 horizontal 20m':           C.LV20,
+    'linea de vida luisa 300 horizontal 20m c/mochila': C.LV20,
+    'linea de vida luisa 300':                          C.LV20,
+    'linea de vida luisa300':                           C.LV20,
+    'linea de vida 20m c/mochila':                      C.LV20,
+    'linea de vida 20m':                                C.LV20,
     // ── POSTE / BASE LDV ──────────────────────────────────────────
     'poste mastil ldv 60x40':                 C.POST60,
     'poste / mastil linea de vida base 60x40':C.POST60,
@@ -5228,8 +5243,12 @@ var MAT_NORM_MAP = (function(){
     'seta protectora 12-24':                 C.SETA,
     'seta protectora 12-22 mm p300':         C.SETA,  // con sufijo envase
     // ── BASQUIT / CONIX ───────────────────────────────────────────
-    'basquit / conix bolsa 200 uds':         C.BAS200,
-    'basquit / conix':                       C.BAS200,
+    'basquit / conix bolsa 200 uds':              C.BAS200,
+    'basquit / conix':                            C.BAS200,
+    'basquit / conix para guardacuerpo':          C.BAS200,
+    'basquit conix para guardacuerpo':            C.BAS200,
+    'basquit':                                    C.BAS200,
+    'conix':                                      C.BAS200,
     // ── BRIDA 4,8x200 ─────────────────────────────────────────────
     'brida 4,8x200':                         C.BRI48,
     'brida 4,8×200':                         C.BRI48,
@@ -5283,19 +5302,21 @@ function normalizarMat(nombre) {
     .replace(/\s*\([^)]*\)/g, '')           // quitar (...)
     .replace(/\s*\[[^\]]*\]/g, '')           // quitar [...]
     .replace(/\bune\s+en\s*\d+/gi, '')      // quitar UNE EN####
-    .replace(/\bune\s*\d+/gi, '')           // quitar UNE####
+    .replace(/\bune\s*\d+/gi, '')           // quitar UNE#### (también UNE 81652 etc)
     .replace(/\s*-\s*(unetra|indexfix|wurth|multigarben|visornets|palet|pale|caja|bote|unidad|uds?\.?).*/gi, '')
     .replace(/\s*-\s*\d+\s*uds?\.?.*/gi, '')       // quitar "- 50UDS - ACHT12L" etc
     .replace(/\s+b-\d+\s*$/gi, '')                  // quitar " B-100" al final
-    .replace(/\s+p\d+\s*$/gi, '')                   // quitar " P100", " P300", " P50" (código de envase) al final
+    .replace(/\s+p\d+\s*$/gi, '')                   // quitar " P100", " P300" (código de envase)
+    .replace(/\s+q\d+\b/gi, '')                     // quitar " Q100" (código de calidad)
+    .replace(/\s*-\s*[a-z]{2,}\d+[a-z0-9]*\s*$/gi, '') // quitar códigos proveedor tipo "- ACHA10C" al final
     .replace(/\s*\b(unetra|indexfix)\b.*/gi, '')  // quitar nombre proveedor al final sin guión
     .replace(/\bemp\.?\s*$/gi, '')           // quitar "emp." al final
-    .replace(/\s+/g,' ').replace(/\.\s*$/,'')
+    .replace(/[()]/g, ' ')                   // quitar paréntesis huérfanos que queden tras la limpieza
+    .replace(/\s+/g,' ').replace(/\.\s*$/,'').replace(/\s*-\s*$/,'')
     .toLowerCase().trim()
     .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
     .replace(/×/g,'x')
-    // Quitar guión aislado al final tras la limpieza ("mosqueton -" → "mosqueton")
-    .replace(/\s*-\s*$/,'');
+    .replace(/\s*-\s*$/,'');  // guión aislado al final
   return MAT_NORM_MAP[k] || k;
 }
 
