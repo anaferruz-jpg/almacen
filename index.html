@@ -3936,7 +3936,19 @@ function recalcularSuministradoTodo() {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
           firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
         } else {
-          sinPartida[c.nombre + ' (' + h.obra + ')'] = true;
+          // No hay partida con ese nombre → crear partida extra para que quede registrada
+          var nuevaPartida = {
+            partida:     '⚠️ EXTRAS (no planificadas)',
+            material:    c.nombre,
+            contratado:  0,          // no estaba planificada
+            suministrado: qtyRestante,
+            ud:          c.ud || 'ud',
+            tipo:        'venta',
+            extra:       true,        // marcada como extra (no planificada)
+            entregas:    [{ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' }]
+          };
+          obraObj.partidas.push(nuevaPartida);
+          sinPartida[c.nombre + ' (' + h.obra + ')'] = true; // seguimos avisando, pero ya está registrada
         }
       }
     });
@@ -3988,11 +4000,11 @@ function recalcularSuministradoTodo() {
           porObra[obra].push(mat.trim());
         });
         window._lastSincPorObra = porObra;
-        html += '<div style="background:#fef2f2;border-radius:8px;padding:10px 12px;font-size:12px">'
+        html += '<div style="background:#fef9c3;border-radius:8px;padding:10px 12px;font-size:12px">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">'
-          + '<b>⚠️ Salidas sin partida coincidente ('+sinPartList.length+'):</b>'
+          + '<b>⚠️ Partidas nuevas registradas como extras ('+sinPartList.length+'):</b>'
           + '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button></div>'
-          + '<p style="color:var(--text2);margin:4px 0 8px">Tu compañera registró estas salidas directamente en Sheets con nombres de albarán. Descarga la lista y dísela para que los corrija usando la app.</p>';
+          + '<p style="color:#92400e;margin:4px 0 8px">✅ Estas partidas no existían en el plan de obra pero <b>se han registrado igualmente</b> como entradas extra. Aparecerán marcadas en cada obra. Revísalas para añadirlas al presupuesto si procede.</p>';
         Object.keys(porObra).forEach(function(obra){
           html += '<div style="margin-top:6px"><b>📋 '+obra+' ('+porObra[obra].length+')</b><div style="padding-left:8px;color:#555">'
             + porObra[obra].map(function(mat){return '· '+mat;}).join('<br>') + '</div></div>';
