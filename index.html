@@ -199,11 +199,13 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <div class="form-grid">
         <div class="form-group">
           <label>Código de obra</label>
-          <input type="text" id="fo-cod" placeholder="Ej: OB-2025-01" style="text-transform:uppercase" oninput="detectarPresupuestoCRM()">
+          <input type="text" id="fo-cod" placeholder="Ej: OB-2025-01" style="text-transform:uppercase" list="fo-pres-cods-dl" oninput="detectarPresupuestoCRM()">
+          <datalist id="fo-pres-cods-dl"></datalist>
         </div>
         <div class="form-group">
           <label>Nombre de la obra *</label>
-          <input type="text" id="fo-nombre" placeholder="Ej: PROMOTORA BARCELONA GRACIA" oninput="detectarPresupuestoCRM()">
+          <input type="text" id="fo-nombre" placeholder="Ej: PROMOTORA BARCELONA GRACIA" list="fo-pres-nombres-dl" oninput="detectarPresupuestoCRM()">
+          <datalist id="fo-pres-nombres-dl"></datalist>
         </div>
         <div class="form-group">
           <label>Ubicación</label>
@@ -300,9 +302,13 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
         <div id="fo-preview-lista" style="background:#f5f5f5;border-radius:8px;padding:10px;max-height:150px;overflow-y:auto;font-size:12px"></div>
       </div>
       <div id="fo-import-pres-wrap" style="display:none;margin-bottom:10px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;padding:10px 14px">
-        <div style="font-size:12px;font-weight:600;color:#065f46;margin-bottom:6px">📋 Presupuesto adjudicado encontrado</div>
+        <div style="font-size:12px;font-weight:600;color:#065f46;margin-bottom:6px">📋 Presupuesto encontrado</div>
         <div id="fo-import-pres-info" style="font-size:11px;color:#047857;margin-bottom:8px"></div>
         <button class="btn" style="background:#d1fae5;border-color:#6ee7b7;color:#065f46;font-size:12px" onclick="importarPartidasDePres()">📥 Importar partidas del presupuesto</button>
+      </div>
+      <div id="fo-pres-picker" style="display:none;margin-bottom:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px">
+        <div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:6px">🔍 Selecciona el presupuesto manualmente</div>
+        <div id="fo-pres-picker-lista" style="max-height:180px;overflow-y:auto"></div>
       </div>
       <div style="margin-bottom:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Añadir líneas de material manualmente</div>
@@ -731,15 +737,6 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
           <label>Proveedor</label>
           <select id="ped-prov">
             <option value="">Seleccionar proveedor...</option>
-            <option>VISORNETS (90 dias, portes pagados 600EUR)</option>
-            <option>LEON DE ORO (90 dias)</option>
-            <option>UNETRAMESAS DTO 40-45%</option>
-            <option>MULTIGARBEN (30 dias domiciliado)</option>
-            <option>TORRES Y SAEZ (60 dias)</option>
-            <option>WURTH INDEXFIX (30 dias, 300EUR)</option>
-            <option>MARCELINO</option><option>INDE-K</option>
-            <option>CV TOOLS (portes 12EUR)</option>
-            <option>AMAZON / BRICODEPOT</option>
           </select>
         </div>
         <div class="form-group">
@@ -1375,6 +1372,31 @@ function recargarTodo(){
       try{localStorage.setItem('segufija_presupuestos',JSON.stringify(data));}catch(e){}
     }
   });
+  callAPI('getProveedores',function(err,data){
+    if(!err&&Array.isArray(data)&&data.length){
+      try{localStorage.setItem('sf_proveedores_alm',JSON.stringify(data));}catch(e){}
+      cargarProveedoresSelect(data);
+    } else {
+      // Fallback: usar caché local si Sheets no responde
+      try{
+        var cached=JSON.parse(localStorage.getItem('sf_proveedores_alm')||'[]');
+        if(cached.length) cargarProveedoresSelect(cached);
+      }catch(e){}
+    }
+  });
+}
+
+function cargarProveedoresSelect(provs){
+  var sel=document.getElementById('ped-prov');
+  if(!sel)return;
+  var current=sel.value;
+  sel.innerHTML='<option value="">Seleccionar proveedor...</option>'+
+    provs.map(function(p){
+      var label=p.nombre||'';
+      // Añadir plazo si existe para que sea igual que en Facturación
+      if(p.plazo) label+=' ('+p.plazo+')';
+      return '<option value="'+label+'"'+(label===current?' selected':'')+'>'+label+'</option>';
+    }).join('');
 }
 
 function showTab(id,el){
@@ -1451,9 +1473,17 @@ function toggleFormNuevaObra(){
   document.getElementById('fo-lin-qty').value='';
   document.getElementById('fo-lineas-lista').textContent='Sin líneas añadidas';
   document.getElementById('fo-import-pres-wrap').style.display='none';
+  document.getElementById('fo-pres-picker').style.display='none';
   var w=document.getElementById('form-obra-wrap');
   w.style.display=w.style.display==='none'?'block':'none';
-  if(w.style.display==='block')w.scrollIntoView({behavior:'smooth'});
+  if(w.style.display==='block'){
+    w.scrollIntoView({behavior:'smooth'});
+    // Pre-cargar datalists con presupuestos disponibles
+    var _pa = window.PRESUPUESTOS_CACHE||[];
+    if(!_pa.length){try{_pa=JSON.parse(localStorage.getItem('segufija_presupuestos')||'[]');}catch(e){}}
+    if(_pa.length){ cargarPresupuestosDatalists(_pa); }
+    else { callAPI('getPresupuestos',function(err,data){ if(!err&&Array.isArray(data)&&data.length){ window.PRESUPUESTOS_CACHE=data; try{localStorage.setItem('segufija_presupuestos',JSON.stringify(data));}catch(e){} cargarPresupuestosDatalists(data); } }); }
+  }
 }
 
 function editarObraActual(){
@@ -1506,105 +1536,172 @@ function renderLineasFO(){
 function eliminarLineaFO(i){_foPartidas.splice(i,1);renderLineasFO();}
 
 // Busca presupuesto adjudicado en facturacion.html (localStorage compartido) para auto-importar partidas
+// Normaliza strings para comparación: quita acentos, signos, lowercase, espacios dobles
+var _normPres = function(s){
+  return (s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,;:()\-_/\\]/g,' ').replace(/\s+/g,' ').trim();
+};
+
+// Aplica un presupuesto seleccionado (desde auto-detección o picker manual)
+function foAplicarPresupuesto(presMatch) {
+  if (!presMatch) return;
+  if (presMatch.numOferta && !document.getElementById('fo-cod').value)
+    document.getElementById('fo-cod').value = presMatch.numOferta;
+  if (presMatch.proyecto && !document.getElementById('fo-nombre').value)
+    document.getElementById('fo-nombre').value = presMatch.proyecto;
+  if (presMatch.cliente) {
+    var constrEl = document.getElementById('fo-constructora');
+    if (constrEl && !constrEl.value) constrEl.value = presMatch.cliente;
+  }
+  if (presMatch.totalObra) {
+    var presEl = document.getElementById('fo-presupuesto');
+    if (presEl && !presEl.value) presEl.value = presMatch.totalObra;
+  }
+  var pDef = [];
+  var secciones = calcDespiecePresAlmacen(presMatch);
+  var conDespiece = secciones.map(function(s){return s.desc;});
+  secciones.forEach(function(sec){
+    sec.materiales.filter(function(mat){return mat.cantidad>0;}).forEach(function(mat){
+      pDef.push({partida:sec.desc, material:mat.n, ud:'ud', contratado:mat.cantidad, suministrado:0, entregas:[], tipo:'venta'});
+    });
+  });
+  (presMatch.ventaItems||[]).filter(function(it){
+    return it.medicion>0 && it.precio>0 && conDespiece.indexOf(it.desc)===-1;
+  }).forEach(function(it){
+    pDef.push({partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:it.medicion, suministrado:0, entregas:[], tipo:'venta'});
+  });
+  (presMatch.alquilerItems||[]).filter(function(it){ return it.medicion>0; }).forEach(function(it){
+    pDef.push({partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:it.medicion, suministrado:0, entregas:[], tipo:'alquiler'});
+  });
+  if (pDef.length) {
+    window._foPresDef = pDef;
+    document.getElementById('fo-import-pres-info').textContent =
+      (presMatch.numOferta?presMatch.numOferta+' — ':'')+
+      (presMatch.proyecto||'')+
+      (presMatch.cliente?' · '+presMatch.cliente:'')+
+      ' · '+pDef.length+' partidas';
+    document.getElementById('fo-import-pres-wrap').style.display = 'block';
+    document.getElementById('fo-pres-picker').style.display = 'none';
+  }
+}
+
+// Carga datalists con nombres/códigos de presupuestos disponibles
+function cargarPresupuestosDatalists(presArr) {
+  var dlN = document.getElementById('fo-pres-nombres-dl');
+  var dlC = document.getElementById('fo-pres-cods-dl');
+  if (!dlN || !dlC) return;
+  var opts = presArr.map(function(p){
+    return '<option value="'+(p.proyecto||'').replace(/"/g,'&quot;')+'">'+(p.numOferta||'')+(p.cliente?' · '+p.cliente:'')+'</option>';
+  }).join('');
+  var optsCod = presArr.filter(function(p){return p.numOferta;}).map(function(p){
+    return '<option value="'+(p.numOferta||'').replace(/"/g,'&quot;')+'">'+(p.proyecto||'')+'</option>';
+  }).join('');
+  dlN.innerHTML = opts;
+  dlC.innerHTML = optsCod;
+}
+
 function detectarPresupuestoCRM() {
-  var wrap = document.getElementById('fo-import-pres-wrap');
+  var wrap   = document.getElementById('fo-import-pres-wrap');
+  var picker = document.getElementById('fo-pres-picker');
   wrap.style.display = 'none';
-  // 1. Buscar en CRM (segufija_crm_obras) una entrada ADJUDICADA con partidasDef
+  picker.style.display = 'none';
+
+  var obraNameRaw = (document.getElementById('fo-nombre')||{value:''}).value.trim();
+  var obraCodRaw  = (document.getElementById('fo-cod')||{value:''}).value.trim();
+  var obraName = _normPres(obraNameRaw);
+  var obraCod  = _normPres(obraCodRaw);
+
+  // 1. Buscar en CRM (ADJUDICADA con partidasDef)
   var crmObras = [];
   try { crmObras = JSON.parse(localStorage.getItem('segufija_crm_obras')||'[]'); } catch(e){}
-  var obraName = (document.getElementById('fo-nombre')||{value:''}).value.trim().toLowerCase();
-  var obraCod  = (document.getElementById('fo-cod')||{value:''}).value.trim().toLowerCase();
   var crmMatch = null;
-  if (obraName || obraCod) {
-    crmMatch = crmObras.find(function(c){
-      return c.estado==='ADJUDICADA' && c.partidasDef && c.partidasDef.length &&
-             ((obraName && (c.obra||'').toLowerCase()===obraName) ||
-              (obraCod  && (c.oferta||'').toLowerCase()===obraCod));
-    });
-  }
-  if (!crmMatch && _foIdx >= 0) {
-    // Edición de obra existente: buscar por nombre actual
-    var nombreActual = (OBRAS[_foIdx]||{}).nombre||'';
-    crmMatch = crmObras.find(function(c){
-      return c.estado==='ADJUDICADA' && c.partidasDef && c.partidasDef.length &&
-             (c.obra||'').toLowerCase()===nombreActual.toLowerCase();
-    });
-  }
+  var nombreActual = _foIdx >= 0 ? ((OBRAS[_foIdx]||{}).nombre||'') : '';
+  crmObras.forEach(function(c){
+    if (c.estado!=='ADJUDICADA' || !c.partidasDef || !c.partidasDef.length) return;
+    var nc = _normPres(c.obra); var nof = _normPres(c.oferta);
+    if ((obraName && (nc===obraName || nc.indexOf(obraName)!==-1 || obraName.indexOf(nc)!==-1)) ||
+        (obraCod  && (nof===obraCod  || nof.indexOf(obraCod )!==-1)) ||
+        (nombreActual && nc===_normPres(nombreActual))) {
+      crmMatch = c;
+    }
+  });
   if (crmMatch) {
     window._foPresDef = crmMatch.partidasDef;
-    var info = document.getElementById('fo-import-pres-info');
-    info.textContent = (crmMatch.oferta?' Oferta '+crmMatch.oferta+' — ':'')+crmMatch.obra+' · '+crmMatch.partidasDef.length+' partidas de material';
+    document.getElementById('fo-import-pres-info').textContent =
+      (crmMatch.oferta?'Oferta '+crmMatch.oferta+' — ':'')+crmMatch.obra+' · '+crmMatch.partidasDef.length+' partidas';
     wrap.style.display = 'block';
     return;
   }
-  // 2. Buscar directamente en presupuestos (cache global → localStorage → API)
+
+  // 2. Buscar en presupuestos (cache → localStorage → API)
   var presArr = window.PRESUPUESTOS_CACHE || [];
   if (!presArr.length) {
     try { presArr = JSON.parse(localStorage.getItem('segufija_presupuestos')||'[]'); } catch(e){}
   }
-  // Si todavía vacío, pedir al API y reintentar
-  if (!presArr.length && (obraName || obraCod)) {
+  if (!presArr.length) {
     callAPI('getPresupuestos', function(err, data) {
       if (!err && Array.isArray(data) && data.length) {
         window.PRESUPUESTOS_CACHE = data;
         try { localStorage.setItem('segufija_presupuestos', JSON.stringify(data)); } catch(e){}
+        cargarPresupuestosDatalists(data);
         detectarPresupuestoCRM();
       }
     });
     return;
   }
+  cargarPresupuestosDatalists(presArr);
+
+  // Filtrar presupuestos con items (aceptados o cualquier estado con medición)
+  var conItems = presArr.filter(function(p){
+    return (p.ventaItems||[]).some(function(it){return (it.medicion||0)>0&&(it.precio||0)>0;}) ||
+           (p.alquilerItems||[]).some(function(it){return (it.medicion||0)>0;});
+  });
+
+  // Búsqueda normalizada: exacta → contiene → nombre dentro
   var presMatch = null;
   if (obraName || obraCod) {
-    presMatch = presArr.find(function(p){
-      var tieneItems = (p.ventaItems||[]).some(function(it){return it.medicion>0&&it.precio>0;}) ||
-                       (p.alquilerItems||[]).some(function(it){return it.medicion>0;});
-      var matchNombre = obraName && (p.proyecto||'').toLowerCase()===obraName;
-      var matchCod    = obraCod  && (p.numOferta||'').toLowerCase()===obraCod;
-      return (matchNombre || matchCod) && tieneItems;
+    presMatch = conItems.find(function(p){
+      var np = _normPres(p.proyecto); var nc = _normPres(p.numOferta);
+      var matchN = obraName && (np===obraName || np.indexOf(obraName)!==-1 || obraName.indexOf(np)!==-1);
+      var matchC = obraCod  && (nc===obraCod  || nc.indexOf(obraCod )!==-1);
+      return matchN || matchC;
     });
-  }
-  if (presMatch) {
-    // Auto-rellenar campos del formulario
-    if (presMatch.numOferta && !document.getElementById('fo-cod').value)
-      document.getElementById('fo-cod').value = presMatch.numOferta;
-    if (presMatch.proyecto && !document.getElementById('fo-nombre').value)
-      document.getElementById('fo-nombre').value = presMatch.proyecto;
-    if (presMatch.cliente) {
-      var constrEl = document.getElementById('fo-constructora');
-      if (constrEl && !constrEl.value) constrEl.value = presMatch.cliente;
-    }
-    if (presMatch.totalObra) {
-      var presEl = document.getElementById('fo-presupuesto');
-      if (presEl && !presEl.value) presEl.value = presMatch.totalObra;
-    }
-    var pDef = [];
-    // Expandir ventaItems con EQUIPOS_DEF (materiales reales de stock)
-    var secciones = calcDespiecePresAlmacen(presMatch);
-    var conDespiece = secciones.map(function(s){return s.desc;});
-    secciones.forEach(function(sec){
-      sec.materiales.filter(function(mat){return mat.cantidad>0;}).forEach(function(mat){
-        pDef.push({partida:sec.desc, material:mat.n, ud:'ud', contratado:mat.cantidad, suministrado:0, entregas:[], tipo:'venta'});
+    // Si no hay match y hay texto largo, buscar por palabras clave
+    if (!presMatch && obraName.length > 4) {
+      var palabras = obraName.split(' ').filter(function(w){ return w.length > 3; });
+      presMatch = conItems.find(function(p){
+        var np = _normPres(p.proyecto);
+        return palabras.length > 0 && palabras.every(function(w){ return np.indexOf(w) !== -1; });
       });
-    });
-    // Items de venta sin EQUIPOS_DEF: añadir directamente
-    (presMatch.ventaItems||[]).filter(function(it){
-      return it.medicion>0 && it.precio>0 && conDespiece.indexOf(it.desc)===-1;
-    }).forEach(function(it){
-      pDef.push({partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:it.medicion, suministrado:0, entregas:[], tipo:'venta'});
-    });
-    (presMatch.alquilerItems||[]).filter(function(it){ return it.medicion>0; }).forEach(function(it){
-      pDef.push({partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:it.medicion, suministrado:0, entregas:[], tipo:'alquiler'});
-    });
-    if (pDef.length) {
-      window._foPresDef = pDef;
-      document.getElementById('fo-import-pres-info').textContent =
-        (presMatch.numOferta?presMatch.numOferta+' — ':'')+
-        (presMatch.proyecto||'')+
-        (presMatch.cliente?' · '+presMatch.cliente:'')+
-        ' · '+pDef.length+' partidas';
-      wrap.style.display = 'block';
     }
   }
+
+  if (presMatch) {
+    foAplicarPresupuesto(presMatch);
+    return;
+  }
+
+  // 3. Sin match: mostrar picker con todos los presupuestos disponibles
+  if ((obraName || obraCod) && conItems.length) {
+    var pickerHtml = conItems.map(function(p, i){
+      return '<div style="cursor:pointer;padding:6px 10px;border-radius:6px;margin-bottom:4px;background:#fff;border:1px solid #fcd34d;font-size:12px;display:flex;justify-content:space-between;align-items:center" onclick="foPickerSeleccionar('+i+')" onmouseover="this.style.background=\'#fef9c3\'" onmouseout="this.style.background=\'#fff\'">'+
+        '<span><b>'+(p.numOferta||'—')+'</b> · '+(p.proyecto||'Sin nombre')+(p.cliente?' <span style="color:#666">· '+p.cliente+'</span>':'')+'</span>'+
+        '<span style="font-size:11px;color:#92400e;font-weight:600">'+((p.ventaItems||[]).length+(p.alquilerItems||[]).length)+' items</span>'+
+      '</div>';
+    }).join('');
+    window._foPresArray = conItems;
+    document.getElementById('fo-pres-picker-lista').innerHTML = pickerHtml;
+    picker.style.display = 'block';
+  }
+}
+
+function foPickerSeleccionar(idx) {
+  var p = (window._foPresArray||[])[idx];
+  if (!p) return;
+  if (!document.getElementById('fo-nombre').value) document.getElementById('fo-nombre').value = p.proyecto||'';
+  if (!document.getElementById('fo-cod').value && p.numOferta) document.getElementById('fo-cod').value = p.numOferta;
+  foAplicarPresupuesto(p);
 }
 
 function importarPartidasDePres() {
