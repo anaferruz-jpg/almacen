@@ -4054,15 +4054,17 @@ function recalcularSuministradoTodo() {
         });
         html += '</div>';
       }
-      var sm = document.getElementById('sinc-modal');
       document.getElementById('sinc-modal-body').innerHTML = html
         + '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
         + (sinPartList.length ? '<button class="btn" onclick="exportarSinPartidasCSV()">📥 Descargar Excel</button>' : '')
         + (sinPartList.length ? '<button class="btn primary" onclick="guardarMapeoYResincronizar()" style="background:#d97706">💾 Guardar y re-sincronizar</button>' : '')
         + '<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">'
-        + (sinObraList.length ? 'Continuar →' : 'Cerrar sin cambios') + '</button></div>';
-      sm.style.display = 'flex';
-      if (sinObraList.length) setTimeout(function(){ sm.style.display='none'; mostrarModalSincErrores(); }, 0);
+        + (sinObraList.length ? 'Continuar → asignar obras' : 'Cerrar') + '</button></div>';
+      abrirSincModal('✅ Resultado de la sincronización', '');
+      if (sinObraList.length) setTimeout(function(){
+        document.getElementById('sinc-modal').style.display='none';
+        mostrarModalSincErrores();
+      }, 0);
       return;
     }
     // Mostrar progreso
@@ -5118,6 +5120,15 @@ function normalizarMat(nombre) {
 
 var _sincSinObra = {};   // key: nombre original, value: [{salida historial}]
 var _sincExtrasInfo = {}; // key: obraName, value: {matNombre: [partidaMats disponibles]}
+
+// Helper: abrir sinc-modal con título y descripción correctos
+function abrirSincModal(titulo, desc) {
+  var t = document.getElementById('sinc-modal-title');
+  var d = document.getElementById('sinc-modal-desc');
+  if (t) t.innerHTML = titulo || '';
+  if (d) { d.innerHTML = desc || ''; d.style.display = desc ? '' : 'none'; }
+  document.getElementById('sinc-modal').style.display = 'flex';
+}
 var _obraAliases = (function(){ try{ return JSON.parse(localStorage.getItem('segufija_obra_aliases')||'{}'); }catch(e){return {};} })();
 
 // ── Mapeo manual material→partida ─────────────────────────────────────────────
@@ -5235,12 +5246,11 @@ function auditarMateriales() {
 
   html += '<div style="font-size:10px;color:#9ca3af;margin-top:4px">La verificación usa el mismo algoritmo de normalización que la sincronización de historial.</div>';
 
-  var sm = document.getElementById('sinc-modal');
   document.getElementById('sinc-modal-body').innerHTML = html
     + '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'
     + (noCoinciden.length ? '<button class="btn" onclick="exportarAuditoriaCSV()">📥 Descargar Excel</button>' : '')
     + '<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">Cerrar</button></div>';
-  sm.style.display = 'flex';
+  abrirSincModal('🔍 Verificación de materiales', '');
 
   // Guardar para exportar
   window._lastAuditoria = noCoinciden;
@@ -5304,8 +5314,11 @@ function mostrarModalSincErrores() {
       + '</div>';
   }).join('');
 
-  document.getElementById('sinc-modal-body').innerHTML = rows;
-  document.getElementById('sinc-modal').style.display = 'flex';
+  document.getElementById('sinc-modal-body').innerHTML = rows
+    + '<div style="margin-top:14px;display:flex;justify-content:flex-end">'
+    + '<button class="btn" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">Cerrar</button></div>';
+  abrirSincModal('⚠️ Salidas sin obra reconocida',
+    'Estas salidas del historial no coincidieron con ninguna obra. Selecciona la obra correcta y pulsa Aplicar para registrarlas.');
 }
 
 function aplicarSincManual(obraOrig) {
@@ -5662,14 +5675,14 @@ function calcDespiecePresAlmacen(p) {
 
 </script>
 
-<!-- Modal: salidas sin obra en sincronización -->
+<!-- Modal: sincronización (multi-uso: resultados sync, salidas sin obra, auditoría) -->
 <div id="sinc-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:4000;overflow-y:auto;align-items:flex-start;justify-content:center">
-  <div style="background:var(--bg);border-radius:14px;max-width:620px;width:94%;margin:40px auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.25)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:15px;font-weight:700;color:var(--text)">⚠️ Salidas sin obra reconocida</div>
+  <div style="background:var(--bg);border-radius:14px;max-width:680px;width:94%;margin:40px auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div id="sinc-modal-title" style="font-size:15px;font-weight:700;color:var(--text)"></div>
       <button class="btn" onclick="document.getElementById('sinc-modal').style.display='none'">✕</button>
     </div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Estas salidas del historial no coincidieron con ninguna obra. Selecciona la obra correcta y pulsa Aplicar para registrarlas.</p>
+    <p id="sinc-modal-desc" style="font-size:12px;color:var(--text2);margin-bottom:14px"></p>
     <div id="sinc-modal-body"></div>
   </div>
 </div>
