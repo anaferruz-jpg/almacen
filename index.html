@@ -728,6 +728,11 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   <!-- PEDIDO A OBRA -->
   <div id="psub-obra">
     <p class="section-title" style="margin-top:0">Pedido directo a obra</p>
+    <div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#713f12;line-height:1.6">
+      <b>ℹ️ ¿Cuándo usar cada flujo?</b><br>
+      📦 <b>Material ya en almacén → usa la pestaña "⬆️ Salida"</b> (tab superior). Descuenta stock y registra el suministrado en la obra inmediatamente.<br>
+      🚚 <b>Material que viene del proveedor → usa este "Pedido a obra"</b>. Cuando llegue, busca el pedido en el Historial y pulsa <b>✅ Marcar entregado</b> para actualizar el suministrado.
+    </div>
     <div class="card">
       <div class="form-grid">
         <div class="form-group">
@@ -1145,13 +1150,17 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 <div class="modal-full" id="modal-pedido-partida">
   <div class="modal-full-box">
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">🛒 Gestionar partida</div>
-    <div id="modal-pedido-material" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px;line-height:1.4"></div>
+    <div id="modal-pedido-material" style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;line-height:1.4"></div>
+    <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#064e3b">
+      ✅ <b>Si el material ya está en almacén</b> → pulsa <b>"⬆️ Salida directa"</b> (botón verde). Actualiza el suministrado y descuenta stock al instante.<br>
+      🛒 <b>Si hay que pedirlo al proveedor</b> → rellena el formulario y pulsa "Registrar pedido". Cuando llegue, ve al Historial y pulsa "✅ Marcar entregado".
+    </div>
     <div class="form-grid">
       <div class="form-group" style="grid-column:1/-1">
-        <label>¿Qué quieres hacer?</label>
+        <label>Origen del pedido (si registras pedido)</label>
         <select id="mp-tipo">
-          <option value="almacen">📦 Pedir al almacén (suma stock cuando llega)</option>
-          <option value="obra">🏗️ Pedir directo a obra</option>
+          <option value="almacen">📦 Sale del almacén</option>
+          <option value="obra">🚚 Viene del proveedor directo a obra</option>
         </select>
       </div>
       <div class="form-group">
@@ -3493,34 +3502,48 @@ function marcarEntregado(idx){
       });
     }
 
-    // ── Sincronizar partidas de la obra con TODOS los pedidos
-    // Buscar la obra del pedido
+    // ── Actualizar suministrado en la obra al marcar entregado
     var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
     if(obraObj&&obraObj.partidas&&Array.isArray(h.items)){
       var modificado=false;
       h.items.forEach(function(item){
-        // Solo descontar si tiene pidx exacto (pedido hecho desde la partida)
+        var qty=parseFloat(item.qty)||0;
+        if(qty<=0)return;
+        var match=null;
+
+        // 1) Coincidencia exacta por índice (pidx) — pedidos desde modal partida
         if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
-          obraObj.partidas[item.pidx].suministrado=(obraObj.partidas[item.pidx].suministrado||0)+(item.qty||0);
-          modificado=true;
+          match=obraObj.partidas[item.pidx];
+
+        // 2) Coincidencia por nombre de partida + nombre material (exacto)
         } else if(item.partida){
-          // Si tiene nombre de partida, buscar coincidencia exacta por partida+material
-          var match=obraObj.partidas.find(function(p){
-            var nm=(item.nombre||'').toLowerCase();
-            var pm=(p.material||'').toLowerCase();
-            var ppart=(p.partida||'').toLowerCase();
-            var ipart=(item.partida||'').toLowerCase();
-            return nm===pm && ppart===ipart;
+          match=obraObj.partidas.find(function(p){
+            return (p.material||'').toLowerCase()===(item.nombre||'').toLowerCase()
+                && (p.partida||'').toLowerCase()===(item.partida||'').toLowerCase();
           });
-          if(match){
-            match.suministrado=(match.suministrado||0)+(item.qty||0);
-            modificado=true;
-          } else {
-            toast('⚠️ Actualiza manualmente la partida de '+item.nombre+' en la obra',true);
+        }
+
+        // 3) Coincidencia por normalizarMat (mismo algoritmo del sync) — fallback para pedidos del tab
+        if(!match){
+          var normItem=normalizarMat(item.nombre);
+          // Intentar en partidas con capacidad disponible primero
+          match=obraObj.partidas.find(function(p){
+            return !p.extra && normalizarMat(p.material)===normItem
+                && (p.contratado||0)-(p.suministrado||0)>0;
+          });
+          // Si no hay con capacidad, cualquier partida con ese material
+          if(!match){
+            match=obraObj.partidas.find(function(p){
+              return !p.extra && normalizarMat(p.material)===normItem;
+            });
           }
+        }
+
+        if(match){
+          match.suministrado=(match.suministrado||0)+qty;
+          modificado=true;
         } else {
-          // Sin referencia de partida → no tocar automáticamente, avisar
-          toast('⚠️ Pedido entregado — actualiza manualmente la partida de '+item.nombre+' en la obra',true);
+          toast('⚠️ No se encontró partida para "'+item.nombre+'" — actualiza manualmente en la obra',true);
         }
       });
       if(modificado){
