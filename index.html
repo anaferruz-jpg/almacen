@@ -3881,12 +3881,26 @@ function recalcularSuministradoTodo() {
   }).length;
   var obrasConPartidas = OBRAS.filter(function(o){ return (o.partidas||[]).length > 0; }).length;
 
+  // Contar también pedidos entregados y entregas manuales
+  var pedidosEntregados = historial.filter(function(h) {
+    return h.tipo === 'pedido' && getEstadoPedido(h) === 'entregado'
+      && h.anulada !== true && h.anulada !== 'true'
+      && h.obra && Array.isArray(h.items) && h.items.length;
+  }).length;
+  var entregasManuales = historial.filter(function(h) {
+    return h.tipo === 'entrega' && h.anulada !== true && h.anulada !== 'true'
+      && h.obra && Array.isArray(h.items) && h.items.length;
+  }).length;
+
   if (!confirm(
-    '🔄 SINCRONIZAR SUMINISTRADO DESDE HISTORIAL\n\n' +
+    '🔄 REGULARIZAR SUMINISTRADO DESDE HISTORIAL\n\n' +
     'Obras con partidas: ' + obrasConPartidas + '\n' +
-    'Salidas en historial: ' + salidasTotal + '\n\n' +
-    'Se resetearán los suministrados actuales y se\n' +
-    'recalcularán desde el historial de salidas.\n\n' +
+    'Salidas en historial: ' + salidasTotal + '\n' +
+    'Pedidos entregados: ' + pedidosEntregados + '\n' +
+    'Entregas manuales: ' + entregasManuales + '\n\n' +
+    'Se resetean los suministrados a 0 y se\n' +
+    'recalculan desde TODO el historial:\n' +
+    '✅ Salidas · Pedidos entregados · Entregas manuales\n\n' +
     '¿Continuar?'
   )) return;
 
@@ -3902,13 +3916,14 @@ function recalcularSuministradoTodo() {
   var obraIdx = {};
   obrasAct.forEach(function(o) { obraIdx[(o.nombre||'').toLowerCase().trim()] = o; });
 
-  // 2 — Filtrar y ordenar salidas + pedidos directos a obra entregados
+  // 2 — Filtrar y ordenar salidas + entregas manuales + TODOS los pedidos entregados
   var salidas = historial.filter(function(h) {
     if (h.anulada === true || h.anulada === 'true') return false;
     if (!h.obra || !Array.isArray(h.items) || !h.items.length) return false;
     if (h.tipo === 'salida') return true;
-    // Pedidos directos a obra ya entregados cuentan como suministrado
-    if (h.tipo === 'pedido' && h.tipoDestino === 'obra' && getEstadoPedido(h) === 'entregado') return true;
+    if (h.tipo === 'entrega') return true; // entregas manuales
+    // Cualquier pedido ya marcado como entregado cuenta como suministrado
+    if (h.tipo === 'pedido' && getEstadoPedido(h) === 'entregado') return true;
     return false;
   }).slice().sort(function(a, b) {
     return new Date(a.fecha||'2000-01-01') - new Date(b.fecha||'2000-01-01');
