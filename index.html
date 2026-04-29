@@ -2382,12 +2382,36 @@ function guardarPartidas(){
 }
 
 /* ── HISTORIAL OBRA ── */
+function _normObra(s){ return (s||'').toLowerCase().trim().replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u'); }
+
 function renderHistObra(){
   var cont=document.getElementById('obra-historial-content');
   if(!obraSeleccionada){return;}
-  var data=historial.filter(function(h){return h.obra===obraSeleccionada.nombre;});
-  if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas para esta obra</div>';return;}
-  cont.innerHTML='<div style="text-align:right;margin-bottom:8px"><button class="btn" onclick="dlHistorialObraCSV()">⬇️ CSV</button></div>'+
+  var obraNorm=_normObra(obraSeleccionada.nombre);
+  // Buscar por coincidencia exacta primero, luego normalizada (tildes/mayúsculas)
+  var data=historial.filter(function(h){
+    return h.obra===obraSeleccionada.nombre || _normObra(h.obra)===obraNorm;
+  });
+  // Detectar si hay entradas con nombre ligeramente distinto (para aviso)
+  var nombresDistintos={};
+  data.forEach(function(h){ if(h.obra!==obraSeleccionada.nombre) nombresDistintos[h.obra]=true; });
+  var avisoNombre=Object.keys(nombresDistintos);
+
+  if(!data.length){cont.innerHTML='<div class="empty">No hay operaciones registradas para esta obra</div>'+diagnosticarObraHTML();return;}
+
+  // Cabecera con botones y aviso si hay nombres distintos
+  var cab='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'
+    +'<button class="btn" onclick="dlHistorialObraCSV()">⬇️ CSV</button>'
+    +'<button class="btn" style="background:#ede9fe;border-color:#8b5cf6;color:#5b21b6" onclick="mostrarDiagnosticoObra()">🔍 Diagnosticar suministrado</button>'
+    +'</div>';
+  if(avisoNombre.length){
+    cab+='<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#713f12">'
+      +'⚠️ Hay entradas en el historial con nombre <b>ligeramente distinto</b> a la obra actual:<br>'
+      +avisoNombre.map(function(n){return '· "'+n+'"';}).join('<br>')
+      +'<br><span style="color:#92400e">Esto puede causar que no se cuenten en el sync. Considera unificar el nombre.</span>'
+      +'</div>';
+  }
+  cont.innerHTML=cab+
   data.map(function(h){
     var items=Array.isArray(h.items)?h.items:[];
     var an=h.anulada===true||h.anulada==='true';
@@ -2415,6 +2439,114 @@ function renderHistObra(){
       (!an&&h.tipo==='salida'?'<div style="margin-top:8px;text-align:right"><button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="pedirAnular('+realIdx+')">Anular</button></div>':'')+
     '</div>';
   }).join('');
+}
+
+/* ── DIAGNÓSTICO SUMINISTRADO POR OBRA ── */
+function diagnosticarObraHTML(){ return ''; } // placeholder
+
+function mostrarDiagnosticoObra(){
+  if(!obraSeleccionada) return;
+  var o=obraSeleccionada;
+  var obraNorm=_normObra(o.nombre);
+
+  // Recopilar todas las entradas que cuentan para suministrado
+  var entradas=historial.filter(function(h){
+    if(h.anulada===true||h.anulada==='true') return false;
+    var match=(h.obra===o.nombre||_normObra(h.obra)===obraNorm);
+    if(!match) return false;
+    if(h.tipo==='salida') return true;
+    if(h.tipo==='entrega') return true;
+    if(h.tipo==='pedido'&&getEstadoPedido(h)==='entregado') return true;
+    return false;
+  });
+
+  // Para cada item del historial, comprobar si matchea alguna partida
+  var filas=[];
+  entradas.forEach(function(h){
+    var tipoLabel=h.tipo==='salida'?'⬆️ Salida':h.tipo==='entrega'?'📥 Entrega':
+      h.tipo==='pedido'?'✅ Pedido entregado':'?';
+    (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+      var normItem=normalizarMat(item.nombre);
+      // Buscar partida coincidente
+      var match=null;
+      if(item.pidx!==undefined&&o.partidas[item.pidx]){
+        match=o.partidas[item.pidx];
+      } else {
+        match=(o.partidas||[]).find(function(p){
+          return !p.extra && normalizarMat(p.material)===normItem;
+        });
+      }
+      filas.push({
+        tipo: tipoLabel,
+        fecha: fmtDate(h.fecha),
+        nombre: item.nombre,
+        normNombre: normItem,
+        qty: item.qty,
+        partida: match ? match.partida+' → '+match.material : null,
+        normPartida: match ? normalizarMat(match.material) : null,
+        ok: !!match
+      });
+    });
+  });
+
+  var totalQty=filas.reduce(function(a,f){return a+(f.ok?parseFloat(f.qty)||0:0);},0);
+  var sinMatch=filas.filter(function(f){return !f.ok;});
+  var conMatch=filas.filter(function(f){return f.ok;});
+
+  var html='<div style="font-weight:700;font-size:14px;margin-bottom:10px">🔍 Diagnóstico: '+o.nombre+'</div>';
+
+  // Resumen
+  html+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+    +'<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">✅ '+conMatch.length+' materiales coinciden</span>'
+    +'<span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">❌ '+sinMatch.length+' sin partida coincidente</span>'
+    +'</div>';
+
+  if(sinMatch.length){
+    html+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-bottom:10px">'
+      +'<b style="color:#b91c1c;font-size:12px">❌ Entradas NO contabilizadas en suministrado:</b>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">'
+      +'<tr style="background:#fecaca"><th style="padding:3px 6px;text-align:left">Tipo</th><th style="padding:3px 6px;text-align:left">Fecha</th><th style="padding:3px 6px;text-align:left">Material en historial</th><th style="padding:3px 6px;text-align:left">Normalizado</th><th style="padding:3px 6px;text-align:right">Ud</th></tr>';
+    sinMatch.forEach(function(f){
+      html+='<tr style="border-bottom:1px solid #fecaca">'
+        +'<td style="padding:3px 6px">'+f.tipo+'</td>'
+        +'<td style="padding:3px 6px;white-space:nowrap">'+f.fecha+'</td>'
+        +'<td style="padding:3px 6px;color:#7f1d1d;font-weight:600">'+f.nombre+'</td>'
+        +'<td style="padding:3px 6px;color:#dc2626;font-size:10px">→ '+f.normNombre+'</td>'
+        +'<td style="padding:3px 6px;text-align:right">'+f.qty+'</td>'
+        +'</tr>';
+    });
+    html+='</table>'
+      +'<p style="font-size:11px;color:#7f1d1d;margin:6px 0 0">El nombre normalizado del historial no coincide con ningún material en las partidas de esta obra. Usa el botón <b>💾 Guardar y re-sincronizar</b> del sync para asignarlos, o corrige el nombre en Sheets.</p>'
+      +'</div>';
+  }
+
+  if(conMatch.length){
+    html+='<details><summary style="cursor:pointer;font-size:12px;color:#16a34a;font-weight:600">✅ '+conMatch.length+' entradas correctamente contabilizadas — click para ver</summary>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">'
+      +'<tr style="background:#dcfce7"><th style="padding:3px 6px;text-align:left">Tipo</th><th style="padding:3px 6px;text-align:left">Fecha</th><th style="padding:3px 6px;text-align:left">Material</th><th style="padding:3px 6px;text-align:left">→ Partida</th><th style="padding:3px 6px;text-align:right">Ud</th></tr>';
+    conMatch.forEach(function(f){
+      html+='<tr style="border-bottom:1px solid #bbf7d0">'
+        +'<td style="padding:3px 6px">'+f.tipo+'</td>'
+        +'<td style="padding:3px 6px;white-space:nowrap">'+f.fecha+'</td>'
+        +'<td style="padding:3px 6px">'+f.nombre+'</td>'
+        +'<td style="padding:3px 6px;color:#15803d;font-size:10px">'+f.partida+'</td>'
+        +'<td style="padding:3px 6px;text-align:right">'+f.qty+'</td>'
+        +'</tr>';
+    });
+    html+='</table></details>';
+  }
+
+  if(!filas.length){
+    html+='<div style="background:#fef9c3;border-radius:8px;padding:10px;font-size:12px;color:#713f12">'
+      +'⚠️ No se encontraron salidas, entregas ni pedidos entregados para esta obra en el historial.<br>'
+      +'Comprueba que el nombre de la obra en el historial coincide exactamente con "'+o.nombre+'".'
+      +'</div>';
+  }
+
+  document.getElementById('sinc-modal-body').innerHTML=html
+    +'<div style="margin-top:14px;display:flex;justify-content:flex-end">'
+    +'<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">Cerrar</button></div>';
+  abrirSincModal('🔍 Diagnóstico de suministrado','');
 }
 
 /* ── FICHAS TRABAJADORES ── */
