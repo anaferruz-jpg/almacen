@@ -5078,9 +5078,14 @@ var MAT_NORM_MAP = (function(){
     'eslinga plataforma anclaje vertical de techo 1,5mts':   C.ESLING,
     // ── MOSQUETÓN ─────────────────────────────────────────────────
     'mosqueton 19mm 25kn':                    C.MOSQ,
+    'mosqueton 19mm-25kn':                    C.MOSQ,
+    'mosqueton - 19mm-25kn':                  C.MOSQ,
+    'mosqueton - 19mm 25kn':                  C.MOSQ,
     'mosqueton':                              C.MOSQ,
     'mosquetón':                              C.MOSQ,
     'mosqueton seg. c/rosca 18mm':            C.MOSQ,
+    'mosqueton seg c/rosca 18mm':             C.MOSQ,
+    'mosqueton seg c rosca 18mm':             C.MOSQ,
     'mosqueton - conector acero - mosqueton aprtura 19mm-25kn': C.MOSQ,
     'mosqueton conector acero 19mm-25kn':     C.MOSQ,
     'mosqueton conector acero':               C.MOSQ,
@@ -5089,12 +5094,15 @@ var MAT_NORM_MAP = (function(){
     'seta protectora 12-22 mm':              C.SETA,
     'seta protectora 12-22':                 C.SETA,
     'seta protectora 12-24':                 C.SETA,
+    'seta protectora 12-22 mm p300':         C.SETA,  // con sufijo envase
     // ── BASQUIT / CONIX ───────────────────────────────────────────
     'basquit / conix bolsa 200 uds':         C.BAS200,
     'basquit / conix':                       C.BAS200,
     // ── BRIDA 4,8x200 ─────────────────────────────────────────────
     'brida 4,8x200':                         C.BRI48,
     'brida 4,8×200':                         C.BRI48,
+    'brida 4,8x200 p100':                    C.BRI48,  // con sufijo envase
+    'brida 4,8x200 p200':                    C.BRI48,
     'brida 4,8x200 (plastico)':              C.BRI48,
     'brida 4,8×200 (plastico)':              C.BRI48,
     'brida nylon negro index 4,8x200':       C.BRI48,
@@ -5147,12 +5155,15 @@ function normalizarMat(nombre) {
     .replace(/\s*-\s*(unetra|indexfix|wurth|multigarben|visornets|palet|pale|caja|bote|unidad|uds?\.?).*/gi, '')
     .replace(/\s*-\s*\d+\s*uds?\.?.*/gi, '')       // quitar "- 50UDS - ACHT12L" etc
     .replace(/\s+b-\d+\s*$/gi, '')                  // quitar " B-100" al final
+    .replace(/\s+p\d+\s*$/gi, '')                   // quitar " P100", " P300", " P50" (código de envase) al final
     .replace(/\s*\b(unetra|indexfix)\b.*/gi, '')  // quitar nombre proveedor al final sin guión
     .replace(/\bemp\.?\s*$/gi, '')           // quitar "emp." al final
     .replace(/\s+/g,' ').replace(/\.\s*$/,'')
     .toLowerCase().trim()
     .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
-    .replace(/×/g,'x');
+    .replace(/×/g,'x')
+    // Quitar guión aislado al final tras la limpieza ("mosqueton -" → "mosqueton")
+    .replace(/\s*-\s*$/,'');
   return MAT_NORM_MAP[k] || k;
 }
 
