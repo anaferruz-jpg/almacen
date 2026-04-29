@@ -165,6 +165,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <button class="btn" onclick="dlObrasCSV()">⬇️ CSV</button>
       <button class="btn" id="btn-organizar" onclick="toggleOrganizar()">📋 Organizar</button>
       <button class="btn" style="background:#fff3cd;border-color:#ffc107;color:#856404" onclick="recalcularSuministradoTodo()" title="Recalcula el material suministrado en todas las obras a partir del historial de salidas">🔄 Sincronizar desde historial</button>
+      <button class="btn" style="background:#ede9fe;border-color:#8b5cf6;color:#5b21b6" onclick="auditarMateriales()" title="Compara nombres de partidas de obra con los del inventario de almacén">🔍 Verificar materiales</button>
       <button class="btn primary" onclick="toggleFormNuevaObra()">➕ Nueva obra</button>
     </div>
   </div>
@@ -5139,6 +5140,123 @@ function guardarMapeoYResincronizar() {
   saveMaterialMapping(map);
   document.getElementById('sinc-modal').style.display='none';
   setTimeout(function(){ sincronizarConHistorial(); }, 100);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUDITORÍA: compara nombres de partidas de obra vs inventario de almacén
+// ══════════════════════════════════════════════════════════════════════════════
+function auditarMateriales() {
+  if (!OBRAS || !OBRAS.length) { toast('Carga primero las obras', true); return; }
+  if (!inventario || !inventario.length) { toast('Carga primero el inventario', true); return; }
+
+  // 1 — Construir set normalizado de todos los nombres en inventario
+  var invSet = {}; // normNombre → nombre real
+  inventario.forEach(function(art) {
+    var norm = normalizarMat(art.nombre);
+    if (norm) invSet[norm] = art.nombre;
+  });
+
+  // 2 — Recopilar todos los materiales únicos en partidas de obra (no extras)
+  var matObras = {}; // normMat → { nombres:[nombres reales], obras:[obraNames] }
+  OBRAS.forEach(function(o) {
+    (o.partidas||[]).forEach(function(p) {
+      if (!p.material || p.extra) return;
+      var norm = normalizarMat(p.material);
+      if (!norm) return;
+      if (!matObras[norm]) matObras[norm] = { nombres: [], obras: [] };
+      if (matObras[norm].nombres.indexOf(p.material) < 0) matObras[norm].nombres.push(p.material);
+      if (matObras[norm].obras.indexOf(o.nombre) < 0) matObras[norm].obras.push(o.nombre);
+    });
+  });
+
+  // 3 — Clasificar: coinciden / no coinciden
+  var coinciden = [], noCoinciden = [];
+  Object.keys(matObras).sort().forEach(function(norm) {
+    var info = matObras[norm];
+    if (invSet[norm]) {
+      coinciden.push({ norm: norm, partida: info.nombres[0], stock: invSet[norm], obras: info.obras });
+    } else {
+      // Buscar candidatos similares (match parcial por palabras clave)
+      var palabras = norm.split(/\s+/).filter(function(w){ return w.length > 3; });
+      var candidatos = Object.keys(invSet).filter(function(invNorm) {
+        var hits = palabras.filter(function(w){ return invNorm.indexOf(w) >= 0; });
+        return hits.length >= Math.ceil(palabras.length * 0.5);
+      }).map(function(k){ return invSet[k]; }).slice(0, 3);
+      noCoinciden.push({ norm: norm, partida: info.nombres[0], obras: info.obras, candidatos: candidatos });
+    }
+  });
+
+  // 4 — Construir HTML del modal
+  var pct = coinciden.length + noCoinciden.length;
+  var pctOk = pct ? Math.round(coinciden.length / pct * 100) : 100;
+  var colorPct = pctOk >= 90 ? '#16a34a' : pctOk >= 70 ? '#d97706' : '#dc2626';
+
+  var html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">🔍 Verificación de materiales</div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+    + '<span style="background:#dcfce7;color:#15803d;padding:5px 12px;border-radius:8px;font-size:13px;font-weight:600">✅ Coinciden: '+coinciden.length+'</span>'
+    + '<span style="background:#fee2e2;color:#b91c1c;padding:5px 12px;border-radius:8px;font-size:13px;font-weight:600">⚠️ Sin equivalente: '+noCoinciden.length+'</span>'
+    + '<span style="background:#f3f4f6;color:'+colorPct+';padding:5px 12px;border-radius:8px;font-size:13px;font-weight:700">'+pctOk+'% OK</span>'
+    + '</div>';
+
+  if (noCoinciden.length) {
+    html += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px">'
+      + '<b style="color:#b91c1c">⚠️ Materiales de obra SIN equivalente en almacén ('+noCoinciden.length+')</b>'
+      + '<p style="color:#7f1d1d;font-size:11px;margin:4px 0 8px">Estos nombres están en las partidas de obra pero NO coinciden con ningún artículo del stock. Corrige el nombre en el presupuesto de la obra o en el inventario del almacén.</p>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px">'
+      + '<tr style="background:#fecaca"><th style="padding:4px 6px;text-align:left">Material en partida de obra</th><th style="padding:4px 6px;text-align:left">Obras</th><th style="padding:4px 6px;text-align:left">¿Quizás es...?</th></tr>';
+    noCoinciden.forEach(function(r) {
+      html += '<tr style="border-bottom:1px solid #fecaca">'
+        + '<td style="padding:4px 6px;color:#7f1d1d;font-weight:600">'+r.partida+'</td>'
+        + '<td style="padding:4px 6px;color:#555;font-size:10px">'+r.obras.slice(0,3).join(', ')+(r.obras.length>3?' +'+( r.obras.length-3)+' más':'')+'</td>'
+        + '<td style="padding:4px 6px;color:#1d4ed8;font-size:10px">'+(r.candidatos.length ? r.candidatos.join(' / ') : '<span style="color:#9ca3af">—</span>')+'</td>'
+        + '</tr>';
+    });
+    html += '</table></div>';
+  }
+
+  if (coinciden.length) {
+    // Mostrar solo si hay discrepancias de capitalización/formato entre los nombres
+    var conDif = coinciden.filter(function(r){ return r.partida !== r.stock; });
+    if (conDif.length) {
+      html += '<details style="margin-bottom:12px"><summary style="cursor:pointer;font-size:12px;font-weight:600;color:#0369a1">ℹ️ '+conDif.length+' materiales coinciden (normalizado) pero con nombre diferente — click para ver</summary>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">'
+        + '<tr style="background:#dbeafe"><th style="padding:3px 6px;text-align:left">Nombre en partida de obra</th><th style="padding:3px 6px;text-align:left">Nombre en inventario almacén</th></tr>';
+      conDif.forEach(function(r) {
+        html += '<tr style="border-bottom:1px solid #bfdbfe">'
+          + '<td style="padding:3px 6px;color:#1e3a5f">'+r.partida+'</td>'
+          + '<td style="padding:3px 6px;color:#1e40af;font-weight:600">'+r.stock+'</td>'
+          + '</tr>';
+      });
+      html += '</table><p style="font-size:10px;color:#6b7280;margin:4px 0 0">Aunque el sync los trata igual, es recomendable unificar los nombres para mayor claridad.</p></details>';
+    } else {
+      html += '<div style="background:#dcfce7;border-radius:8px;padding:8px 12px;font-size:12px;color:#15803d;margin-bottom:8px">✅ Todos los materiales coincidentes tienen el mismo nombre exacto en obra y en almacén.</div>';
+    }
+  }
+
+  html += '<div style="font-size:10px;color:#9ca3af;margin-top:4px">La verificación usa el mismo algoritmo de normalización que la sincronización de historial.</div>';
+
+  var sm = document.getElementById('sinc-modal');
+  document.getElementById('sinc-modal-body').innerHTML = html
+    + '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'
+    + (noCoinciden.length ? '<button class="btn" onclick="exportarAuditoriaCSV()">📥 Descargar Excel</button>' : '')
+    + '<button class="btn primary" onclick="document.getElementById(\'sinc-modal\').style.display=\'none\'">Cerrar</button></div>';
+  sm.style.display = 'flex';
+
+  // Guardar para exportar
+  window._lastAuditoria = noCoinciden;
+}
+
+function exportarAuditoriaCSV() {
+  var datos = window._lastAuditoria || [];
+  var rows = ['﻿"Material en partida de obra","Obras","Candidatos en almacén"'];
+  datos.forEach(function(r) {
+    rows.push('"'+r.partida.replace(/"/g,'""')+'","'+r.obras.join('; ').replace(/"/g,'""')+'","'+r.candidatos.join(' / ').replace(/"/g,'""')+'"');
+  });
+  var blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'auditoria_materiales_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
 }
 
 function exportarSinPartidasCSV() {
