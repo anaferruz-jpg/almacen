@@ -1563,7 +1563,7 @@ function cerrarPinModal(){
 function confirmarPin(){
   var pin=localStorage.getItem(PIN_KEY)||'1234';
   var val=document.getElementById('pin-input').value;
-  if(val===pin){cerrarPinModal();if(_pinCb)_pinCb();}
+  if(val===pin){var cb=_pinCb;cerrarPinModal();if(cb)cb();}
   else{document.getElementById('pin-error').style.display='block';document.getElementById('pin-input').value='';document.getElementById('pin-input').focus();}
 }
 function cambiarPin(p){if(!p||p.length<4){alert('El PIN debe tener al menos 4 caracteres');return;}localStorage.setItem(PIN_KEY,p);alert('PIN cambiado correctamente');}
