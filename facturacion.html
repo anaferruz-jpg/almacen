@@ -1092,11 +1092,13 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Líneas de factura</div>
       <table class="lineas-tabla" id="lineas-table">
         <thead><tr>
-          <th style="width:45%">Descripción</th>
-          <th style="width:10%">Uds</th>
-          <th style="width:15%">Precio/ud (€)</th>
-          <th style="width:10%">Dto %</th>
-          <th style="width:15%;text-align:right">Importe</th>
+          <th style="width:33%">Descripción</th>
+          <th style="width:7%">Uds</th>
+          <th style="width:12%">Precio/ud (€)</th>
+          <th style="width:6%">Dto %</th>
+          <th style="width:11%;text-align:right">Origen (€)</th>
+          <th style="width:13%;text-align:right;color:#8b5cf6" title="Importe ya facturado en certificaciones anteriores">Orig. ant. (€)</th>
+          <th style="width:13%;text-align:right">Certif. actual</th>
           <th style="width:5%"></th>
         </tr></thead>
         <tbody id="lineas-body"></tbody>
@@ -2117,15 +2119,17 @@ function cerrarModalFactura() {
 
 function addLinea() {
   var idx = lineas.length;
-  lineas.push({ desc: '', uds: 1, precio: 0, dto: 0 });
+  lineas.push({ desc: '', uds: 1, precio: 0, dto: 0, origenAnt: 0 });
   var tr = document.createElement('tr');
   tr.id = 'linea-' + idx;
   tr.innerHTML =
-    '<td><input class="linea-input" type="text" placeholder="Descripción del trabajo..." onchange="setLinea(' + idx + ',\'desc\',this.value)" value="' + (lineas[idx].desc || '') + '"></td>' +
+    '<td><input class="linea-input" type="text" placeholder="Descripción del trabajo..." onchange="setLinea(' + idx + ',\'desc\',this.value)" value=""></td>' +
     '<td><input class="linea-input" type="number" min="0" step="0.01" value="1" style="width:60px;text-align:right" onchange="setLinea(' + idx + ',\'uds\',this.value)"></td>' +
     '<td><input class="linea-input" type="number" min="0" step="0.01" value="0" style="text-align:right" onchange="setLinea(' + idx + ',\'precio\',this.value)"></td>' +
     '<td><input class="linea-input" type="number" min="0" max="100" step="1" value="0" style="width:50px;text-align:right" onchange="setLinea(' + idx + ',\'dto\',this.value)"></td>' +
-    '<td id="imp-' + idx + '" style="text-align:right;font-weight:600;color:var(--brand2)">0,00 €</td>' +
+    '<td id="imp-' + idx + '" style="text-align:right;color:var(--text2)">0,00 €</td>' +
+    '<td><input class="linea-input" type="number" min="0" step="0.01" value="0" style="text-align:right;border-color:#8b5cf6" title="Importe ya facturado anteriormente" onchange="setLinea(' + idx + ',\'origenAnt\',this.value)"></td>' +
+    '<td id="certif-' + idx + '" style="text-align:right;font-weight:700;color:var(--brand2)">0,00 €</td>' +
     '<td><button onclick="delLinea(' + idx + ')" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button></td>';
   document.getElementById('lineas-body').appendChild(tr);
 }
@@ -2134,9 +2138,12 @@ function setLinea(idx, campo, val) {
   if (!lineas[idx]) return;
   lineas[idx][campo] = campo === 'desc' ? val : parseFloat(val) || 0;
   var l = lineas[idx];
-  var imp = l.uds * l.precio * (1 - l.dto / 100);
-  var el = document.getElementById('imp-' + idx);
-  if (el) el.textContent = fmt(imp);
+  var origen = l.uds * l.precio * (1 - l.dto / 100);
+  var certif = origen - (l.origenAnt || 0);
+  var elImp = document.getElementById('imp-' + idx);
+  var elCer = document.getElementById('certif-' + idx);
+  if (elImp) elImp.textContent = fmt(origen);
+  if (elCer) elCer.textContent = fmt(certif);
   recalcTotales();
 }
 
@@ -2148,7 +2155,11 @@ function delLinea(idx) {
 }
 
 function recalcTotales() {
-  var base = lineas.filter(Boolean).reduce(function(a, l) { return a + (l.uds * l.precio * (1 - l.dto / 100)); }, 0);
+  var base = lineas.filter(Boolean).reduce(function(a, l) {
+    var origen = l.uds * l.precio * (1 - l.dto / 100);
+    var certif = origen - (l.origenAnt || 0);
+    return a + certif;
+  }, 0);
   var iva = base * 0.21;
   var total = base + iva;
   document.getElementById('tot-base').textContent = fmt(base);
@@ -2161,7 +2172,10 @@ function guardarFactura(estado) {
   if (!cliente) { toast('El cliente es obligatorio', true); return; }
   var lineasValidas = lineas.filter(Boolean).filter(function(l) { return l.desc && l.precio > 0; });
   if (!lineasValidas.length) { toast('Añade al menos una línea con precio', true); return; }
-  var base = lineasValidas.reduce(function(a, l) { return a + (l.uds * l.precio * (1 - l.dto / 100)); }, 0);
+  var base = lineasValidas.reduce(function(a, l) {
+    var origen = l.uds * l.precio * (1 - l.dto / 100);
+    return a + (origen - (l.origenAnt || 0));
+  }, 0);
   var iva = base * 0.21;
   var fac = {
     numero: document.getElementById('fac-numero').value.trim() || nextNumFac(),
@@ -2217,14 +2231,19 @@ function editarFactura(idx) {
   var tbody = document.getElementById('lineas-body');
   tbody.innerHTML = '';
   lineas.forEach(function(_, i) {
+    var l = lineas[i];
+    var origen = (l.uds||1) * (l.precio||0) * (1 - (l.dto||0) / 100);
+    var certif = origen - (l.origenAnt || 0);
     var tr = document.createElement('tr');
     tr.id = 'linea-' + i;
     tr.innerHTML =
-      '<td><input class="linea-input" type="text" value="' + (lineas[i].desc || '').replace(/"/g, '&quot;') + '" onchange="setLinea(' + i + ',\'desc\',this.value)"></td>' +
-      '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (lineas[i].uds || 1) + '" style="width:60px;text-align:right" onchange="setLinea(' + i + ',\'uds\',this.value)"></td>' +
-      '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (lineas[i].precio || 0) + '" style="text-align:right" onchange="setLinea(' + i + ',\'precio\',this.value)"></td>' +
-      '<td><input class="linea-input" type="number" min="0" max="100" value="' + (lineas[i].dto || 0) + '" style="width:50px;text-align:right" onchange="setLinea(' + i + ',\'dto\',this.value)"></td>' +
-      '<td id="imp-' + i + '" style="text-align:right;font-weight:600;color:var(--brand2)">' + fmt(lineas[i].uds * lineas[i].precio * (1 - lineas[i].dto / 100)) + '</td>' +
+      '<td><input class="linea-input" type="text" value="' + (l.desc || '').replace(/"/g, '&quot;') + '" onchange="setLinea(' + i + ',\'desc\',this.value)"></td>' +
+      '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.uds || 1) + '" style="width:60px;text-align:right" onchange="setLinea(' + i + ',\'uds\',this.value)"></td>' +
+      '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.precio || 0) + '" style="text-align:right" onchange="setLinea(' + i + ',\'precio\',this.value)"></td>' +
+      '<td><input class="linea-input" type="number" min="0" max="100" value="' + (l.dto || 0) + '" style="width:50px;text-align:right" onchange="setLinea(' + i + ',\'dto\',this.value)"></td>' +
+      '<td id="imp-' + i + '" style="text-align:right;color:var(--text2)">' + fmt(origen) + '</td>' +
+      '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.origenAnt || 0) + '" style="text-align:right;border-color:#8b5cf6" title="Importe ya facturado anteriormente" onchange="setLinea(' + i + ',\'origenAnt\',this.value)"></td>' +
+      '<td id="certif-' + i + '" style="text-align:right;font-weight:700;color:var(--brand2)">' + fmt(certif) + '</td>' +
       '<td><button onclick="delLinea(' + i + ')" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button></td>';
     tbody.appendChild(tr);
   });
@@ -2313,16 +2332,48 @@ function imprimirFactura() {
 }
 
 function generarHTMLFactura(f) {
+  // Detectar si alguna línea usa "origen anterior" (certificación por acumulado)
+  var esCertificacion = (f.lineas || []).some(function(l) { return (l.origenAnt || 0) > 0; });
+
   var lineasHTML = (f.lineas || []).map(function(l) {
-    var imp = l.uds * l.precio * (1 - l.dto / 100);
-    return '<tr>' +
-      '<td>' + l.desc + '</td>' +
-      '<td style="text-align:right">' + l.uds + '</td>' +
-      '<td style="text-align:right">' + Number(l.precio).toFixed(2) + ' €</td>' +
-      '<td style="text-align:right">' + (l.dto > 0 ? l.dto + '%' : '—') + '</td>' +
-      '<td style="text-align:right;font-weight:600">' + Number(imp).toFixed(2) + ' €</td>' +
-    '</tr>';
+    var origen = l.uds * l.precio * (1 - (l.dto || 0) / 100);
+    var certif = origen - (l.origenAnt || 0);
+    if (esCertificacion) {
+      return '<tr>' +
+        '<td>' + l.desc + '</td>' +
+        '<td style="text-align:right">' + l.uds + '</td>' +
+        '<td style="text-align:right">' + Number(l.precio).toFixed(2) + ' €</td>' +
+        '<td style="text-align:right;color:#888">' + Number(origen).toFixed(2) + ' €</td>' +
+        '<td style="text-align:right;color:#7c3aed">' + Number(l.origenAnt || 0).toFixed(2) + ' €</td>' +
+        '<td style="text-align:right;font-weight:700">' + Number(certif).toFixed(2) + ' €</td>' +
+      '</tr>';
+    } else {
+      return '<tr>' +
+        '<td>' + l.desc + '</td>' +
+        '<td style="text-align:right">' + l.uds + '</td>' +
+        '<td style="text-align:right">' + Number(l.precio).toFixed(2) + ' €</td>' +
+        '<td style="text-align:right">' + (l.dto > 0 ? l.dto + '%' : '—') + '</td>' +
+        '<td style="text-align:right;font-weight:600">' + Number(origen).toFixed(2) + ' €</td>' +
+      '</tr>';
+    }
   }).join('');
+
+  var theadHTML = esCertificacion
+    ? '<thead><tr>' +
+        '<th style="width:36%">Descripción</th>' +
+        '<th style="text-align:right;width:8%">Uds</th>' +
+        '<th style="text-align:right;width:13%">Precio/ud</th>' +
+        '<th style="text-align:right;width:13%">Origen</th>' +
+        '<th style="text-align:right;width:15%;background:#5a3d8a">Origen anterior</th>' +
+        '<th style="text-align:right;width:15%">Certif. actual</th>' +
+      '</tr></thead>'
+    : '<thead><tr>' +
+        '<th style="width:50%">Descripción</th>' +
+        '<th style="text-align:right;width:10%">Uds</th>' +
+        '<th style="text-align:right;width:15%">Precio/ud</th>' +
+        '<th style="text-align:right;width:10%">Dto</th>' +
+        '<th style="text-align:right;width:15%">Importe</th>' +
+      '</tr></thead>';
 
   return '<div class="fp-header">' +
     '<div>' +
@@ -2340,8 +2391,9 @@ function generarHTMLFactura(f) {
     '</div>' +
   '</div>' +
   (f.obra ? '<div style="font-size:12px;background:#fdeede;border-radius:6px;padding:6px 12px;margin-bottom:14px">📍 Obra: <strong>' + f.obra + '</strong></div>' : '') +
+  (esCertificacion ? '<div style="font-size:11px;background:#ede9fe;border-radius:6px;padding:5px 10px;margin-bottom:10px;color:#5a3d8a">📋 Certificación: <strong>Certif. actual = Origen − Origen anterior</strong></div>' : '') +
   '<table>' +
-    '<thead><tr><th style="width:50%">Descripción</th><th style="text-align:right;width:10%">Uds</th><th style="text-align:right;width:15%">Precio/ud</th><th style="text-align:right;width:10%">Dto</th><th style="text-align:right;width:15%">Importe</th></tr></thead>' +
+    theadHTML +
     '<tbody>' + lineasHTML + '</tbody>' +
   '</table>' +
   '<div class="tots">' +
@@ -3886,16 +3938,19 @@ function rellenarCamposFactura(d) {
     lineas = [];
     document.getElementById('lineas-body').innerHTML = '';
     d.lineas.forEach(function(l, i) {
-      lineas.push({ desc: l.desc || '', uds: l.uds || 1, precio: l.precio || 0, dto: l.dto || 0 });
+      lineas.push({ desc: l.desc || '', uds: l.uds || 1, precio: l.precio || 0, dto: l.dto || 0, origenAnt: l.origenAnt || 0 });
       var tr = document.createElement('tr');
       tr.id = 'linea-' + i;
-      var imp = (l.uds || 1) * (l.precio || 0) * (1 - (l.dto || 0) / 100);
+      var origen = (l.uds || 1) * (l.precio || 0) * (1 - (l.dto || 0) / 100);
+      var certif = origen - (l.origenAnt || 0);
       tr.innerHTML =
         '<td><input class="linea-input" type="text" value="' + (l.desc || '').replace(/"/g, '&quot;') + '" onchange="setLinea(' + i + ',\'desc\',this.value)"></td>' +
         '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.uds || 1) + '" style="width:60px;text-align:right" onchange="setLinea(' + i + ',\'uds\',this.value)"></td>' +
         '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.precio || 0) + '" style="text-align:right" onchange="setLinea(' + i + ',\'precio\',this.value)"></td>' +
         '<td><input class="linea-input" type="number" min="0" max="100" value="' + (l.dto || 0) + '" style="width:50px;text-align:right" onchange="setLinea(' + i + ',\'dto\',this.value)"></td>' +
-        '<td id="imp-' + i + '" style="text-align:right;font-weight:600;color:var(--brand2)">' + fmt(imp) + '</td>' +
+        '<td id="imp-' + i + '" style="text-align:right;color:var(--text2)">' + fmt(origen) + '</td>' +
+        '<td><input class="linea-input" type="number" min="0" step="0.01" value="' + (l.origenAnt || 0) + '" style="text-align:right;border-color:#8b5cf6" title="Importe ya facturado anteriormente" onchange="setLinea(' + i + ',\'origenAnt\',this.value)"></td>' +
+        '<td id="certif-' + i + '" style="text-align:right;font-weight:700;color:var(--brand2)">' + fmt(certif) + '</td>' +
         '<td><button onclick="delLinea(' + i + ')" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button></td>';
       document.getElementById('lineas-body').appendChild(tr);
     });
