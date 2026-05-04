@@ -5615,16 +5615,33 @@ function prfGenerarFactura(pi) {
   if (!prf) return;
   var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
   // Siempre usar el desglose de la proforma (todas las partidas con precio)
+  // Calcular el anterior acumulado para cada línea (suma de mes en proformas anteriores)
+  var prfsAnt = prfs.slice(0, pi);
   var lineasFac = (prf.lineas||[])
     .filter(function(l){ return (l.precioUnit||0)>0; })
-    .map(function(l){ return {desc:l.desc, uds:l.mes||0, precio:l.precioUnit, dto:0}; });
+    .map(function(l){
+      // Sumar medición anterior de todas las proformas previas con la misma descripción
+      var medAnt = 0;
+      prfsAnt.forEach(function(prev){
+        (prev.lineas||[]).forEach(function(pl){
+          if (pl.desc === l.desc && (pl.precioUnit||0) > 0) medAnt += (pl.mes||0);
+        });
+      });
+      var medOrigen = (l.mes||0) + medAnt;        // ORIGEN = anterior + mes actual
+      var impOrigenAnt = medAnt * (l.precioUnit||0); // ORIGEN ANTERIOR en €
+      return {desc:l.desc, uds:medOrigen, precio:l.precioUnit, dto:0, origenAnt:impOrigenAnt};
+    });
   if (!lineasFac.length) {
     // Fallback: contrato cerrado sin partidas → línea única con total del mes
     var totalFallback = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||1); },0);
     if (!totalFallback) { toast('La proforma no tiene importe. Complétala primero.', true); return; }
-    lineasFac = [{desc:'Certificación '+(prf.mes||'')+' — '+(pres.proyecto||''), uds:1, precio:totalFallback, dto:0}];
+    lineasFac = [{desc:'Certificación '+(prf.mes||'')+' — '+(pres.proyecto||''), uds:1, precio:totalFallback, dto:0, origenAnt:0}];
   }
-  var base = lineasFac.reduce(function(a,l){ return a+l.uds*l.precio; },0);
+  // Base = suma de Certif. actual (Origen - Origen anterior) por línea
+  var base = lineasFac.reduce(function(a,l){
+    var origen = (l.uds||0) * (l.precio||0);
+    return a + (origen - (l.origenAnt||0));
+  },0);
   var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
   // Buscar datos completos del cliente (proforma tiene prioridad sobre presupuesto)
