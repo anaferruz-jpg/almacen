@@ -5147,14 +5147,8 @@ function prfAbrirEditor(pi) {
       });
     });
   } else {
-    _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({},l,{anterior:(l.tipo==='dto_venta'||l.tipo==='dto_alquiler')?0:0}); });
-    proformas.forEach(function(prev,prevIdx){
-      if (prevIdx<pi) (prev.lineas||[]).forEach(function(pl){
-        _prfLineas.forEach(function(l){
-          if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
-        });
-      });
-    });
+    // Proforma existente: usar el anterior guardado tal cual (el usuario puede haberlo ajustado manualmente)
+    _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({}, l); });
   }
 
   var hoy            = new Date().toISOString().slice(0,10);
