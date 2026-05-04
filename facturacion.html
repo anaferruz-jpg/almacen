@@ -1042,6 +1042,10 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 
     <div class="form-grid">
       <div class="form-group">
+        <label>Nº factura</label>
+        <input type="text" id="fac-numero" placeholder="SF-2026-001" style="font-weight:600;color:var(--brand2)" title="Se genera automáticamente, pero puedes cambiarlo">
+      </div>
+      <div class="form-group">
         <label>Cliente *</label>
         <input type="text" id="fac-cliente" placeholder="Nombre del cliente..." onchange="autoFillCliente(this.value)">
       </div>
@@ -1066,14 +1070,20 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <input type="date" id="fac-vencimiento">
       </div>
       <div class="form-group">
-        <label>Condiciones de pago</label>
-        <select id="fac-condiciones">
+        <label>Forma de pago</label>
+        <input type="text" id="fac-condiciones" list="fac-condiciones-list" placeholder="Transferencia, Confirming, Al contado...">
+        <datalist id="fac-condiciones-list">
           <option>Al contado</option>
-          <option>30 días fecha factura</option>
-          <option>60 días fecha factura</option>
-          <option>90 días fecha factura</option>
-          <option>30/60 días</option>
-        </select>
+          <option>Transferencia bancaria 30 días</option>
+          <option>Transferencia bancaria 60 días</option>
+          <option>Transferencia bancaria 90 días</option>
+          <option>Transferencia bancaria 30/60 días</option>
+          <option>Confirming 60 días</option>
+          <option>Confirming 90 días</option>
+          <option>Domiciliación bancaria (SEPA)</option>
+          <option>Pagaré 60 días</option>
+          <option>Pagaré 90 días</option>
+        </datalist>
       </div>
     </div>
 
@@ -1858,13 +1868,7 @@ function autoFillObraFac(nombreObra) {
   // Condiciones de pago desde la obra
   var cond = o.plazo || o.formaPago || '';
   if (cond) {
-    var sel = document.getElementById('fac-condiciones');
-    // Intentar seleccionar opción existente, o insertar como primera opción
-    var found = false;
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === cond || sel.options[i].text === cond) { sel.value = sel.options[i].value; found = true; break; }
-    }
-    if (!found) { var opt = document.createElement('option'); opt.value = cond; opt.text = cond; sel.insertBefore(opt, sel.firstChild); sel.value = cond; }
+    document.getElementById('fac-condiciones').value = cond;
   }
   // Vencimiento automático según plazo
   var fecha = document.getElementById('fac-fecha').value;
@@ -1923,12 +1927,7 @@ function autoFillCliente(nombre) {
   // Condiciones de pago
   var cond = c.plazo || c.formaPago || '';
   if (cond) {
-    var sel = document.getElementById('fac-condiciones');
-    var found = false;
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].text === cond || sel.options[i].value === cond) { sel.value = sel.options[i].value; found = true; break; }
-    }
-    if (!found) { var opt = document.createElement('option'); opt.value = cond; opt.text = cond; sel.insertBefore(opt, sel.firstChild); sel.value = cond; }
+    document.getElementById('fac-condiciones').value = cond;
   }
   // Vencimiento automático
   var fecha = document.getElementById('fac-fecha').value;
@@ -2094,6 +2093,7 @@ function renderFacturas() {
 function abrirModalFactura() {
   _facIdx = -1; lineas = [];
   document.getElementById('modal-fac-titulo').textContent = '📄 Nueva factura';
+  document.getElementById('fac-numero').value = nextNumFac();
   document.getElementById('fac-cliente').value = '';
   document.getElementById('fac-cif-cliente').value = '';
   document.getElementById('fac-dir-cliente').value = '';
@@ -2164,7 +2164,7 @@ function guardarFactura(estado) {
   var base = lineasValidas.reduce(function(a, l) { return a + (l.uds * l.precio * (1 - l.dto / 100)); }, 0);
   var iva = base * 0.21;
   var fac = {
-    numero: _facIdx >= 0 ? facturas[_facIdx].numero : nextNumFac(),
+    numero: document.getElementById('fac-numero').value.trim() || nextNumFac(),
     cliente: cliente,
     cifCliente: document.getElementById('fac-cif-cliente').value.trim(),
     dirCliente: document.getElementById('fac-dir-cliente').value.trim(),
@@ -2205,6 +2205,7 @@ function editarFactura(idx) {
   _facIdx = idx;
   lineas = (f.lineas || []).map(function(l) { return Object.assign({}, l); });
   document.getElementById('modal-fac-titulo').textContent = '✏️ Editar factura ' + f.numero;
+  document.getElementById('fac-numero').value = f.numero || '';
   document.getElementById('fac-cliente').value = f.cliente || '';
   document.getElementById('fac-cif-cliente').value = f.cifCliente || '';
   document.getElementById('fac-dir-cliente').value = f.dirCliente || '';
