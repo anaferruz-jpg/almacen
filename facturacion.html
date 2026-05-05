@@ -7626,11 +7626,17 @@ function renderResumenMensual(){
     var prev=parseFloat(prevision[i])||0;
     var prevgi=parseFloat(prevGI[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
-    var esFuturo=(ano===hoy.getFullYear()&&i>mesActual);
+    // Bug fix 1: esFuturo aplica también a años futuros completos
+    var esFuturo=(ano>hoy.getFullYear())||(ano===hoy.getFullYear()&&i>mesActual);
     var esActual=(ano===hoy.getFullYear()&&i===mesActual);
 
-    // Resultado previsto para meses futuros = prev.facturación − prev.gastos internos − gastos prov. ya registrados
-    var resultadoPrev=prev-prevgi-m.gastoProv;
+    // Gastos internos futuros: usar el mayor entre el real ya registrado y la previsión (evita doble conteo)
+    var giEfectivo = esFuturo ? Math.max(m.gastoInt, prevgi) : m.gastoInt;
+    // Total gastos efectivos para meses futuros = prov. reales + GI efectivo
+    var gasEfectivo = esFuturo ? (m.gastoProv + giEfectivo) : gasTotal;
+
+    // Resultado previsto para meses futuros = prev.facturación − gastos efectivos
+    var resultadoPrev = prev - gasEfectivo;
     if(esFuturo) totPrevRes+=resultadoPrev; else totPrevRes+=resultado;
 
     // Estilo fila
@@ -7659,14 +7665,13 @@ function renderResumenMensual(){
         ' style="'+inputStyle+';border-color:#ddd6fe;font-weight:'+(esFuturo?'700':'500')+'"'+
         ' onchange="guardarPrevisionGI('+ano+','+i+',this.value)"></td>'+
       '<td style="text-align:right;font-weight:'+(m.gastoInt>0?'600':'400')+'">'+fmtR(m.gastoInt)+'</td>'+
-      '<td style="text-align:right;font-weight:700;color:#c0392b">'+fmtR(gasTotal+(esFuturo?prevgi:0))+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:#c0392b">'+fmtR(gasEfectivo)+'</td>'+
       '<td style="text-align:right">'+celdaRes+'</td>'+
     '</tr>';
   });
   // Fila total real + fila proyectado año completo
   var totCumpl=totPrev>0?Math.round(totFac/totPrev*100):null;
-  var totGasPrev=totGProv+totPrevGI; // gastos proyectados totales año
-  var totResPrev=totPrev-totGasPrev; // resultado proyectado año completo
+  var totGasPrev=totGProv+totPrevGI; // gastos proyectados totales año (prov reales + GI previsión)
   tbody+='<tr style="border-top:2px solid var(--border);font-weight:700;background:var(--accent-light)">'+
     '<td style="font-size:13px">TOTAL REAL '+ano+'</td>'+
     '<td style="text-align:right;color:#1a5276;font-weight:800">'+fmtR(totPrev)+'</td>'+
@@ -7688,7 +7693,7 @@ function renderResumenMensual(){
     '<td style="text-align:right;color:#7c3aed;font-weight:700">'+fmtR(totPrevGI)+'</td>'+
     '<td colspan="1"></td>'+
     '<td style="text-align:right;color:#c0392b;font-weight:700">'+fmtR(totGasPrev)+'</td>'+
-    '<td style="text-align:right;font-weight:800;font-size:14px;'+colorRes(totResPrev)+'">'+fmtR(totResPrev)+'<div style="font-size:10px;color:#6b7280;font-weight:400">si se cumple prev.</div></td>'+
+    '<td style="text-align:right;font-weight:800;font-size:14px;'+colorRes(totPrevRes)+'">'+fmtR(totPrevRes)+'<div style="font-size:10px;color:#6b7280;font-weight:400">real+previsto</div></td>'+
   '</tr>';
   document.getElementById('resumen-tbody').innerHTML=tbody;
 }
