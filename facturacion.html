@@ -5520,6 +5520,13 @@ function prfImprimirCertificacion() {
         '</tr>'+
       '</tfoot>'+
     '</table>'+
+    '<div style="margin-top:18px;margin-left:auto;width:320px;border:1px solid #c8a96e;border-radius:6px;overflow:hidden">'+
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;background:#f5f0e8;font-size:12px"><span>Total Origen (acumulado)</span><span style="font-weight:700">'+fmtE(totalOri)+'</span></div>'+
+      (totalAnt!==0?'<div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:12px;color:#7c3aed"><span>Origen anterior</span><span style="font-weight:700">'+fmtE(totalAnt)+'</span></div>':'') +
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;background:#eaf5ea;font-size:12px;border-top:1px solid #c8a96e"><span style="font-weight:600">Certificación actual</span><span style="font-weight:700">'+fmtE(totalMes)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:12px"><span>IVA 21%</span><span>'+fmtE(iva)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:9px 14px;background:#c8a96e;color:#fff;font-size:14px;font-weight:700"><span>TOTAL FACTURA</span><span>'+fmtE(totalMes+iva)+'</span></div>'+
+    '</div>'+
     prevHtml+
     '<div style="margin-top:24px;text-align:center">'+
       '<button onclick="window.print()" style="padding:9px 28px;background:#c8a96e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700">\ud83d\udda8\ufe0f Imprimir / Guardar PDF</button>'+
@@ -5607,7 +5614,15 @@ function prfGuardarEnDrive() {
     '<td colspan="5" style="padding:11px 14px;text-align:right;font-size:13px">TOTAL</td>'+
     '<td style="padding:11px 14px;text-align:right;font-size:13px">'+fmtN(totalOri)+'</td>'+
     '<td style="padding:11px 14px;text-align:right;font-size:14px">'+fmtN(totalMes)+'</td>'+
-    '</tr></tfoot></table></body></html>';
+    '</tr></tfoot></table>'+
+    '<div style="margin-top:18px;margin-left:auto;width:320px;border:1px solid #c8a96e;border-radius:6px;overflow:hidden">'+
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;background:#f5f0e8;font-size:12px"><span>Total Origen (acumulado)</span><span style="font-weight:700">'+fmtE(totalOri)+'</span></div>'+
+      (totalAnt!==0?'<div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:12px;color:#7c3aed"><span>Origen anterior</span><span style="font-weight:700">'+fmtE(totalAnt)+'</span></div>':'') +
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;background:#eaf5ea;font-size:12px;border-top:1px solid #c8a96e"><span style="font-weight:600">Certificación actual</span><span style="font-weight:700">'+fmtE(totalMes)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:12px"><span>IVA 21%</span><span>'+fmtE(totalMes*0.21)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:9px 14px;background:#c8a96e;color:#fff;font-size:14px;font-weight:700"><span>TOTAL FACTURA</span><span>'+fmtE(totalMes*1.21)+'</span></div>'+
+    '</div>'+
+    '</body></html>';
 
   var encoded = btoa(unescape(encodeURIComponent(html)));
   postAPI({ action:'saveFileToFolder', folderId: folderId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
