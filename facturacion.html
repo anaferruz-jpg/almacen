@@ -196,7 +196,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
   <div class="top-bar-actions">
     <span class="sync-badge loading" id="sync-badge"><span class="spinner"></span>Conectando...</span>
-    <button class="btn" onclick="recargarTodo()" style="font-size:11px;padding:5px 8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">↻</button>
+    <button class="btn" onclick="recargarTodo()" style="font-size:11px;padding:5px 8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff" title="Recargar todo">↻</button>
+    <button class="btn" id="btn-recarga-prf" onclick="prfForzarRecarga()" style="font-size:11px;padding:5px 8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff" title="Recargar proformas desde Sheets (sincronizar con compañeros)">🔄 Proformas</button>
     <a href="#" onclick="location.href=(location.href.indexOf('script.google')>-1?location.href.split('?')[0]+'?v=':'index.html?v=')+Date.now();return false;" class="back-btn">← Almacén</a>
   </div>
 </div>
@@ -1569,13 +1570,20 @@ function confirmarPin(){
 function cambiarPin(p){if(!p||p.length<4){alert('El PIN debe tener al menos 4 caracteres');return;}localStorage.setItem(PIN_KEY,p);alert('PIN cambiado correctamente');}
 // ───────────────────────────────────────────────
 function callAPI(a, cb) {
-  fetch(API + '?action=' + a).then(function(r) { return r.json(); }).then(function(d) { cb(null, d); }).catch(function(e) { cb(e, null); });
+  var done = false;
+  var t = setTimeout(function(){ if(!done){ done=true; cb(new Error('timeout'), null); } }, 15000);
+  fetch(API + '?action=' + a)
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(!done){ done=true; clearTimeout(t); cb(null, d); } })
+    .catch(function(e){ if(!done){ done=true; clearTimeout(t); cb(e, null); } });
 }
 function postAPI(data, cb) {
+  var done = false;
+  var t = setTimeout(function(){ if(!done){ done=true; if(cb) cb(new Error('timeout'), null); } }, 15000);
   fetch(API, { method: 'POST', body: JSON.stringify(data) })
-    .then(function(r) { return r.json(); })
-    .then(function(d) { if (cb) cb(null, d); })
-    .catch(function(e) { if (cb) cb(e, null); });
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(!done){ done=true; clearTimeout(t); if(cb) cb(null, d); } })
+    .catch(function(e){ if(!done){ done=true; clearTimeout(t); if(cb) cb(e, null); } });
 }
 
 // ══════════════════════════════════════════════
@@ -1829,10 +1837,10 @@ function recargarTodo() {
   });
   callAPI('getProformas', function(err, data) {
     if (!err && data && typeof data === 'object' && Object.keys(data).length) {
-      // Merge: local tiene prioridad sobre Sheets para preservar estado reciente
-      // (ej: proforma marcada como 'facturada' antes de que el POST a Sheets completara)
+      // Sheets tiene prioridad sobre local (permite sincronización entre usuarios).
+      // Local solo añade claves que Sheets todavía no tiene (subida pendiente).
       var localPrf = getPrfStore();
-      var merged = Object.assign({}, data, localPrf);
+      var merged = Object.assign({}, localPrf, data); // data (Sheets) sobreescribe local
       savePrfStore(merged);
     }
     check();
@@ -2396,11 +2404,19 @@ function generarHTMLFactura(f) {
     theadHTML +
     '<tbody>' + lineasHTML + '</tbody>' +
   '</table>' +
-  '<div class="tots">' +
-    '<div class="tot-row"><span>Base imponible</span><span>' + Number(f.base).toFixed(2) + ' €</span></div>' +
-    '<div class="tot-row"><span>IVA 21%</span><span>' + Number(f.iva).toFixed(2) + ' €</span></div>' +
-    '<div class="tot-row tot-total"><span>TOTAL</span><span>' + Number(f.total).toFixed(2) + ' €</span></div>' +
-  '</div>' +
+  (function(){
+    var baseCalc = (f.lineas||[]).reduce(function(a,l){
+      var origen = (l.uds||0) * (l.precio||0) * (1 - (l.dto||0) / 100);
+      return a + (origen - (l.origenAnt||0));
+    }, 0);
+    var ivaCalc   = baseCalc * 0.21;
+    var totalCalc = baseCalc + ivaCalc;
+    return '<div class="tots">' +
+      '<div class="tot-row"><span>Base imponible</span><span>' + baseCalc.toFixed(2) + ' €</span></div>' +
+      '<div class="tot-row"><span>IVA 21%</span><span>' + ivaCalc.toFixed(2) + ' €</span></div>' +
+      '<div class="tot-row tot-total"><span>TOTAL</span><span>' + totalCalc.toFixed(2) + ' €</span></div>' +
+    '</div>';
+  })() +
   '<div style="clear:both"></div>' +
   '<div class="pie">' +
     '<strong>Condiciones de pago:</strong> ' + (f.condiciones || 'Al contado') + '<br>' +
@@ -4959,6 +4975,7 @@ function prfRenderLista() {
         '<p style="font-size:12px;color:var(--text2);margin:2px 0 0">'+(pres.cliente||'')+' &nbsp;|&nbsp; '+(pres.numOferta||'')+' &nbsp;|&nbsp; '+tipoTxt+'</p>'+
       '</div>'+
       '<div style="display:flex;gap:8px">'+
+        '<button class="btn" onclick="prfForzarRecarga()" title="Borra datos locales y recarga desde servidor (útil para sincronizar con compañeros)" style="font-size:11px;padding:4px 8px">🔄 Recargar Sheets</button>'+
         '<button class="btn primary" onclick="prfNuevaProforma()">➕ Nueva Proforma</button>'+
         '<button class="btn" onclick="cerrarProformaModal()">✕ Cerrar</button>'+
       '</div>'+
@@ -4981,6 +4998,26 @@ function prfRenderLista() {
 
 // ── Abrir editor (nueva o existente) ─────────
 function prfNuevaProforma() { _prfIdx = -1; prfAbrirEditor(-1); }
+
+// Fuerza recarga de proformas desde Google Sheets (borra caché local primero)
+function prfForzarRecarga() {
+  if (!confirm('¿Recargar proformas desde Sheets?\nSe cargarán los datos del servidor (compartidos con tus compañeros).')) return;
+  // Deshabilitar todos los botones que llaman a esta función
+  var btns = document.querySelectorAll('[onclick="prfForzarRecarga()"]');
+  btns.forEach(function(b){ b.textContent = '⏳ Cargando…'; b.disabled = true; });
+  callAPI('getProformas', function(err, data) {
+    btns.forEach(function(b){ b.disabled = false; b.textContent = b.id === 'btn-recarga-prf' ? '🔄 Proformas' : '🔄 Recargar Sheets'; });
+    if (!err && data && typeof data === 'object' && Object.keys(data).length) {
+      savePrfStore(data);
+      toast('✅ Proformas recargadas desde Sheets');
+    } else {
+      toast('⚠️ Sin conexión o sin datos en Sheets. Prueba de nuevo.', true);
+    }
+    // Refrescar lista si el modal está abierto
+    var modal = document.getElementById('crm-proforma-modal');
+    if (modal && modal.style.display !== 'none') prfRenderLista();
+  });
+}
 
 function prfRenderLineas() {
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
@@ -5610,14 +5647,47 @@ function prfGenerarFactura(pi) {
   var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
   // Siempre usar el desglose de la proforma (todas las partidas con precio)
   // Usar el campo 'anterior' ya guardado en la proforma (medición acumulada certificaciones previas)
-  var lineasFac = (prf.lineas||[])
-    .filter(function(l){ return (l.precioUnit||0)>0; })
-    .map(function(l){
-      var medAnt    = l.anterior || 0;                  // medición acumulada ya certificada
-      var medOrigen = (l.mes||0) + medAnt;              // ORIGEN total = anterior + mes actual
-      var impOrigenAnt = medAnt * (l.precioUnit||0);    // ORIGEN ANTERIOR en €
-      return {desc:l.desc, uds:medOrigen, precio:l.precioUnit, dto:0, origenAnt:impOrigenAnt};
-    });
+  // Acumuladores de sección para calcular descuentos sobre el total real
+  var _ventaAcc = 0, _alqAcc = 0;       // importe MES de cada sección (€)
+  var _ventaAntAcc = 0, _alqAntAcc = 0; // importe ANTERIOR de cada sección (€)
+  var lineasFac = [];
+  (prf.lineas||[]).forEach(function(l){
+    var isDtoV = l.tipo === 'dto_venta';
+    var isDtoA = l.tipo === 'dto_alquiler';
+    if (isDtoV || isDtoA) {
+      // Línea de descuento: recalcular sobre los acumulados de su sección
+      var dtoRate = Math.abs(l.mes || l.dtoRate || 0);
+      if (dtoRate <= 0) return;
+      var secMes = isDtoV ? _ventaAcc    : _alqAcc;
+      var secAnt = isDtoV ? _ventaAntAcc : _alqAntAcc;
+      var secOri = secMes + secAnt;                   // base total acumulada de la sección
+      lineasFac.push({
+        desc:     l.desc,
+        uds:      -dtoRate,                           // ej: -0.10 (tasa negativa)
+        precio:   secOri,                             // base total (ant + mes) de la sección
+        dto:      0,
+        origenAnt: secAnt * dtoRate                  // descuento ya facturado en certs. previas
+      });
+      if (isDtoV) { _ventaAcc = 0; _ventaAntAcc = 0; }
+      else        { _alqAcc   = 0; _alqAntAcc   = 0; }
+      return;
+    }
+    if ((l.precioUnit||0) <= 0) return;  // sin precio, ignorar
+    var medAnt       = l.anterior || 0;
+    var medOrigen    = (l.mes||0) + medAnt;
+    var impOrigenAnt = medAnt * (l.precioUnit||0);
+    var impMes       = (l.mes||0) * (l.precioUnit||0);
+    lineasFac.push({desc:l.desc, uds:medOrigen, precio:l.precioUnit, dto:0, origenAnt:impOrigenAnt});
+    // Acumular para la siguiente línea de descuento:
+    // dto_alquiler → solo líneas tipo alquiler
+    // dto_venta    → venta + cerrado (materiales) pero NO mo ni alquiler
+    if (l.tipo === 'alquiler') {
+      _alqAcc += impMes; _alqAntAcc += impOrigenAnt;
+    } else if (l.tipo !== 'mo') {
+      // venta, cerrado, y cualquier otro tipo material → sección de venta
+      _ventaAcc += impMes; _ventaAntAcc += impOrigenAnt;
+    }
+  });
   if (!lineasFac.length) {
     // Fallback: contrato cerrado sin partidas → línea única con total del mes
     var totalFallback = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||1); },0);
