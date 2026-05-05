@@ -5352,7 +5352,7 @@ function prfCalcTotales() {
       var impOriDto = -(dtoRate * secOri);  // descuento total acumulado (negativo)
       totAnt += impAntDto; totOri += impOriDto; totMes += impMesDto;
       var elOrig = document.getElementById('prf-orig-'+i);
-      if (elOrig) elOrig.textContent = fmtN(mes); // muestra la tasa (-0.10)
+      if (elOrig) elOrig.textContent = fmtN(secOri); // muestra el total de la sección a origen
       var elA = document.getElementById('prf-imp-ant-'+i);
       if (elA) elA.textContent = fmtE(impAntDto); // descuento anterior (negativo)
       var elO = document.getElementById('prf-imp-ori-'+i);
@@ -5372,8 +5372,8 @@ function prfCalcTotales() {
     var impOri = origen * prc;
     var impMes = mes * prc;
     // Acumular para la siguiente línea de descuento
-    if (l.tipo==='venta')    { ventaAcc += impMes; ventaAntAcc += impAnt; }
     if (l.tipo==='alquiler') { alquilerAcc += impMes; alquilerAntAcc += impAnt; }
+    else if (l.tipo !== 'mo') { ventaAcc += impMes; ventaAntAcc += impAnt; } // venta + cerrado
     totAnt += impAnt; totOri += impOri; totMes += impMes;
     var elOrig = document.getElementById('prf-orig-'+i);
     if (elOrig) elOrig.textContent = fmtN(origen);
@@ -5392,20 +5392,18 @@ function prfCalcTotales() {
   var tf = document.getElementById('prf-tfoot');
   if (tf) tf.innerHTML =
     '<tr style="background:var(--bg2);font-weight:700;border-top:2px solid var(--border)">'+
-      '<td colspan="3" style="padding:9px 10px;text-align:right;font-size:12px;color:var(--text2)">TOTAL</td>'+
-      '<td style="padding:9px 8px;text-align:right;font-size:12px;font-weight:700">'+fmtE(totAnt)+'</td>'+
-      '<td></td>'+
-      '<td></td>'+
-      '<td style="padding:9px 8px;text-align:right;font-size:12px;font-weight:700">'+fmtE(totOri)+'</td>'+
-      '<td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--primary)">'+fmtE(totMes)+'</td>'+
+      '<td colspan="7" style="padding:9px 10px;text-align:right;font-size:12px;color:var(--text2)">TOTAL</td>'+
+      '<td style="padding:9px 8px;text-align:right;font-size:12px;font-weight:700;border-right:1px solid var(--border)">'+fmtE(totAnt)+'</td>'+
+      '<td style="padding:9px 8px;text-align:right;font-size:12px;font-weight:700;border-right:1px solid var(--border)">'+fmtE(totOri)+'</td>'+
+      '<td style="padding:9px 10px;text-align:right;font-size:14px;color:var(--primary);background:#f0fdf4">'+fmtE(totMes)+'</td>'+
       '<td></td>'+
     '</tr>'+
     '<tr style="background:var(--bg2)">'+
-      '<td colspan="8" style="padding:4px 10px;text-align:right;font-size:11px;color:var(--text2)">IVA 21%:</td>'+
+      '<td colspan="9" style="padding:4px 10px;text-align:right;font-size:11px;color:var(--text2)">IVA 21%:</td>'+
       '<td style="padding:4px 10px;text-align:right;font-size:11px;color:var(--text2)">'+fmtE(iva)+'</td>'+
     '</tr>'+
     '<tr style="background:#f0fdf4;font-weight:700">'+
-      '<td colspan="8" style="padding:7px 10px;text-align:right;font-size:13px">TOTAL FACTURA:</td>'+
+      '<td colspan="9" style="padding:7px 10px;text-align:right;font-size:13px">TOTAL FACTURA:</td>'+
       '<td style="padding:7px 10px;text-align:right;font-size:15px;color:#059669">'+fmtE(totalIva)+'</td>'+
     '</tr>';
 }
