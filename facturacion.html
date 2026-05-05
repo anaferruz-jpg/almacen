@@ -265,16 +265,16 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <div id="resumen-tabla-wrap" class="tbl-wrap">
     <table id="resumen-tabla">
       <thead><tr>
-        <th>Mes</th>
-        <th style="text-align:right;color:#1a5276">Prev. facturación</th>
-        <th style="text-align:right">Facturado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha factura)</span></th>
-        <th style="text-align:right">% Cumpl.</th>
-        <th style="text-align:right;color:#1a7c3e">Cobrado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha cobro)</span></th>
-        <th style="text-align:right">Gastos prov. <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha pago)</span></th>
-        <th style="text-align:right;color:#7c3aed">Prev. g. internos</th>
-        <th style="text-align:right">Gastos intern.</th>
-        <th style="text-align:right">Total gastos</th>
-        <th style="text-align:right">Resultado</th>
+        <th style="font-size:12px;font-weight:700">Mes</th>
+        <th style="text-align:right;color:#1a5276;font-size:12px;font-weight:700">Prev. facturación</th>
+        <th style="text-align:right;font-size:12px;font-weight:700">Facturado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha factura)</span></th>
+        <th style="text-align:right;font-size:12px;font-weight:700">% Cumpl.</th>
+        <th style="text-align:right;color:#1a7c3e;font-size:12px;font-weight:700">Cobrado <span style="font-weight:400;font-size:10px;color:var(--text2)">(fecha cobro)</span></th>
+        <th style="text-align:right;font-size:12px;font-weight:700">Gastos prov.</th>
+        <th style="text-align:right;color:#7c3aed;font-size:12px;font-weight:700">Prev. g. internos</th>
+        <th style="text-align:right;font-size:12px;font-weight:700">Gastos intern.</th>
+        <th style="text-align:right;font-size:12px;font-weight:700">Total gastos</th>
+        <th style="text-align:right;font-size:12px;font-weight:700">Resultado</th>
       </tr></thead>
       <tbody id="resumen-tbody"></tbody>
     </table>
@@ -7526,6 +7526,7 @@ function renderResumenMensual(){
   var mesActual=hoy.getMonth();
   var tbody='';
   var inputStyle='width:90px;text-align:right;border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px';
+  var totPrevRes=0; // resultado proyectado acumulado año
   meses.forEach(function(m,i){
     var gasTotal=m.gastoProv+m.gastoInt;
     var resultado=m.cobrado-gasTotal;
@@ -7533,38 +7534,68 @@ function renderResumenMensual(){
     var prevgi=parseFloat(prevGI[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
     var esFuturo=(ano===hoy.getFullYear()&&i>mesActual);
-    // Siempre mostrar los 12 meses del año seleccionado
-    var rowStyle=esFuturo?'opacity:0.45;font-style:italic':'';
+    var esActual=(ano===hoy.getFullYear()&&i===mesActual);
+
+    // Resultado previsto para meses futuros = prev.facturación − prev.gastos internos − gastos prov. ya registrados
+    var resultadoPrev=prev-prevgi-m.gastoProv;
+    if(esFuturo) totPrevRes+=resultadoPrev; else totPrevRes+=resultado;
+
+    // Estilo fila
+    var rowStyle=esFuturo
+      ?'background:#f0f7ff;font-style:italic;border-left:3px solid #93c5fd'
+      :esActual
+        ?'background:#fffbeb;border-left:3px solid #f59e0b;font-weight:600'
+        :'border-left:3px solid transparent';
+
+    // Celda resultado
+    var celdaRes=esFuturo
+      ?'<span style="font-weight:800;font-size:13px;'+colorRes(resultadoPrev)+'">'+fmtR(resultadoPrev)+'</span>'+
+        '<div style="font-size:10px;color:#6b7280;margin-top:1px">≈ previsto</div>'
+      :'<span style="font-weight:800;font-size:13px;'+colorRes(resultado)+'">'+fmtR(resultado)+'</span>';
+
     tbody+='<tr style="'+rowStyle+'">'+
-      '<td><b>'+MESES[i]+'</b></td>'+
+      '<td><b style="font-size:13px">'+MESES[i]+'</b>'+(esActual?' <span style="font-size:9px;background:#f59e0b;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">HOY</span>':esFuturo?' <span style="font-size:9px;background:#93c5fd;color:#1e40af;padding:1px 5px;border-radius:3px;vertical-align:middle">PREV.</span>':'')+'</td>'+
       '<td style="text-align:right"><input type="number" min="0" step="100" value="'+(prev||'')+'" placeholder="0"'+
-        ' style="'+inputStyle+';border-color:#bfdbfe"'+
+        ' style="'+inputStyle+';border-color:#bfdbfe;font-weight:'+(esFuturo?'700':'500')+'"'+
         ' onchange="guardarPrevision('+ano+','+i+',this.value)"></td>'+
-      '<td style="text-align:right">'+fmtR(m.facturado)+'</td>'+
-      '<td style="text-align:right;font-weight:600;color:'+(pct===null?'var(--text2)':pct>=100?'#1a7c3e':pct>=80?'#f39c12':'#c0392b')+'">'+(pct!==null?pct+'%':'—')+'</td>'+
-      '<td style="text-align:right;color:#1a7c3e">'+fmtR(m.cobrado)+'</td>'+
-      '<td style="text-align:right">'+fmtR(m.gastoProv)+'</td>'+
+      '<td style="text-align:right;font-weight:'+(m.facturado>0?'700':'400')+'">'+fmtR(m.facturado)+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:'+(pct===null?'var(--text2)':pct>=100?'#1a7c3e':pct>=80?'#f39c12':'#c0392b')+'">'+(pct!==null?pct+'%':'—')+'</td>'+
+      '<td style="text-align:right;color:#1a7c3e;font-weight:'+(m.cobrado>0?'700':'400')+'">'+fmtR(m.cobrado)+'</td>'+
+      '<td style="text-align:right;font-weight:'+(m.gastoProv>0?'600':'400')+'">'+fmtR(m.gastoProv)+'</td>'+
       '<td style="text-align:right"><input type="number" min="0" step="100" value="'+(prevgi||'')+'" placeholder="0"'+
-        ' style="'+inputStyle+';border-color:#ddd6fe"'+
+        ' style="'+inputStyle+';border-color:#ddd6fe;font-weight:'+(esFuturo?'700':'500')+'"'+
         ' onchange="guardarPrevisionGI('+ano+','+i+',this.value)"></td>'+
-      '<td style="text-align:right">'+fmtR(m.gastoInt)+'</td>'+
-      '<td style="text-align:right;color:#c0392b">'+fmtR(gasTotal)+'</td>'+
-      '<td style="text-align:right;font-weight:700;'+colorRes(resultado)+'">'+fmtR(resultado)+'</td>'+
+      '<td style="text-align:right;font-weight:'+(m.gastoInt>0?'600':'400')+'">'+fmtR(m.gastoInt)+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:#c0392b">'+fmtR(gasTotal+(esFuturo?prevgi:0))+'</td>'+
+      '<td style="text-align:right">'+celdaRes+'</td>'+
     '</tr>';
   });
-  // Fila total
+  // Fila total real + fila proyectado año completo
   var totCumpl=totPrev>0?Math.round(totFac/totPrev*100):null;
+  var totGasPrev=totGProv+totPrevGI; // gastos proyectados totales año
+  var totResPrev=totPrev-totGasPrev; // resultado proyectado año completo
   tbody+='<tr style="border-top:2px solid var(--border);font-weight:700;background:var(--accent-light)">'+
-    '<td>TOTAL '+ano+'</td>'+
-    '<td style="text-align:right;color:#1a5276">'+fmtR(totPrev)+'</td>'+
-    '<td style="text-align:right">'+fmtR(totFac)+'</td>'+
-    '<td style="text-align:right">'+(totCumpl!==null?totCumpl+'%':'—')+'</td>'+
-    '<td style="text-align:right;color:#1a7c3e">'+fmtR(totCob)+'</td>'+
-    '<td style="text-align:right">'+fmtR(totGProv)+'</td>'+
-    '<td style="text-align:right;color:#7c3aed">'+fmtR(totPrevGI)+'</td>'+
-    '<td style="text-align:right">'+fmtR(totGInt)+'</td>'+
-    '<td style="text-align:right;color:#c0392b">'+fmtR(totGas)+'</td>'+
-    '<td style="text-align:right;'+colorRes(totRes)+'">'+fmtR(totRes)+'</td>'+
+    '<td style="font-size:13px">TOTAL REAL '+ano+'</td>'+
+    '<td style="text-align:right;color:#1a5276;font-weight:800">'+fmtR(totPrev)+'</td>'+
+    '<td style="text-align:right;font-weight:700">'+fmtR(totFac)+'</td>'+
+    '<td style="text-align:right;font-weight:700">'+(totCumpl!==null?totCumpl+'%':'—')+'</td>'+
+    '<td style="text-align:right;color:#1a7c3e;font-weight:800">'+fmtR(totCob)+'</td>'+
+    '<td style="text-align:right;font-weight:700">'+fmtR(totGProv)+'</td>'+
+    '<td style="text-align:right;color:#7c3aed;font-weight:800">'+fmtR(totPrevGI)+'</td>'+
+    '<td style="text-align:right;font-weight:700">'+fmtR(totGInt)+'</td>'+
+    '<td style="text-align:right;color:#c0392b;font-weight:800">'+fmtR(totGas)+'</td>'+
+    '<td style="text-align:right;font-weight:800;font-size:14px;'+colorRes(totRes)+'">'+fmtR(totRes)+'</td>'+
+  '</tr>'+
+  '<tr style="border-top:1px dashed #93c5fd;font-style:italic;background:#f0f7ff">'+
+    '<td style="font-size:12px;font-weight:700;color:#1e40af">≈ PROYECTADO AÑO</td>'+
+    '<td style="text-align:right;color:#1a5276;font-weight:700">'+fmtR(totPrev)+'</td>'+
+    '<td colspan="2"></td>'+
+    '<td colspan="1"></td>'+
+    '<td style="text-align:right;font-weight:700">'+fmtR(totGProv)+'</td>'+
+    '<td style="text-align:right;color:#7c3aed;font-weight:700">'+fmtR(totPrevGI)+'</td>'+
+    '<td colspan="1"></td>'+
+    '<td style="text-align:right;color:#c0392b;font-weight:700">'+fmtR(totGasPrev)+'</td>'+
+    '<td style="text-align:right;font-weight:800;font-size:14px;'+colorRes(totResPrev)+'">'+fmtR(totResPrev)+'<div style="font-size:10px;color:#6b7280;font-weight:400">si se cumple prev.</div></td>'+
   '</tr>';
   document.getElementById('resumen-tbody').innerHTML=tbody;
 }
