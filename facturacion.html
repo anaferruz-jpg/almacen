@@ -5308,7 +5308,8 @@ function prfCalcTotales() {
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtE = function(n){ return fmtN(n)+' €'; };
   var totAnt = 0, totOri = 0, totMes = 0;
-  var ventaAcc = 0, alquilerAcc = 0; // sumas acumuladas por sección para calcular descuento
+  var ventaAcc = 0, alquilerAcc = 0;       // impMes acumulado por sección (mes actual)
+  var ventaAntAcc = 0, alquilerAntAcc = 0; // impAnt acumulado por sección (anterior)
   _prfLineas.forEach(function(l,i){
     var antEl = document.getElementById('prf-ant-'+i);
     var mesEl = document.getElementById('prf-mes-'+i);
@@ -5316,32 +5317,54 @@ function prfCalcTotales() {
     if (!mesEl) return;
     var isDtoV = l.tipo==='dto_venta', isDtoA = l.tipo==='dto_alquiler';
     var isDto  = isDtoV || isDtoA;
-    // Para líneas de descuento: precioUnit = suma acumulada de la sección
-    if (isDtoV) { if (prcEl) prcEl.value = ventaAcc.toFixed(2);    ventaAcc    = 0; }
-    if (isDtoA) { if (prcEl) prcEl.value = alquilerAcc.toFixed(2); alquilerAcc = 0; }
-    var ant = isDto ? 0 : (parseFloat(antEl ? antEl.value : 0)||0);
     var mes = parseFloat(mesEl.value)||0;
+
+    if (isDto) {
+      // Línea de descuento: calcular sobre los acumulados de su sección
+      var secMes = isDtoV ? ventaAcc    : alquilerAcc;
+      var secAnt = isDtoV ? ventaAntAcc : alquilerAntAcc;
+      var secOri = secMes + secAnt;
+      var dtoRate = Math.abs(mes || l.dtoRate || 0);
+      // precioUnit = impMes de la sección (para que impMes sea correcto)
+      if (prcEl) prcEl.value = secMes.toFixed(2);
+      var impMesDto = -(dtoRate * secMes);  // descuento mes actual
+      var impAntDto = -(dtoRate * secAnt);  // descuento ya facturado (negativo)
+      var impOriDto = -(dtoRate * secOri);  // descuento total acumulado (negativo)
+      totAnt += impAntDto; totOri += impOriDto; totMes += impMesDto;
+      var elOrig = document.getElementById('prf-orig-'+i);
+      if (elOrig) elOrig.textContent = fmtN(mes); // muestra la tasa (-0.10)
+      var elA = document.getElementById('prf-imp-ant-'+i);
+      if (elA) elA.textContent = fmtE(impAntDto); // descuento anterior (negativo)
+      var elO = document.getElementById('prf-imp-ori-'+i);
+      if (elO) elO.textContent = fmtE(impOriDto);  // descuento total acumulado
+      var elM = document.getElementById('prf-imp-mes-'+i);
+      if (elM) { elM.textContent = fmtE(impMesDto); elM.style.color = '#dc2626'; }
+      if (isDtoV) { ventaAcc = 0; ventaAntAcc = 0; }
+      else        { alquilerAcc = 0; alquilerAntAcc = 0; }
+      return;
+    }
+
+    // Línea normal
+    var ant = parseFloat(antEl ? antEl.value : 0)||0;
     var prc = prcEl ? (parseFloat(prcEl.value)||0) : (l.precioUnit||0);
     var origen = ant + mes;
-    var impAnt = isDto ? 0 : ant * prc;
+    var impAnt = ant * prc;
     var impOri = origen * prc;
     var impMes = mes * prc;
-    // Acumular importes de sección para la siguiente línea de descuento
-    if (!isDto) {
-      if (l.tipo==='venta')    ventaAcc    += impMes;
-      if (l.tipo==='alquiler') alquilerAcc += impMes;
-    }
+    // Acumular para la siguiente línea de descuento
+    if (l.tipo==='venta')    { ventaAcc += impMes; ventaAntAcc += impAnt; }
+    if (l.tipo==='alquiler') { alquilerAcc += impMes; alquilerAntAcc += impAnt; }
     totAnt += impAnt; totOri += impOri; totMes += impMes;
     var elOrig = document.getElementById('prf-orig-'+i);
     if (elOrig) elOrig.textContent = fmtN(origen);
     var elA = document.getElementById('prf-imp-ant-'+i);
     if (elA) elA.textContent = fmtE(impAnt);
     var elO = document.getElementById('prf-imp-ori-'+i);
-    if (elO) elO.textContent = fmtE(isDto ? impMes : impOri);
+    if (elO) elO.textContent = fmtE(impOri);
     var elM = document.getElementById('prf-imp-mes-'+i);
     if (elM) {
       elM.textContent = fmtE(impMes);
-      elM.style.color = isDto ? '#dc2626' : (impMes>0?'var(--primary)':'var(--text2)');
+      elM.style.color = impMes>0?'var(--primary)':'var(--text2)';
     }
   });
   var iva = totMes * 0.21;
