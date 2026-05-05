@@ -5666,7 +5666,7 @@ function prfGenerarFactura(pi) {
         uds:      -dtoRate,                           // ej: -0.10 (tasa negativa)
         precio:   secOri,                             // base total (ant + mes) de la sección
         dto:      0,
-        origenAnt: secAnt * dtoRate                  // descuento ya facturado en certs. previas
+        origenAnt: -(secAnt * dtoRate)               // negativo: descuento ya aplicado en certs. previas
       });
       if (isDtoV) { _ventaAcc = 0; _ventaAntAcc = 0; }
       else        { _alqAcc   = 0; _alqAntAcc   = 0; }
