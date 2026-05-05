@@ -1109,6 +1109,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
 
     <!-- TOTALES -->
     <div class="totales-box" id="totales-preview">
+      <div class="totales-row" id="tot-origen-row" style="display:none"><span style="color:var(--text2)">Total Origen</span><span id="tot-origen" style="color:var(--text2)">0,00 €</span></div>
+      <div class="totales-row" id="tot-origenAnt-row" style="display:none"><span style="color:#8b5cf6">Origen anterior</span><span id="tot-origenAnt" style="color:#8b5cf6">0,00 €</span></div>
       <div class="totales-row"><span>Base imponible</span><span id="tot-base">0,00 €</span></div>
       <div class="totales-row"><span>IVA 21%</span><span id="tot-iva">0,00 €</span></div>
       <div class="totales-row total"><span>TOTAL</span><span id="tot-total">0,00 €</span></div>
@@ -2163,15 +2165,26 @@ function delLinea(idx) {
 }
 
 function recalcTotales() {
-  var base = lineas.filter(Boolean).reduce(function(a, l) {
-    var origen = l.uds * l.precio * (1 - l.dto / 100);
-    var certif = origen - (l.origenAnt || 0);
-    return a + certif;
-  }, 0);
-  var iva = base * 0.21;
+  var totalOrigen = 0, totalOrigenAnt = 0;
+  lineas.filter(Boolean).forEach(function(l) {
+    totalOrigen    += l.uds * l.precio * (1 - (l.dto||0) / 100);
+    totalOrigenAnt += (l.origenAnt || 0);
+  });
+  var base  = totalOrigen - totalOrigenAnt;
+  var iva   = base * 0.21;
   var total = base + iva;
-  document.getElementById('tot-base').textContent = fmt(base);
-  document.getElementById('tot-iva').textContent = fmt(iva);
+  // Mostrar desglose Origen/OrigenAnt solo si hay certificaciones
+  var hayOrigen = Math.abs(totalOrigenAnt) > 0.001;
+  var rowOr  = document.getElementById('tot-origen-row');
+  var rowAnt = document.getElementById('tot-origenAnt-row');
+  if (rowOr)  rowOr.style.display  = hayOrigen ? '' : 'none';
+  if (rowAnt) rowAnt.style.display = hayOrigen ? '' : 'none';
+  var elOr  = document.getElementById('tot-origen');
+  var elAnt = document.getElementById('tot-origenAnt');
+  if (elOr)  elOr.textContent  = fmt(totalOrigen);
+  if (elAnt) elAnt.textContent = fmt(totalOrigenAnt);
+  document.getElementById('tot-base').textContent  = fmt(base);
+  document.getElementById('tot-iva').textContent   = fmt(iva);
   document.getElementById('tot-total').textContent = fmt(total);
 }
 
@@ -2405,13 +2418,20 @@ function generarHTMLFactura(f) {
     '<tbody>' + lineasHTML + '</tbody>' +
   '</table>' +
   (function(){
-    var baseCalc = (f.lineas||[]).reduce(function(a,l){
-      var origen = (l.uds||0) * (l.precio||0) * (1 - (l.dto||0) / 100);
-      return a + (origen - (l.origenAnt||0));
-    }, 0);
+    var totalOrigen = 0, totalOrigenAnt = 0;
+    (f.lineas||[]).forEach(function(l){
+      totalOrigen    += (l.uds||0) * (l.precio||0) * (1 - (l.dto||0) / 100);
+      totalOrigenAnt += (l.origenAnt||0);
+    });
+    var baseCalc  = totalOrigen - totalOrigenAnt;
     var ivaCalc   = baseCalc * 0.21;
     var totalCalc = baseCalc + ivaCalc;
+    var hayOrigen = Math.abs(totalOrigenAnt) > 0.001;
     return '<div class="tots">' +
+      (hayOrigen
+        ? '<div class="tot-row" style="color:#888"><span>Total Origen</span><span>' + totalOrigen.toFixed(2) + ' €</span></div>' +
+          '<div class="tot-row" style="color:#7c3aed"><span>Origen anterior</span><span>' + totalOrigenAnt.toFixed(2) + ' €</span></div>'
+        : '') +
       '<div class="tot-row"><span>Base imponible</span><span>' + baseCalc.toFixed(2) + ' €</span></div>' +
       '<div class="tot-row"><span>IVA 21%</span><span>' + ivaCalc.toFixed(2) + ' €</span></div>' +
       '<div class="tot-row tot-total"><span>TOTAL</span><span>' + totalCalc.toFixed(2) + ' €</span></div>' +
