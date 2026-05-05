@@ -5631,6 +5631,8 @@ function prfGenerarFactura(pi) {
   },0);
   var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
+  // Usar la fecha de emisión de la proforma (no la de hoy) para que cuadre con el mes correcto
+  var fechaFac = prf.fecha || hoy;
   // Buscar datos completos del cliente (proforma tiene prioridad sobre presupuesto)
   var cliNombre = prf.clienteNombre || pres.cliente || '';
   var _cliArr = (clientes && clientes.length) ? clientes : (function(){ try{ return JSON.parse(localStorage.getItem('sf_clientes')||'[]'); }catch(e){ return []; } })();
@@ -5638,7 +5640,7 @@ function prfGenerarFactura(pi) {
   var cliObj = _cliArr.find(function(c){ return _normC(c.nombre)===_normC(cliNombre); }) || {};
   var condPago = cliObj.plazo || cliObj.formaPago || '';
   var vencDias = parseInt((condPago||'').match(/\d+/)||[30]) || 30;
-  var vencDate = new Date(); vencDate.setDate(vencDate.getDate() + vencDias);
+  var vencDate = new Date(fechaFac); vencDate.setDate(vencDate.getDate() + vencDias);
   var codObraStr = prf.codObra || pres.numOferta || '';
   var fac  = {
     id:         'FAC-'+Date.now(),
@@ -5648,7 +5650,7 @@ function prfGenerarFactura(pi) {
     dirCliente: cliObj.dir  || cliObj.direccion || '',
     obra:       pres.proyecto||'',
     codObra:    codObraStr,
-    fecha:      hoy,
+    fecha:      fechaFac,
     vencimiento: condPago ? vencDate.toISOString().slice(0,10) : '',
     condiciones: condPago || '',
     obs:        'Proforma '+(prf.numProforma||'PRF-'+String(pi+1).padStart(3,'0'))+(codObraStr?' | Obra: '+codObraStr:'')+' | '+(pres.proyecto||'')+' — '+(prf.mes||''),
