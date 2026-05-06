@@ -1748,21 +1748,16 @@ function recargarTodo() {
     var _pendObj = getPendingFacturas();
     var pendingFacs = Object.keys(_pendObj).map(function(k){ return _pendObj[k]; });
     if (!err && Array.isArray(data)) {
-      // Deduplicar datos de Sheets (puede haber filas duplicadas por regeneraciones previas)
+      // Sheets disponible → es la fuente de verdad. Deduplicar por ID.
       var _seenIds = {};
       data.forEach(function(f){ if(f.id) _seenIds[f.id] = f; });
       var merged = Object.keys(_seenIds).map(function(k){ return _seenIds[k]; });
-      // Añadir facturas locales no presentes en Sheets
-      localFacs.forEach(function(lf) {
-        if (!merged.some(function(sf){ return sf.id === lf.id; })) {
-          merged.push(lf);
-          saveFacturaSheets(lf, null, true);
-        }
-      });
-      // Añadir facturas de cola de pendientes no presentes en el merge
+      // Solo re-subir facturas que están en la cola de pendientes (guardadas sin conexión).
+      // Las locales que no están en Sheets ni en pendientes fueron borradas → no restaurar.
       pendingFacs.forEach(function(pf) {
         if (!merged.some(function(sf){ return sf.id === pf.id; })) {
           merged.push(pf);
+          saveFacturaSheets(pf, null, true); // re-intentar subida pendiente
         }
       });
       facturas = merged;
