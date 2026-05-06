@@ -7639,7 +7639,7 @@ function renderResumenMensual(){
   var totFac=0,totCob=0,totGProv=0,totGInt=0;
   meses.forEach(function(m){totFac+=m.facturado;totCob+=m.cobrado;totGProv+=m.gastoProv;totGInt+=m.gastoInt;});
   var totGas=totGProv+totGInt;
-  var totRes=totCob-totGas;
+  var totRes=totFac-totGas;
 
   function fmtR(v){return(v<0?'-':'')+Math.abs(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
   function colorRes(v){return v>=0?'color:#1a7c3e':'color:#c0392b';}
@@ -7667,7 +7667,7 @@ function renderResumenMensual(){
     '<div class="stat-card"><div class="stat-val" style="color:#1a7c3e">'+fmtR(totCob)+'</div><div class="stat-lbl">Cobrado '+ano+'</div></div>'+
     '<div class="stat-card"><div class="stat-val" style="color:#7c3aed">'+fmtR(totPrevGI)+'</div><div class="stat-lbl">Prev. gastos internos '+ano+'</div></div>'+
     '<div class="stat-card"><div class="stat-val" style="color:#c0392b">'+fmtR(totGas)+'</div><div class="stat-lbl">Total gastos '+ano+'</div></div>'+
-    '<div class="stat-card"><div class="stat-val" style="'+colorRes(totRes)+'">'+fmtR(totRes)+'</div><div class="stat-lbl">Resultado (cobrado − gastos)</div></div>';
+    '<div class="stat-card"><div class="stat-val" style="'+colorRes(totRes)+'">'+fmtR(totRes)+'</div><div class="stat-lbl">Resultado (facturado − gastos)</div></div>';
 
   // Tabla mensual
   var mesActual=hoy.getMonth();
@@ -7676,7 +7676,7 @@ function renderResumenMensual(){
   var totPrevRes=0; // resultado proyectado acumulado año
   meses.forEach(function(m,i){
     var gasTotal=m.gastoProv+m.gastoInt;
-    var resultado=m.cobrado-gasTotal;
+    var resultado=m.facturado-gasTotal;
     var prev=parseFloat(prevision[i])||0;
     var prevgi=parseFloat(prevGI[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
