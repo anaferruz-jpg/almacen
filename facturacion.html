@@ -2081,12 +2081,16 @@ function renderFacturas() {
   });
   var tb = document.getElementById('tbody-facturas');
   if (!data.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">Sin facturas registradas</td></tr>'; return; }
+  // Detectar números duplicados para mostrar aviso visual
+  var _numCount = {};
+  facturas.forEach(function(f){ if(f.numero) _numCount[f.numero] = (_numCount[f.numero]||0)+1; });
   tb.innerHTML = data.slice().reverse().map(function(f) {
     var idx = facturas.indexOf(f);
     var venc = f.vencimiento && f.vencimiento < today && f.estado === 'emitida';
     if (venc && f.estado !== 'cobrada') f.estado = 'vencida';
-    return '<tr>' +
-      '<td style="font-weight:600;color:var(--brand2)">' + (f.numero || '—') + '</td>' +
+    var dupBadge = (_numCount[f.numero]||0) > 1 ? ' <span title="Hay '+_numCount[f.numero]+' facturas con este número" style="font-size:10px;background:#f97316;color:#fff;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle">⚠️ duplicada</span>' : '';
+    return '<tr' + ((_numCount[f.numero]||0) > 1 ? ' style="background:#fff7ed"' : '') + '>' +
+      '<td style="font-weight:600;color:var(--brand2)">' + (f.numero || '—') + dupBadge + '</td>' +
       '<td>' + fmtDate(f.fecha) + '</td>' +
       '<td><div style="font-weight:500">' + f.cliente + '</div>' + (f.obra ? '<div style="font-size:11px;color:var(--text2)">' + f.obra + '</div>' : '') + '</td>' +
       '<td style="text-align:right">' + fmt(f.base) + '</td>' +
