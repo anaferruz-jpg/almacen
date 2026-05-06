@@ -260,14 +260,22 @@ body{font-family:system-ui,sans-serif;background:var(--bg2);color:var(--text);mi
 <div class="toast" id="toast"></div>
 
 <script>
-var API='https://script.google.com/macros/s/AKfycbzINF8297a8gaGlZimxb3rwu-gmRFWpZVzvOSP0ezucVS-kolHOA-3YkuUOAOwTUlIY/exec';
+var API='https://script.google.com/macros/s/AKfycbxO1svm3KUuIwPnuwGJejtHVb3voCacNDaxSFUXgPvvcHZnO0caC7Wka0jN2L_CMpF7/exec';
 var inventario=[],historial=[],OBRAS=[];
 var salItems=[],entItems=[],traspItems=[];
 var tipoEntrada='proveedor';
 var today=new Date().toISOString().split('T')[0];
 
-function callAPI(a,cb){fetch(API+'?action='+a).then(function(r){return r.json();}).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});}
-function postAPI(d,cb){fetch(API,{method:'POST',body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(x){cb(null,x);}).catch(function(e){cb(e,null);});}
+function callAPI(a,cb){
+  var done=false;
+  var t=setTimeout(function(){if(!done){done=true;cb(new Error('timeout'),null);}},15000);
+  fetch(API+'?action='+a).then(function(r){return r.json();}).then(function(d){if(!done){done=true;clearTimeout(t);cb(null,d);}}).catch(function(e){if(!done){done=true;clearTimeout(t);cb(e,null);}});
+}
+function postAPI(d,cb){
+  var done=false;
+  var t=setTimeout(function(){if(!done){done=true;cb(new Error('timeout'),null);}},15000);
+  fetch(API,{method:'POST',body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(x){if(!done){done=true;clearTimeout(t);cb(null,x);}}).catch(function(e){if(!done){done=true;clearTimeout(t);cb(e,null);}});
+}
 
 function toast(msg,err){
   var t=document.getElementById('toast');
@@ -390,7 +398,8 @@ function registrarSalida(){
   var itemsGuardar=salItems.slice();
   postAPI({action:'addHistorial',tipo:'salida',fecha:fecha,obra:obra,resp:resp,items:itemsGuardar},function(err,data){
     if(err||!data||!data.ok){toast('Error al guardar',true);btn.disabled=false;btn.textContent='⬆️ Registrar salida';return;}
-    postAPI({action:'updateStock',items:itemsGuardar},function(){
+    postAPI({action:'updateStock',items:itemsGuardar},function(err2,data2){
+      if(err2||!data2||!data2.ok){toast('⚠️ Salida guardada pero error al actualizar stock. Avisa al encargado.',true);}
       itemsGuardar.forEach(function(c){var it=inventario.find(function(i){return i.nombre===c.nombre;});if(it)it.stock=Math.max(0,(it.stock||0)-c.qty);});
       _ultimaSalida={obra:obra,fecha:fecha,resp:resp,items:itemsGuardar,num:'SAL-'+Date.now().toString().slice(-6)};
       limpiarSal();renderStock();
