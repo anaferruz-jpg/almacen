@@ -409,6 +409,7 @@ function renderTabs() {
     {key:'stock',      label:'📦 Inventario'},
     {key:'obras',      label:'🏢 Obras'},
     ...(estado.rol!=='operario'?[{key:'alertas',label:'⚠️ Alertas'}]:[]),
+    ...(estado.rol==='compras'?[{key:'pedidos',label:'🛒 Pedidos'}]:[]),
   ];
   const bajo = estado.stock.filter(s=>s.stockMinimo>0&&s.cantidad<=s.stockMinimo);
   const badge = document.getElementById('alerta-badge');
@@ -431,6 +432,7 @@ function renderTab() {
   else if (estado.tab==='stock')       c.innerHTML = renderStock();
   else if (estado.tab==='obras')       c.innerHTML = renderObras();
   else if (estado.tab==='alertas')     c.innerHTML = renderAlertas();
+  else if (estado.tab==='pedidos')     c.innerHTML = renderPedidos();
 }
 
 // ═══════════════════════════════════════════════
@@ -753,6 +755,186 @@ function fmt(iso){return new Date(iso).toLocaleString('es-ES',{day:'2-digit',mon
 function mostrarNotif(msg){const n=document.getElementById('notif');n.textContent=msg;n.style.display='block';setTimeout(()=>n.style.display='none',4000);}
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.overlay.open').forEach(el=>el.classList.remove('open'));}});
+
+// ═══════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════
+var API_URL='https://script.google.com/macros/s/AKfycbxO1svm3KUuIwPnuwGJejtHVb3voCacNDaxSFUXgPvvcHZnO0caC7Wka0jN2L_CMpF7/exec';
+function callAPI(action,cb){
+  fetch(API_URL+'?action='+action)
+    .then(function(r){return r.json();})
+    .then(function(d){cb(null,d);})
+    .catch(function(e){cb(e,null);});
+}
+function postAPI(d,cb){
+  fetch(API_URL,{method:'POST',body:JSON.stringify(d)})
+    .then(function(r){return r.json();})
+    .then(function(x){cb(null,x);})
+    .catch(function(e){cb(e,null);});
+}
+
+// ═══════════════════════════════════════════════
+// PEDIDOS
+// ═══════════════════════════════════════════════
+var _proveedores = [];
+var _pedidoItems = []; // [{id, nombre, unidad, qty}]
+
+function renderPedidos() {
+  const bajo = estado.stock.filter(s=>s.stockMinimo>0&&s.cantidad<=s.stockMinimo);
+  let html = `<div class="section-header">
+    <div><h2 class="section-title">Pedidos a proveedores</h2>
+    <p class="section-sub">Crea y envía un pedido directamente por email al proveedor</p></div>
+  </div>`;
+
+  if (!_proveedores.length) {
+    html += `<div class="empty"><span class="empty-icon">⏳</span><p>Cargando proveedores...</p></div>`;
+    callAPI('getProveedores', function(err, data) {
+      if (!err && Array.isArray(data)) {
+        _proveedores = data.filter(function(p){ return p.email; });
+        cambiarTab('pedidos');
+      } else {
+        document.getElementById('content').innerHTML += '<div class="warn-box">No se pudieron cargar los proveedores. Comprueba la conexión.</div>';
+      }
+    });
+    return html;
+  }
+
+  const provOptions = _proveedores.map(function(p){
+    return `<option value="${esc(p.nombre)}" data-email="${esc(p.email||'')}">${esc(p.nombre)}${p.email?' · '+p.email:' (sin email)'}</option>`;
+  }).join('');
+
+  html += `
+  <div style="background:#1E293B;border-radius:14px;padding:20px;max-width:700px;">
+    <div class="field" style="margin-bottom:14px;">
+      <label style="color:#94A3B8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Proveedor</label>
+      <select id="ped-prov" style="width:100%;padding:10px 14px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:14px;" onchange="pedFiltrarItems()">
+        <option value="">— Selecciona proveedor —</option>
+        ${provOptions}
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:14px;">
+      <label style="color:#94A3B8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">
+        Material a pedir <span style="color:#64748B;font-weight:400;text-transform:none;">(añade líneas)</span>
+      </label>
+      <div id="ped-items-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+      <button onclick="pedAddItem()" style="background:#0F172A;border:1px dashed #334155;color:#64748B;border-radius:9px;padding:8px 16px;cursor:pointer;font-size:13px;width:100%;">+ Añadir material</button>
+    </div>
+
+    ${bajo.length ? `<div style="background:#EF444411;border:1px solid #EF444433;border-radius:9px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;color:#EF4444;font-weight:700;margin-bottom:8px;">⚠️ Stock bajo mínimo — puedes añadirlos rápidamente:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${bajo.map(s=>`<button onclick="pedAddItemBajo('${esc(s.id)}','${esc(s.nombre)}','${esc(s.unidad)}')" style="background:#EF444422;border:1px solid #EF444444;color:#FBBF24;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">+ ${esc(s.nombre)}</button>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="field" style="margin-bottom:18px;">
+      <label style="color:#94A3B8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Observaciones (opcional)</label>
+      <textarea id="ped-obs" rows="2" placeholder="Ej: entrega urgente, misma referencia que último pedido..." style="width:100%;padding:10px 14px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+    </div>
+
+    <button onclick="pedEnviar()" style="background:#F59E0B;border:none;color:#0F172A;border-radius:9px;padding:12px 28px;font-weight:800;font-size:15px;cursor:pointer;width:100%;">
+      📧 Enviar pedido por email
+    </button>
+  </div>`;
+
+  return html;
+}
+
+function pedFiltrarItems() {
+  // futura mejora: filtrar materiales por proveedor asignado
+}
+
+function pedAddItem(nombre, unidad, qty) {
+  const id = 'pi_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const matOptions = estado.stock.map(function(s){
+    return `<option value="${esc(s.nombre)}" data-unidad="${esc(s.unidad)}" ${nombre&&s.nombre===nombre?'selected':''}>${esc(s.nombre)}</option>`;
+  }).join('');
+  const row = document.createElement('div');
+  row.id = id;
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  row.innerHTML = `
+    <select onchange="pedUpdateNombre('${id}',this)" style="flex:1;padding:8px 10px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:13px;">
+      <option value="">— Material —</option>
+      ${matOptions}
+    </select>
+    <input type="number" min="1" value="${qty||1}" placeholder="Cant." style="width:70px;padding:8px;background:#0F172A;border:1px solid #334155;border-radius:9px;color:#F8FAFC;font-size:13px;text-align:center;" oninput="pedUpdateQty('${id}',this.value)">
+    <span id="${id}_unit" style="color:#64748B;font-size:12px;min-width:24px;">${unidad||'ud'}</span>
+    <button onclick="pedRemoveItem('${id}')" style="background:transparent;border:none;color:#EF4444;cursor:pointer;font-size:16px;padding:0 4px;">✕</button>`;
+  document.getElementById('ped-items-list').appendChild(row);
+  _pedidoItems.push({id, nombre: nombre||'', unidad: unidad||'ud', qty: qty||1});
+}
+
+function pedAddItemBajo(stockId, nombre, unidad) {
+  const s = estado.stock.find(x=>x.id===stockId);
+  const needed = s ? Math.max(1, (s.stockMinimo||1) - s.cantidad + Math.ceil(s.stockMinimo*0.5)) : 1;
+  // No añadir si ya está en la lista
+  if (_pedidoItems.find(function(p){ return p.nombre===nombre; })) {
+    mostrarNotif('Ya está en la lista: '+nombre);
+    return;
+  }
+  pedAddItem(nombre, unidad, needed);
+}
+
+function pedUpdateNombre(id, sel) {
+  const item = _pedidoItems.find(function(p){ return p.id===id; });
+  if (item) {
+    item.nombre = sel.value;
+    const opt = sel.options[sel.selectedIndex];
+    item.unidad = opt ? (opt.getAttribute('data-unidad')||'ud') : 'ud';
+    const unitEl = document.getElementById(id+'_unit');
+    if (unitEl) unitEl.textContent = item.unidad;
+  }
+}
+
+function pedUpdateQty(id, val) {
+  const item = _pedidoItems.find(function(p){ return p.id===id; });
+  if (item) item.qty = parseInt(val)||1;
+}
+
+function pedRemoveItem(id) {
+  _pedidoItems = _pedidoItems.filter(function(p){ return p.id!==id; });
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function pedEnviar() {
+  const sel = document.getElementById('ped-prov');
+  const provNombre = sel ? sel.value : '';
+  const opt = sel ? sel.options[sel.selectedIndex] : null;
+  const email = opt ? opt.getAttribute('data-email') : '';
+  const obs = (document.getElementById('ped-obs')||{}).value || '';
+
+  if (!provNombre) { mostrarNotif('⚠️ Selecciona un proveedor'); return; }
+  if (!email) { mostrarNotif('⚠️ El proveedor no tiene email registrado'); return; }
+
+  const items = _pedidoItems.filter(function(p){ return p.nombre && p.qty>0; })
+    .map(function(p){ return {nombre: p.nombre, qty: p.qty, unidad: p.unidad}; });
+  if (!items.length) { mostrarNotif('⚠️ Añade al menos un material'); return; }
+
+  const btn = document.querySelector('[onclick="pedEnviar()"]');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Enviando...'; }
+
+  const hoy = new Date().toLocaleDateString('es-ES');
+  postAPI({
+    action: 'sendEmailPedido',
+    email: email,
+    prov: provNombre,
+    fecha: hoy,
+    obs: obs,
+    items: items
+  }, function(err, res) {
+    if (btn) { btn.disabled=false; btn.textContent='📧 Enviar pedido por email'; }
+    if (!err && res && res.ok) {
+      mostrarNotif('✅ Pedido enviado a ' + provNombre + ' · ' + email);
+      _pedidoItems = [];
+      cambiarTab('pedidos');
+    } else {
+      const msg = (res && res.error) || (err && err.message) || 'Error desconocido';
+      mostrarNotif('❌ Error al enviar: ' + msg);
+    }
+  });
+}
 </script>
 </body>
 </html>
