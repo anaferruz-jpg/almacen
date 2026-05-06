@@ -5922,11 +5922,11 @@ function _ceil(n){return Math.ceil(n);}
 
 var EQUIPOS_DEF = {
   'Protección de esperas - Setas':[
-    {n:'SETA PROTECTORA 12-22 MM P300',               f:function(m){return m;},                                        p:0.0945}
+    {n:'SETA PROTECTORA 12-24',               f:function(m){return m;},                                        p:0.0945}
   ],
   'Red bajo forjado':[
     {n:'RED 1X10 PP (BAJO FORJADO) UNE 81652 Q100',   f:function(m){return _ceil((m/10)*1.15);},                       p:19.74},
-    {n:'GANCHO RED BAJO FORJADO 8MM',                  f:function(m){return _ceil(_ceil((m/10)*1.15)*10);},             p:0.49},
+    {n:'GANCHO RED BAJO FORJADO 8MM (ganfor)',                  f:function(m){return _ceil(_ceil((m/10)*1.15)*10);},             p:0.49},
     {n:'RED 2X10 PP (BAJO FORJADO) UNE 81652 Q100',   f:function(m){return 0;},                                        p:39.76, nota:'Para calles encofrado 2m — ajustar manualmente'}
   ],
   'Sistema de protección: PROTECCION PERIMETRAL (INDEK)':[
@@ -5952,45 +5952,45 @@ var EQUIPOS_DEF = {
     {n:'Polea M15 INDE-K RED Inoxidable',              f:function(m){return _even(m/3.2)*2;},                          p:5.3}
   ],
   'Mosquitera protección':[
-    {n:'MOSQUITERA BLANCA 3x20ml',                     f:function(m){return m/60;},                                    p:0.798},
-    {n:'BRIDA 4,8x200 P100',                           f:function(m){return _ceil((m/60)*100);},                       p:0.0154}
+    {n:'MOSQUITERA MALLA 90GR/M2 3x20ML',                     f:function(m){return m/60;},                                    p:0.798},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                           f:function(m){return _ceil((m/60)*100);},                       p:0.0154}
   ],
   'Protección red huecos horizontales > 1 m2':[
     {n:'Red tipo "S" a medida por hueco',               f:function(m){return m*1.2;},                                  p:2.52},
-    {n:'CANCAMO ARGOLLA D10 M8x60',                    f:function(m){return m*4;},                                     p:0.2944},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _even(m*0.06);},                           p:27.3},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _even(m*0.06);},                           p:12.6}
+    {n:'TACO ARGOLLA D10 M-8x60',                    f:function(m){return m*4;},                                     p:0.2944},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _even(m*0.06);},                           p:27.3},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _even(m*0.06);},                           p:12.6}
   ],
   'Protección red huecos verticales':[
     {n:'Red tipo "S" a medida por hueco',               f:function(m){return m*1.2;},                                  p:2.52},
-    {n:'CANCAMO ARGOLLA D10 M8x60',                    f:function(m){return m*4;},                                     p:0.2944},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _even(m*0.06);},                           p:27.3},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _even(m*0.06);},                           p:12.6},
-    {n:'ZOCALO RAFIA 0,50x100ml BLANCO',               f:function(m){return _ceil(m/100);},                            p:39.9},
-    {n:'BRIDA 4,8x200 P100',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154}
+    {n:'TACO ARGOLLA D10 M-8x60',                    f:function(m){return m*4;},                                     p:0.2944},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _even(m*0.06);},                           p:27.3},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _even(m*0.06);},                           p:12.6},
+    {n:'RAFIA ZOCALO H 50 CMS 100M',               f:function(m){return _ceil(m/100);},                            p:39.9},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154}
   ],
   'Protección vertical escalera con red':[
     {n:'Red tipo "S" a medida por hueco',               f:function(m){return m;},                                      p:2.52},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _even(m/100);},                            p:27.3},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _even(m/100);},                            p:12.6},
-    {n:'ZOCALO RAFIA 0,50x100ml BLANCO',               f:function(m){return _ceil(m/100);},                            p:39.9},
-    {n:'BRIDA 4,8x200 P100',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154},
-    {n:'CANCAMO ARGOLLA D10 M8x60',                    f:function(m){return m*4;},                                     p:0.2944}
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _even(m/100);},                            p:27.3},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _even(m/100);},                            p:12.6},
+    {n:'RAFIA ZOCALO H 50 CMS 100M',               f:function(m){return _ceil(m/100);},                            p:39.9},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154},
+    {n:'TACO ARGOLLA D10 M-8x60',                    f:function(m){return m*4;},                                     p:0.2944}
   ],
   'Red protección de fachada':[
     {n:'RED 3,5x10 PP EN1263 (NARANJA)',                f:function(m){return _ceil(m/10);},                            p:71.05},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(m/10)/8);},                    p:27.3},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _even(m/30);},                             p:12.6},
-    {n:'CANCAMO ARGOLLA D10 M8x60',                    f:function(m){return m*2;},                                     p:0.2944},
-    {n:'ZOCALO RAFIA 0,50x100ml BLANCO',               f:function(m){return _ceil(m/100);},                            p:39.9},
-    {n:'BRIDA 4,8x200 P100',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154}
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/10)/8);},                    p:27.3},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _even(m/30);},                             p:12.6},
+    {n:'TACO ARGOLLA D10 M-8x60',                    f:function(m){return m*2;},                                     p:0.2944},
+    {n:'RAFIA ZOCALO H 50 CMS 100M',               f:function(m){return _ceil(m/100);},                            p:39.9},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                           f:function(m){return _ceil(m/100)*200;},                        p:0.0154}
   ],
   'Material fungible para barandilla perimetral forjado':[
     {n:'GUARDACUERPO 1,2M EN13374',                    f:function(m){return _ceil(m/2);},                              p:4.466},
     {n:'BASE RECTA para Guardacuerpo',                 f:function(m){return _ceil(m*0.06);},                           p:5.25},
     {n:'BARANDILLA D/40 2500mm UNE EN13374',           f:function(m){return m;},                                       p:7.6032},
-    {n:'BARANDILLA D/35 1,20-150 EN13374',             f:function(m){return _ceil(m*0.06);},                           p:3.88},
-    {n:'RODAPIE 2,5M EN13374',                         f:function(m){return _ceil(m/2);},                              p:1.1738},
+    {n:'BARANDILLA D/35 100-150 EN 13374',             f:function(m){return _ceil(m*0.06);},                           p:3.88},
+    {n:'RODAPIE 2,5M. EN 13374',                         f:function(m){return _ceil(m/2);},                              p:1.1738},
     {n:'TACO D10 ANCLAJE M8x60',                       f:function(m){return _ceil(m*0.06)*4;},                         p:0.5016},
     {n:'BASQUIT/CONIX para GUARDACUERPO',              f:function(m,np){np=np||5;return m*np;},                        p:0.14, nota:'Multiplicar por nº plantas (defecto 5)'}
   ],
@@ -5999,61 +5999,61 @@ var EQUIPOS_DEF = {
     {n:'GUARDACUERPO 1,5M EN13374',                    f:function(m){return m/2;},                                     p:7.1896},
     {n:'BARANDILLA D/40 2500mm UNE EN13374',           f:function(m){return (m/2)*3;},                                 p:7.6032},
     {n:'RED 2X10 PP (BAJO FORJADO) UNE 81652 Q100',   f:function(m){return _ceil(m/10);},                             p:39.76},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil(_ceil(m/10)*0.3);},                  p:12.6},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(m/10)/10);},                   p:27.3},
-    {n:'ZOCALO RAFIA 0,50x100ml BLANCO',               f:function(m){return _ceil(m/100);},                            p:39.9},
-    {n:'BRIDA 4,8x200 P100',                           f:function(m){return m*2;},                                     p:0.0154},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil(_ceil(m/10)*0.3);},                  p:12.6},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/10)/10);},                   p:27.3},
+    {n:'RAFIA ZOCALO H 50 CMS 100M',               f:function(m){return _ceil(m/100);},                            p:39.9},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                           f:function(m){return m*2;},                                     p:0.0154},
     {n:'TACO D12 CORTO M10x70',                        f:function(m){return (m/2)*4;},                                 p:0.77},
-    {n:'CANCAMO ARGOLLA D10 M8x60',                    f:function(m){return m*2;},                                     p:0.2944}
+    {n:'TACO ARGOLLA D10 M-8x60',                    f:function(m){return m*2;},                                     p:0.2944}
   ],
   'Líneas de vida provisionales horizontales':[
-    {n:'LINEA DE VIDA 20ML HORIZONTAL LUISA 300',      f:function(m){return _ceil(m/20);},                             p:31.738},
+    {n:'LUISA 300 LINEA VIDA HORIZONTAL 2p CON MOCHILA',      f:function(m){return _ceil(m/20);},                             p:31.738},
     {n:'ANCLAJE C-50 C/ARGOLLA',                       f:function(m){return _even(_ceil(m/20)/2);},                    p:0},
     {n:'TACO D12 LARGO M10x100',                       f:function(m){return m/4;},                                     p:0.77},
-    {n:'PUNTO DE ANCLAJE AC02 - oreja',                f:function(m){return m/4;},                                     p:6.594},
-    {n:'MOSQUETON 19mm-25KN',                          f:function(m){return m/4;},                                     p:0}
+    {n:'PUNTO DE ANCLAJE ESTELA AC02 (2 US)',                f:function(m){return m/4;},                                     p:6.594},
+    {n:'MOSQUETON CONECTOR ACERO 19mm-25KN (MGB_01)',                          f:function(m){return m/4;},                                     p:0}
   ],
   'Líneas de vida provisionales verticales':[
-    {n:'CUERDA SEMIESTÁTICA UNE EN1891 TRENZ. 30KN',  f:function(m){return _ceil(m/100);},                            p:0},
-    {n:'ANCLAJE M10x100 D/12 TORNILLO',               f:function(m){return _ceil(m/100)*10;},                         p:0},
+    {n:'CUERDA SEMIEST. UNE EN1891 TRENZ. 30KN',  f:function(m){return _ceil(m/100);},                            p:0},
+    {n:'ANCLAJE M 10X100 D/12 TORNILLO (TACO D12 M10x100) 50UDS',               f:function(m){return _ceil(m/100)*10;},                         p:0},
     {n:'PUNTO ANCLAJE LDV074',                         f:function(m){return _ceil(m/100)*10;},                         p:0},
     {n:'MOSQUETON SEG. C/ROSCA 18MM',                  f:function(m){return _ceil(m/100)*10;},                         p:0}
   ],
   'Eslingas para plataformas descarga 1,5m':[
     {n:'ESLINGA PLATAFORMA ANCLAJE VERTICAL 1,5MTS',   f:function(m){return m;},                                       p:11.018},
     {n:'TACO D12 LARGO M10x100',                       f:function(m){return m;},                                       p:0.77},
-    {n:'PUNTO DE ANCLAJE AC02 - oreja',                f:function(m){return m;},                                       p:6.594}
+    {n:'PUNTO DE ANCLAJE ESTELA AC02 (2 US)',                f:function(m){return m;},                                       p:6.594}
   ],
   'Señalización malla naranja 120cm':[
-    {n:'TELA ONIX SEÑALIZACIÓN 1,20x1,00 m2',          f:function(m){return _ceil(m/100);},                            p:0},
-    {n:'BRIDA 4,8x200 (PLASTICO)',                      f:function(m){return _ceil(m/100)*100;},                        p:0}
+    {n:'TELA ONIX SENALIZACION 1,20X1,00 M2',          f:function(m){return _ceil(m/100);},                            p:0},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                      f:function(m){return _ceil(m/100)*100;},                        p:0}
   ],
   'Sistema de protección tipo RSA & ALSINA':[
     {n:'GRAPA EXTENSIBLE ALSINA',                      f:function(m){return _ceil(m/3);},                              p:0},
     {n:'BARRA RIOSTRA D48 2M',                         f:function(m){return _ceil(m/3);},                              p:0},
-    {n:'BRIDA RIOSTRA FIJA 48x48',                     f:function(m){return _ceil(m/3);},                              p:0},
-    {n:'RED PP EN1263-1 2,10x10 (BAJO FORJADO)',       f:function(m){return _ceil(m/10);},                             p:0},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil(_ceil(m/10)*0.3);},                  p:0},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(m/10)/10);},                   p:0},
-    {n:'BRIDA 4,8x200 (PLASTICO)',                      f:function(m){return _ceil(_ceil(m/10)/10)*200;},               p:0},
-    {n:'ZOCALO RAFIA 0,50x100ml BLANCO',               f:function(m){return _ceil(m/100);},                            p:0}
+    {n:'BRIDA RIOSTRA FIJA 48X48',                     f:function(m){return _ceil(m/3);},                              p:0},
+    {n:'RED PP EN1263-1 2,10X10 BAJO FORJADO',       f:function(m){return _ceil(m/10);},                             p:0},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil(_ceil(m/10)*0.3);},                  p:0},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/10)/10);},                   p:0},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                      f:function(m){return _ceil(_ceil(m/10)/10)*200;},               p:0},
+    {n:'RAFIA ZOCALO H 50 CMS 100M',               f:function(m){return _ceil(m/100);},                            p:0}
   ],
   'Sistema de protección tipo HORCA':[
     {n:'PESCANTE HORCA FIJO 60x60x3',                  f:function(m){return _ceil(m/4);},                              p:0},
     {n:'EXTENS. 4000 PESCANTE 60x60x3',                f:function(m){return _ceil(m/4);},                              p:0},
     {n:'GARRA HORCA',                                  f:function(m){return _ceil(m/4)*2;},                            p:0},
-    {n:'ANCLAJE M10x100 D/12 TORNILLO',               f:function(m){return _ceil(m/4)*2*4;},                          p:0},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(m/4.5)/2);},                   p:0},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil(_ceil(_ceil(m/4.5)/2)/2);},          p:0},
-    {n:'RED PP EN1263-1 VA2 Q100 5x10M (HORCA)',       f:function(m){return _ceil(m/4.5);},                            p:0},
+    {n:'ANCLAJE M 10X100 D/12 TORNILLO (TACO D12 M10x100) 50UDS',               f:function(m){return _ceil(m/4)*2*4;},                          p:0},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/4.5)/2);},                   p:0},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil(_ceil(_ceil(m/4.5)/2)/2);},          p:0},
+    {n:'RED PP EN1263-1 VA2 Q100 5X10M (HORCA)',       f:function(m){return _ceil(m/4.5);},                            p:0},
     {n:'TACO ARGOLLA D10 M-8x60',                      f:function(m){return m*2;},                                     p:0}
   ],
   'Sistema de protección tipo CORTA':[
     {n:'BASCULANTE AUTORREGUL. PARA RG (TIPO CORTA)',  f:function(m){return _ceil(m/4.5);},                            p:0},
     {n:'MASTIL 3M 60x30x3 PARA BASCULANTE',           f:function(m){return _ceil(m/4.5)*2;},                          p:0},
     {n:'ANCLAJE RG HORIZONTAL',                        f:function(m,np){np=np||5;return _ceil(m/4.5)*np;},             p:0, nota:'Multiplicar por nº plantas (defecto 5)'},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(m/4.5)/2);},                   p:0},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil((_ceil(m/4.5)*20/100)*2);},          p:0},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/4.5)/2);},                   p:0},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil((_ceil(m/4.5)*20/100)*2);},          p:0},
     {n:'RED PP EN1263-1 VA2 Q100 5x10M',               f:function(m){return _ceil(m/4.5+1);},                          p:0},
     {n:'TACO ARGOLLA D10 M-8x60',                      f:function(m,np){np=np||5;return m*2*np;},                      p:0, nota:'Multiplicar por nº plantas (defecto 5)'}
   ],
@@ -6063,21 +6063,21 @@ var EQUIPOS_DEF = {
     {n:'LINEA ANCL.FLEX.HORIZ. 50MM 20M',              f:function(m){return m/10;},                                    p:0}
   ],
   'Marquesina de red y mosquitera':[
-    {n:'MARQUESINA 2,00-60°x1,00',                     f:function(m){return _ceil(m/4.5);},                            p:0},
+    {n:'MARQUESINA 2,00 - 60x1,00',                     f:function(m){return _ceil(m/4.5);},                            p:0},
     {n:'ANCLAJE VIGA MARQUESINA EN1263',               f:function(m){return _ceil(m/4.5);},                            p:0},
     {n:'RED PP EN1263 UA2 D100 3,5x10M',               f:function(m){return _ceil(m/9);},                              p:0},
-    {n:'TELA MOSQUITERA VERDE 3x20',                   f:function(m){return _ceil(m/20)*60;},                           p:0},
+    {n:'TELA MOSQUITERA VERDE 3X20',                   f:function(m){return _ceil(m/20)*60;},                           p:0},
     {n:'TACO D16 M12x110',                             f:function(m){return _ceil(_ceil(m/4.5)*4);},                    p:0},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil(_ceil(m/4.5)/5);},                    p:0},
-    {n:'CUERDA 20KN/100m',                             f:function(m){return _ceil(_ceil(_ceil(m/4.5)/5)/2);},           p:0},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil(_ceil(m/4.5)/5);},                    p:0},
+    {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(_ceil(m/4.5)/5)/2);},           p:0},
     {n:'TACO ARGOLLA D10 M-8x60',                      f:function(m){return _ceil(m*2);},                              p:0},
-    {n:'BRIDA 4,8x200 (PLASTICO)',                      f:function(m){return m*4;},                                     p:0}
+    {n:'BRIDA 4,8X200 (PLASTICO)',                      f:function(m){return m*4;},                                     p:0}
   ],
   'Protección de taludes':[
-    {n:'RED PP EN1263-1 VA2 Q100 5x10M (HORCA)',       f:function(m){return _ceil(m/70);},                             p:0},
-    {n:'TELA MOSQUITERA VERDE 3x20',                   f:function(m){return _ceil(m/70)*60;},                           p:0},
-    {n:'CUERDA 7,5KN/100m',                            f:function(m){return _ceil(m/100);},                            p:0},
-    {n:'BRIDA 4,8x200 (PLASTICO)',                      f:function(m){return _ceil(m/100);},                            p:0}
+    {n:'RED PP EN1263-1 VA2 Q100 5X10M (HORCA)',       f:function(m){return _ceil(m/70);},                             p:0},
+    {n:'TELA MOSQUITERA VERDE 3X20',                   f:function(m){return _ceil(m/70)*60;},                           p:0},
+    {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil(m/100);},                            p:0},
+    {n:'BRIDA 4,8X200 (PLASTICO)',                      f:function(m){return _ceil(m/100);},                            p:0}
   ],
   // Barandilla de encofrado — solo alquiler, sin venta equivalente
   'Barandilla provisional en encofrado':[
