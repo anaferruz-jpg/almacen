@@ -5987,7 +5987,7 @@ var EQUIPOS_DEF = {
   ],
   'Material fungible para barandilla perimetral forjado':[
     {n:'GUARDACUERPO 1,2M EN13374',                    f:function(m){return _ceil(m/2);},                              p:4.466},
-    {n:'BASE RECTA para Guardacuerpo',                 f:function(m){return _ceil(m*0.06);},                           p:5.25},
+    {n:'PIE RECTO',                                     f:function(m){return _ceil(m*0.06);},                           p:5.25},
     {n:'BARANDILLA D/40 2500mm UNE EN13374',           f:function(m){return m;},                                       p:7.6032},
     {n:'BARANDILLA D/35 100-150 EN 13374',             f:function(m){return _ceil(m*0.06);},                           p:3.88},
     {n:'RODAPIE 2,5M. EN 13374',                         f:function(m){return _ceil(m/2);},                              p:1.1738},
@@ -6054,7 +6054,7 @@ var EQUIPOS_DEF = {
     {n:'ANCLAJE RG HORIZONTAL',                        f:function(m,np){np=np||5;return _ceil(m/4.5)*np;},             p:0, nota:'Multiplicar por nº plantas (defecto 5)'},
     {n:'CUERDA 20 KN/100M',                             f:function(m){return _ceil(_ceil(m/4.5)/2);},                   p:0},
     {n:'CUERDA 7,5 KN/100M',                            f:function(m){return _ceil((_ceil(m/4.5)*20/100)*2);},          p:0},
-    {n:'RED PP EN1263-1 VA2 Q100 5x10M',               f:function(m){return _ceil(m/4.5+1);},                          p:0},
+    {n:'RED 5X10 PP EN1263-1 SA2 Q100 (azul)',          f:function(m){return _ceil(m/4.5+1);},                          p:0},
     {n:'TACO ARGOLLA D10 M-8x60',                      f:function(m,np){np=np||5;return m*2*np;},                      p:0, nota:'Multiplicar por nº plantas (defecto 5)'}
   ],
   'Postes 2m para líneas de vida horizontales':[
@@ -6081,7 +6081,7 @@ var EQUIPOS_DEF = {
   ],
   // Barandilla de encofrado — solo alquiler, sin venta equivalente
   'Barandilla provisional en encofrado':[
-    {n:'GUARDACUERPO USILLO 1,300 DOBLE CUERPO',       f:function(m){return _ceil(m/1.6);},                            p:24.8},
+    {n:'GUARDACUERPO USILLO 1,300',       f:function(m){return _ceil(m/1.6);},                            p:24.8},
     {n:'BARANDILLA D/35 200-250 EN 13374',             f:function(m){return _ceil((m/1.8)*3);},                        p:7.6},
     {n:'RODAPIE 2,5M. EN 13374',                       f:function(m){return _ceil(m/2.5);},                            p:1.17}
   ]
