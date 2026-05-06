@@ -1748,7 +1748,10 @@ function recargarTodo() {
     var _pendObj = getPendingFacturas();
     var pendingFacs = Object.keys(_pendObj).map(function(k){ return _pendObj[k]; });
     if (!err && Array.isArray(data)) {
-      var merged = data.slice();
+      // Deduplicar datos de Sheets (puede haber filas duplicadas por regeneraciones previas)
+      var _seenIds = {};
+      data.forEach(function(f){ if(f.id) _seenIds[f.id] = f; });
+      var merged = Object.keys(_seenIds).map(function(k){ return _seenIds[k]; });
       // Añadir facturas locales no presentes en Sheets
       localFacs.forEach(function(lf) {
         if (!merged.some(function(sf){ return sf.id === lf.id; })) {
@@ -5755,7 +5758,6 @@ function prfGenerarFactura(pi) {
     var origen = (l.uds||0) * (l.precio||0);
     return a + (origen - (l.origenAnt||0));
   },0);
-  var numF = nextNumFac();
   var hoy  = new Date().toISOString().slice(0,10);
   // Usar la fecha de emisión de la proforma (no la de hoy) para que cuadre con el mes correcto
   var fechaFac = prf.fecha || hoy;
@@ -5768,8 +5770,24 @@ function prfGenerarFactura(pi) {
   var vencDias = parseInt((condPago||'').match(/\d+/)||[30]) || 30;
   var vencDate = new Date(fechaFac); vencDate.setDate(vencDate.getDate() + vencDias);
   var codObraStr = prf.codObra || pres.numOferta || '';
+
+  // ── Buscar si ya existe factura para esta proforma (evitar duplicados al regenerar) ──
+  var facNumActual = prfs[pi].facturaNum;
+  var existingFacIdx = -1;
+  if (facNumActual) {
+    existingFacIdx = facturas.findIndex(function(f){ return f.numero === facNumActual; });
+  }
+  if (existingFacIdx < 0) {
+    // Fallback: buscar por prfId
+    existingFacIdx = facturas.findIndex(function(f){ return f.prfId === prf.id; });
+  }
+  var isUpdate = existingFacIdx >= 0;
+  var numF    = isUpdate ? facturas[existingFacIdx].numero        : nextNumFac();
+  var facId   = isUpdate ? facturas[existingFacIdx].id            : 'FAC-'+Date.now();
+  var facCrea = isUpdate ? facturas[existingFacIdx].creada        : new Date().toISOString();
+
   var fac  = {
-    id:         'FAC-'+Date.now(),
+    id:         facId,
     numero:     numF,
     cliente:    cliNombre,
     cifCliente: cliObj.cif  || '',
@@ -5785,17 +5803,21 @@ function prfGenerarFactura(pi) {
     iva:        base*0.21,
     total:      base*1.21,
     estado:     'emitida',
-    creada:     new Date().toISOString(),
+    creada:     facCrea,
     origen:     'proforma',
     prfId:      prf.id
   };
-  facturas.push(fac);
+  if (isUpdate) {
+    facturas[existingFacIdx] = fac;  // actualizar en lugar de duplicar
+  } else {
+    facturas.push(fac);
+  }
   saveFacturas();
-  saveFacturaSheets(fac, null, false);   // ← sincronizar a Sheets (muestra aviso si falla)
+  saveFacturaSheets(fac, null, false);
   prfs[pi].estado     = 'facturada';
   prfs[pi].facturaNum = numF;
   savePrfForObra(presKey, prfs);
-  toast('✅ Factura '+numF+' creada en Facturación');
+  toast(isUpdate ? '✅ Factura '+numF+' actualizada' : '✅ Factura '+numF+' creada en Facturación');
   renderTablaObrasEj();
   prfRenderLista();
   renderFacturas();
