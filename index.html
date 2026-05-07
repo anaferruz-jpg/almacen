@@ -2382,7 +2382,8 @@ function verEntregasPartida(idx){
   var total=0;
   var rows=entregas.map(function(e){
     total+=e.qty||0;
-    return (e.fecha||'—')+' | '+((e.qty||0).toFixed(2))+' ud | '+(e.resp||'—');
+    var matInfo = (e.mat && e.mat !== p.material) ? '\n    ← historial: "'+e.mat+'"' : '';
+    return (e.fecha||'—')+' | '+((e.qty||0).toFixed(2))+' ud | '+(e.resp||'—')+matInfo;
   }).join('\n');
   alert('📦 ENTREGAS de: '+p.material+'\nTotal: '+total.toFixed(2)+' ud ('+entregas.length+' registros)\n\n'+rows);
 }
@@ -4126,7 +4127,7 @@ function recalcularSuministradoTodo(skipConfirm) {
         if (disponible <= 0) return;
         var aSuministrar = Math.min(qtyRestante, disponible);
         p.suministrado = (p.suministrado||0) + aSuministrar;
-        p.entregas.push({ fecha: h.fecha, qty: aSuministrar, resp: h.resp||'' });
+        p.entregas.push({ fecha: h.fecha, qty: aSuministrar, resp: h.resp||'', mat: c.nombre });
         qtyRestante -= aSuministrar;
       });
 
@@ -4140,7 +4141,7 @@ function recalcularSuministradoTodo(skipConfirm) {
         }
         if (firstMatch) {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
-          firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
+          firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'', mat: c.nombre });
         } else {
           // Comprobar si el usuario ha guardado un mapeo manual para este material+obra
           var _obraKeyMap = (h.obra||'').toLowerCase().trim();
@@ -4169,7 +4170,7 @@ function recalcularSuministradoTodo(skipConfirm) {
             if (mappedMatch) {
               mappedMatch.suministrado = (mappedMatch.suministrado||0) + qtyRestante;
               if (!mappedMatch.entregas) mappedMatch.entregas = [];
-              mappedMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
+              mappedMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'', mat: c.nombre });
             } else { _mappedNorm = null; } // mapeo ya no existe, tratar como extra
           }
           if (!_mappedNorm) {
@@ -5648,7 +5649,7 @@ function aplicarSincManual(obraOrig) {
         if (firstMatch) {
           firstMatch.suministrado = (firstMatch.suministrado||0) + qtyRestante;
           if (!firstMatch.entregas) firstMatch.entregas = [];
-          firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' });
+          firstMatch.entregas.push({ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'', mat: c.nombre });
         }
       }
     });
