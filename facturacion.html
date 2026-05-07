@@ -4962,14 +4962,28 @@ function presExportarAlmacen() {
     });
   }
   // 3. Personal (moItems) — siempre, independiente del despiece de materiales
+  var _plan      = pres.planning || {};
+  var _planOps   = _plan.ops   || [];
+  var _planFases = _plan.fases || [];
   (pres.moItems||[]).forEach(function(it){
-    var meses = parseFloat(it.meses)||0;
-    var ops   = parseFloat(it.operarios)||0;
-    if (!meses && !ops) return;
-    // Contratado = meses × operarios (op·mes), o unidades si sin meses
-    var contratado = meses > 0 ? Math.round(meses * Math.max(ops,1) * 100)/100 : ops;
-    if (contratado <= 0) return;
-    items.push({ partida:'👷 PERSONAL', material:it.desc, ud: meses>0?'mes':'ud', contratado: contratado, tipo:'personal' });
+    if (it.planSync && _planOps.length) {
+      // "OPERARIO PROTECCIONES MES" vinculado al planning → una fila por mes
+      for (var _m = 0; _m < _planOps.length; _m++) {
+        var _ops = parseFloat(_planOps[_m])||0;
+        if (_ops <= 0) continue;
+        var _fase = (_planFases[_m]||'').trim();
+        var _matDesc = 'MES '+(_m+1) + (_fase ? ' · '+_fase : '');
+        items.push({ partida:'👷 PERSONAL', material:_matDesc, ud:'op', contratado:_ops, tipo:'personal' });
+      }
+    } else {
+      // Resto de partidas de personal (días, horas extra…) → fila única
+      var meses = parseFloat(it.meses)||0;
+      var ops   = parseFloat(it.operarios)||0;
+      if (!meses && !ops) return;
+      var contratado = meses > 0 ? Math.round(meses * Math.max(ops,1) * 100)/100 : ops;
+      if (contratado <= 0) return;
+      items.push({ partida:'👷 PERSONAL', material:it.desc, ud: meses>0?'mes':'ud', contratado: contratado, tipo:'personal' });
+    }
   });
   if (!items.length) { toast('El presupuesto no tiene despiece calculado. Introduce mediciones primero.', true); return; }
   _expAlmItems = items;
