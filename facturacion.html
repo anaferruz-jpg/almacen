@@ -5064,29 +5064,47 @@ function _expAlmConfirmar() {
   var partidas = (obra.partidas||[]).map(function(p){ return Object.assign({}, p); });
   var nuevas = 0, actualizadas = 0;
 
+  // Agrupar: si el mismo material del despiece aparece en varios equipos, sumar cantidades
+  var idxYaActualizado = {}; // matchIdx → true (para sumar en vez de sobrescribir)
   matches.forEach(function(m, mi){
     var chk = document.getElementById('exp-chk-'+mi);
     if (!chk || !chk.checked) return; // desmarcado → saltar
 
     if (m.matchIdx >= 0) {
-      // Actualizar solo contratado de la partida existente
-      partidas[m.matchIdx].contratado = m.item.contratado;
+      if (idxYaActualizado[m.matchIdx]) {
+        // Ya actualizado antes: SUMAR el contratado (mismo material en dos equipos)
+        partidas[m.matchIdx].contratado += m.item.contratado;
+      } else {
+        // Primera vez: establecer el contratado
+        partidas[m.matchIdx].contratado = m.item.contratado;
+        idxYaActualizado[m.matchIdx] = true;
+      }
       actualizadas++;
     } else {
-      // Crear nueva partida
-      partidas.push({
-        partida:     m.item.partida,
-        material:    m.item.material,
-        ud:          m.item.ud,
-        contratado:  m.item.contratado,
-        suministrado: 0,
-        entregado:   0,
-        entregas:    [],
-        tipo:        m.item.tipo
+      // Crear nueva partida — o sumar si ya creamos una con el mismo nombre
+      var existeNueva = partidas.findIndex(function(p){
+        return p.material === m.item.material && p.extra !== true && p._fromExport;
       });
-      nuevas++;
+      if (existeNueva >= 0) {
+        partidas[existeNueva].contratado += m.item.contratado;
+      } else {
+        partidas.push({
+          partida:     m.item.partida,
+          material:    m.item.material,
+          ud:          m.item.ud,
+          contratado:  m.item.contratado,
+          suministrado: 0,
+          entregado:   0,
+          entregas:    [],
+          tipo:        m.item.tipo,
+          _fromExport: true
+        });
+        nuevas++;
+      }
     }
   });
+  // Limpiar flag temporal
+  partidas.forEach(function(p){ delete p._fromExport; });
 
   var inner = document.getElementById('modal-exportar-almacen-inner');
   inner.innerHTML = '<p style="color:var(--text2);padding:20px">Guardando en almacén…</p>';
