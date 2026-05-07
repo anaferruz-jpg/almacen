@@ -5355,12 +5355,18 @@ var MAT_NORM_MAP = (function(){
 function _fuzzyMatchMat(normA, normB) {
   if (!normA || !normB) return false;
   if (normA === normB) return true;
-  // Si uno contiene al otro completamente → coincidencia (ej. nombre historial más largo)
-  if (normA.indexOf(normB) >= 0 || normB.indexOf(normA) >= 0) return true;
+  // Containment: solo si la cadena más corta tiene ≥7 chars
+  // Evita que "red" (3 chars) matchee "red 1x10 pp bajo forjado"
+  var shorter = normA.length <= normB.length ? normA : normB;
+  var longer  = normA.length <= normB.length ? normB : normA;
+  if (shorter.length >= 7 && longer.indexOf(shorter) >= 0) return true;
   // Solapamiento de palabras (ignora palabras cortas ≤2 chars)
   var wa = normA.split(/\s+/).filter(function(w){ return w.length > 2; });
   var wb = normB.split(/\s+/).filter(function(w){ return w.length > 2; });
   if (!wa.length || !wb.length) return false;
+  // Si algún lado tiene solo 1 palabra significativa, exigir que sea específica (≥6 chars)
+  // Evita que "red" como única palabra matchee "red 1x10 pp" con 100% solapamiento
+  if ((wa.length === 1 && wa[0].length < 6) || (wb.length === 1 && wb[0].length < 6)) return false;
   var common = wa.filter(function(w){
     return wb.some(function(x){ return x.indexOf(w) >= 0 || w.indexOf(x) >= 0; });
   }).length;
