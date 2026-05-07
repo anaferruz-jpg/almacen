@@ -5034,67 +5034,84 @@ function prfRenderLista() {
 
 // ── Previsión de facturación ──────────────────
 function prfMesKey(str) {
-  // Normaliza strings de proforma.mes a YYYY-MM: acepta '2026-04', 'Abril 2026', 'abril-2026', etc.
+  // Normaliza a YYYY-MM desde múltiples formatos
   if (!str) return '';
   var s = String(str).trim();
-  // formato YYYY-MM directo
-  if (/^\d{4}-\d{2}$/.test(s)) return s;
-  // formato 'Mes YYYY' o 'Mes-YYYY'
+  if (/^\d{4}-\d{2}$/.test(s)) return s;                      // 2026-04
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0,7);    // 2026-04-15 → 2026-04
   var mNames = {enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12};
   var m = s.toLowerCase().match(/([a-záéíóú]+)[\s\-]+(\d{4})/);
   if (!m) { m = s.toLowerCase().match(/(\d{4})[\s\-]+([a-záéíóú]+)/); if(m){var t=m[1];m[1]=m[2];m[2]=t;} }
   if (m && mNames[m[1]]) return m[2]+'-'+String(mNames[m[1]]).padStart(2,'0');
   return '';
 }
+// Extrae YYYY-MM de una fecha YYYY-MM-DD o YYYY-MM
+function _dateToMk(d){ return d?String(d).slice(0,7):''; }
+
+var _fmtPrev = function(n){ return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; };
 
 function prfRenderPrevisionHtml(presKey, pres, proformas) {
-  var fmtE = function(n){ return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; };
   var prev = getPrfPrev(presKey);
   var hoy = new Date();
   var mesHoy = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
 
-  // Real facturado por mes (de proformas aprobadas/facturadas)
+  // ── Real facturado por mes ──────────────────────────────────────
+  // 1) Facturas de esta obra (fuente principal: importes reales emitidos)
   var realPorMes = {};
-  proformas.forEach(function(prf){
-    var mk = prfMesKey(prf.mes);
+  var obraNorm = (pres.proyecto||'').toLowerCase().trim();
+  (facturas||[]).forEach(function(f){
+    if (!f.fecha || f.estado==='borrador') return;
+    var fObra = (f.obra||'').toLowerCase().trim();
+    if (!obraNorm || !fObra) return;
+    // match exacto o parcial (la obra puede estar abreviada en la factura)
+    if (fObra !== obraNorm && fObra.indexOf(obraNorm)<0 && obraNorm.indexOf(fObra)<0) return;
+    var mk = _dateToMk(f.fecha);
     if (!mk) return;
+    realPorMes[mk] = (realPorMes[mk]||0) + (parseFloat(f.base)||0);
+  });
+  // 2) Proformas aprobadas sin factura generada (complemento)
+  proformas.forEach(function(prf){
+    if (prf.estado!=='aprobada') return; // 'facturada' ya contada en facturas
+    var mk = prfMesKey(prf.mes);
+    if (!mk || realPorMes[mk]) return;  // no sobreescribir si ya hay factura
     var imp = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||0); },0);
-    if (prf.estado==='aprobada'||prf.estado==='facturada') realPorMes[mk] = (realPorMes[mk]||0) + imp;
+    realPorMes[mk] = (realPorMes[mk]||0) + imp;
   });
 
-  // Generar lista de meses del rango
+  // ── Rango de meses ─────────────────────────────────────────────
   var meses = [];
-  if (prev.inicio && prev.fin) {
-    var cur = new Date(prev.inicio+'-01');
-    var end = new Date(prev.fin+'-01');
+  var mkInicio = _dateToMk(prev.inicio);
+  var mkFin    = _dateToMk(prev.fin);
+  if (mkInicio && mkFin) {
+    var cur = new Date(mkInicio+'-01');
+    var end = new Date(mkFin+'-01');
     while (cur <= end) {
-      var mk = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
-      meses.push(mk);
+      meses.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0'));
       cur.setMonth(cur.getMonth()+1);
     }
   }
 
-  var totPrev = meses.reduce(function(a,mk){ return a+(parseFloat(prev.meses&&prev.meses[mk])||0); },0);
-  var totReal = meses.reduce(function(a,mk){ return a+(realPorMes[mk]||0); },0);
+  var totReal  = meses.reduce(function(a,mk){ return a+(realPorMes[mk]||0); },0);
   var totalObra = parseFloat(pres.totalObra)||0;
+  var inputStyle = 'padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px';
 
   var configHtml =
     '<div class="card" style="padding:14px 16px;margin-bottom:14px">'+
       '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">'+
         '<div>'+
-          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Mes inicio</label>'+
-          '<input type="month" id="prev-inicio" value="'+(prev.inicio||'')+'" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Fecha inicio</label>'+
+          '<input type="date" id="prev-inicio" value="'+(prev.inicio||'')+'" style="'+inputStyle+'">'+
         '</div>'+
         '<div>'+
-          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Mes fin</label>'+
-          '<input type="month" id="prev-fin" value="'+(prev.fin||'')+'" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Fecha fin</label>'+
+          '<input type="date" id="prev-fin" value="'+(prev.fin||'')+'" style="'+inputStyle+'">'+
         '</div>'+
         '<div>'+
           '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Total obra (€)</label>'+
-          '<input type="number" id="prev-total" value="'+(totalObra||'')+'" min="0" step="100" placeholder="0" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+          '<input type="number" id="prev-total" value="'+(totalObra||'')+'" min="0" step="100" placeholder="0" style="width:130px;'+inputStyle+'">'+
         '</div>'+
         '<button class="btn" onclick="prfPrevActualizarRango()" style="font-size:12px;padding:6px 12px">Aplicar rango</button>'+
-        (meses.length?'<button class="btn" onclick="prfPrevDistribuir()" style="font-size:12px;padding:6px 12px" title="Reparte el total de la obra en partes iguales entre los meses del rango">⚖️ Distribuir igual</button>':'')+
+        (meses.length?'<button class="btn" onclick="prfPrevDistribuir()" style="font-size:12px;padding:6px 12px" title="Reparte el total de la obra en partes iguales">⚖️ Distribuir igual</button>':'')+
         '<button class="btn primary" onclick="prfPrevGuardar(\''+presKey+'\')" style="font-size:12px;padding:6px 12px">💾 Guardar previsión</button>'+
       '</div>'+
     '</div>';
@@ -5103,7 +5120,7 @@ function prfRenderPrevisionHtml(presKey, pres, proformas) {
     return configHtml +
       '<div style="text-align:center;padding:32px;color:var(--text2);background:var(--bg2);border-radius:10px">'+
         '<p style="font-size:15px;margin-bottom:6px">Define el rango de la obra</p>'+
-        '<p style="font-size:12px">Introduce el mes de inicio y fin y pulsa <strong>Aplicar rango</strong></p>'+
+        '<p style="font-size:12px">Introduce la fecha de inicio y fin de obra y pulsa <strong>Aplicar rango</strong></p>'+
       '</div>';
   }
 
@@ -5113,34 +5130,24 @@ function prfRenderPrevisionHtml(presKey, pres, proformas) {
     var mesNombre = MESES_ES[parseInt(parts[1])-1]+' '+parts[0];
     var prevImp = parseFloat((prev.meses||{})[mk])||0;
     var real = realPorMes[mk]||0;
-    var diff = real - prevImp;
     var esPasado = mk < mesHoy;
     var esActual = mk === mesHoy;
-    var estado = '';
-    if (prevImp > 0) {
-      if (real >= prevImp)         estado = '<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">✅ Cumplido</span>';
-      else if (esPasado||esActual) estado = '<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Pendiente</span>';
-      else                         estado = '<span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">➡️ Próximo</span>';
-    }
     var rowBg = esActual?'background:#fffbeb':esPasado&&prevImp>0&&real<prevImp?'background:#fff5f5':'';
-    return '<tr style="border-bottom:1px solid var(--border);'+rowBg+'">'+
+    return '<tr style="border-bottom:1px solid var(--border);'+rowBg+'" id="prev-row-'+mk+'">'+
       '<td style="padding:8px 12px;font-weight:'+(esActual?'700':'500')+'">'+(esActual?'<span style="background:#f59e0b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:4px">HOY</span>':'')+mesNombre+'</td>'+
       '<td style="padding:8px 12px;text-align:right">'+
         '<input type="number" min="0" step="100" value="'+(prevImp||'')+'" placeholder="0" '+
         'id="prev-imp-'+mk+'" '+
+        'oninput="prfPrevRecalcTotal()" '+
         'style="width:110px;text-align:right;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">'+
       '</td>'+
-      '<td style="padding:8px 12px;text-align:right;font-weight:'+(real>0?'700':'400')+';color:'+(real>0?'var(--success)':'var(--text2)')+'">'+fmtE(real)+'</td>'+
-      '<td style="padding:8px 12px;text-align:right;color:'+(diff>0?'#1a7c3e':diff<0?'#dc2626':'var(--text2)')+'">'+
-        (prevImp>0?(diff>=0?'+':'')+fmtE(diff):'—')+
-      '</td>'+
-      '<td style="padding:8px 12px">'+estado+'</td>'+
+      '<td style="padding:8px 12px;text-align:right;font-weight:'+(real>0?'700':'400')+';color:'+(real>0?'var(--success)':'var(--text2)')+'">'+_fmtPrev(real)+'</td>'+
+      '<td id="prev-diff-'+mk+'" style="padding:8px 12px;text-align:right">—</td>'+
+      '<td id="prev-est-'+mk+'" style="padding:8px 12px"></td>'+
     '</tr>';
   }).join('');
 
-  var pendiente = totPrev - totReal;
-
-  return configHtml +
+  var html = configHtml +
     '<div class="card" style="padding:0;overflow:auto">'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
         '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
@@ -5153,27 +5160,73 @@ function prfRenderPrevisionHtml(presKey, pres, proformas) {
         '<tbody>'+rowsHtml+'</tbody>'+
         '<tfoot><tr style="background:var(--bg2);border-top:2px solid var(--border);font-weight:700">'+
           '<td style="padding:9px 12px">TOTAL</td>'+
-          '<td style="padding:9px 12px;text-align:right">'+fmtE(totPrev)+'</td>'+
-          '<td style="padding:9px 12px;text-align:right;color:var(--success)">'+fmtE(totReal)+'</td>'+
-          '<td style="padding:9px 12px;text-align:right;color:'+(pendiente>0?'#dc2626':'#1a7c3e')+'">'+
-            (totPrev>0?(pendiente>0?'−'+fmtE(pendiente):'+'+fmtE(Math.abs(pendiente))):'—')+
-          '</td>'+
-          '<td style="padding:9px 12px;font-size:11px;color:var(--text2)">'+
-            (totalObra>0?'Total obra: '+fmtE(totalObra):'')+
-          '</td>'+
+          '<td id="prev-tot-prev" style="padding:9px 12px;text-align:right">—</td>'+
+          '<td style="padding:9px 12px;text-align:right;color:var(--success)">'+_fmtPrev(totReal)+'</td>'+
+          '<td id="prev-tot-diff" style="padding:9px 12px;text-align:right">—</td>'+
+          '<td style="padding:9px 12px;font-size:11px;color:var(--text2)">'+(totalObra>0?'Total obra: '+_fmtPrev(totalObra):'')+'</td>'+
         '</tr></tfoot>'+
       '</table>'+
     '</div>';
+
+  // Recalcular dinámicamente tras renderizar
+  setTimeout(function(){ prfPrevRecalcTotal(); }, 0);
+  return html;
+}
+
+// Recalcula el total PREV y diferencias leyendo directamente los inputs del DOM
+function prfPrevRecalcTotal() {
+  var mesHoy = (function(){ var h=new Date(); return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0'); })();
+  var totPrev = 0;
+  document.querySelectorAll('[id^="prev-imp-"]').forEach(function(inp){
+    var mk = inp.id.replace('prev-imp-','');
+    var prevImp = parseFloat(inp.value)||0;
+    totPrev += prevImp;
+    // Diferencia y estado por fila
+    var realEl = inp.closest('tr') && inp.closest('tr').cells[2];
+    var real = realEl ? parseFloat(realEl.textContent.replace(/[^\d,\-]/g,'').replace(',','.'))||0 : 0;
+    var diff = real - prevImp;
+    var esPasado = mk <= mesHoy;
+    var diffEl = document.getElementById('prev-diff-'+mk);
+    var estEl  = document.getElementById('prev-est-'+mk);
+    if (diffEl) {
+      if (prevImp>0) {
+        diffEl.style.color = diff>=0?'#1a7c3e':'#dc2626';
+        diffEl.textContent = (diff>=0?'+':'')+_fmtPrev(diff);
+      } else { diffEl.textContent='—'; diffEl.style.color=''; }
+    }
+    if (estEl) {
+      if (prevImp>0) {
+        if (real>=prevImp)    estEl.innerHTML='<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">✅ Cumplido</span>';
+        else if (esPasado)    estEl.innerHTML='<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Pendiente</span>';
+        else                  estEl.innerHTML='<span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">➡️ Próximo</span>';
+      } else estEl.innerHTML='';
+    }
+  });
+  var totPrevEl = document.getElementById('prev-tot-prev');
+  if (totPrevEl) totPrevEl.textContent = _fmtPrev(totPrev);
+  // Total diferencia
+  var totRealEl = document.getElementById('prev-tot-diff');
+  if (totRealEl && totPrev>0) {
+    var totRealTd = totRealEl.previousElementSibling;
+    var totReal = totRealTd ? parseFloat(totRealTd.textContent.replace(/[^\d,\-]/g,'').replace(',','.'))||0 : 0;
+    var pend = totReal - totPrev;
+    totRealEl.style.color = pend>=0?'#1a7c3e':'#dc2626';
+    totRealEl.textContent = (pend>=0?'+':'')+_fmtPrev(pend);
+  }
 }
 
 function prfPrevActualizarRango() {
   var pres = prfGetPres()||{};
   var presKey = getPresKey(pres);
   var prev = getPrfPrev(presKey);
+  // Guardar importes actuales del DOM antes de re-renderizar
+  if (!prev.meses) prev.meses={};
+  document.querySelectorAll('[id^="prev-imp-"]').forEach(function(inp){
+    prev.meses[inp.id.replace('prev-imp-','')] = parseFloat(inp.value)||0;
+  });
   prev.inicio = (document.getElementById('prev-inicio')||{}).value || '';
   prev.fin    = (document.getElementById('prev-fin')||{}).value || '';
   var tot = parseFloat((document.getElementById('prev-total')||{}).value)||0;
-  if (tot) { if(!pres.totalObra) pres.totalObra=tot; }
   savePrfPrev(presKey, prev);
   _prfPresObj = Object.assign({}, pres, {totalObra: tot||pres.totalObra||0});
   prfRenderLista();
@@ -5186,26 +5239,27 @@ function prfPrevDistribuir() {
   var tot = parseFloat((document.getElementById('prev-total')||{}).value) || parseFloat(pres.totalObra)||0;
   var inicio = (document.getElementById('prev-inicio')||{}).value || prev.inicio;
   var fin    = (document.getElementById('prev-fin')||{}).value   || prev.fin;
-  if (!inicio||!fin||!tot) { toast('Introduce mes inicio, fin y total de obra primero', true); return; }
+  if (!inicio||!fin||!tot) { toast('Introduce fecha inicio, fin y total de obra primero', true); return; }
   var meses = [];
-  var cur = new Date(inicio+'-01'), end = new Date(fin+'-01');
+  var cur = new Date(_dateToMk(inicio)+'-01'), end = new Date(_dateToMk(fin)+'-01');
   while (cur<=end){ meses.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')); cur.setMonth(cur.getMonth()+1); }
   if (!meses.length) return;
   var imp = Math.round(tot/meses.length*100)/100;
   if (!prev.meses) prev.meses={};
-  meses.forEach(function(mk){ prev.meses[mk]=imp; });
-  // actualizar inputs directamente si existen
-  meses.forEach(function(mk){ var el=document.getElementById('prev-imp-'+mk); if(el) el.value=imp; });
+  meses.forEach(function(mk){
+    prev.meses[mk]=imp;
+    var el=document.getElementById('prev-imp-'+mk); if(el){ el.value=imp; }
+  });
   savePrfPrev(presKey, prev);
-  toast('✅ Distribuido: '+fmtE(imp)+' / mes');
+  prfPrevRecalcTotal();
+  toast('✅ Distribuido: '+_fmtPrev(imp)+' / mes');
 }
+
 function prfPrevGuardar(presKey) {
   var prev = getPrfPrev(presKey);
   if (!prev.meses) prev.meses={};
-  // Recoger todos los inputs de importe
   document.querySelectorAll('[id^="prev-imp-"]').forEach(function(inp){
-    var mk = inp.id.replace('prev-imp-','');
-    prev.meses[mk] = parseFloat(inp.value)||0;
+    prev.meses[inp.id.replace('prev-imp-','')] = parseFloat(inp.value)||0;
   });
   prev.inicio = (document.getElementById('prev-inicio')||{}).value || prev.inicio;
   prev.fin    = (document.getElementById('prev-fin')||{}).value   || prev.fin;
