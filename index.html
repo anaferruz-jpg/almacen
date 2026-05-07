@@ -4050,12 +4050,15 @@ function recalcularSuministradoTodo(skipConfirm) {
     '¿Continuar?'
   )) return;
 
-  // 1 — Copia profunda de obras con suministrado y entregas a cero
+  // 1 — Copia profunda de obras: eliminar extras previas (se reconstruyen desde historial)
+  //     y resetear suministrado/entregas a cero en las partidas normales
   var obrasAct = OBRAS.map(function(o) {
     return Object.assign({}, o, {
-      partidas: (o.partidas||[]).map(function(p) {
-        return Object.assign({}, p, { suministrado: 0, entregas: [] });
-      })
+      partidas: (o.partidas||[])
+        .filter(function(p) { return !p.extra; }) // quitar extras antiguas — se recrean
+        .map(function(p) {
+          return Object.assign({}, p, { suministrado: 0, entregas: [] });
+        })
     });
   });
   // Índice por nombre (lowercase) para búsqueda rápida
