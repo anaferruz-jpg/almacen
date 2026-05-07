@@ -2152,6 +2152,7 @@ function renderPartidas(){
           '<td style="text-align:right;padding:5px 4px">'+(l.contratado||0)+'</td>'+
           '<td style="text-align:right;padding:5px 4px">'+
             '<input type="number" value="'+(l.suministrado||0)+'" min="0" step="0.01" class="partida-input" onchange="actualizarSuministrado('+pidx+',this.value)">'+
+            ((l.entregas&&l.entregas.length)?'<button onclick="verEntregasPartida('+pidx+')" style="background:none;border:none;cursor:pointer;font-size:11px;color:#3498db;padding:0 2px" title="Ver detalle de entregas">ℹ️</button>':'')+
           '</td>'+
           '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend<0?'var(--danger)':pend===0?'var(--success)':'inherit')+'">'+pend.toFixed(pend%1===0?0:2)+'</td>'+
           '<td style="text-align:right;padding:5px 4px">'+
@@ -2371,6 +2372,19 @@ function toggleTipoPartida(idx){
 function actualizarSuministrado(idx,val){
   if(!obraSeleccionada||!obraSeleccionada.partidas[idx])return;
   obraSeleccionada.partidas[idx].suministrado=parseFloat(val)||0;
+}
+
+function verEntregasPartida(idx){
+  if(!obraSeleccionada||!obraSeleccionada.partidas[idx])return;
+  var p=obraSeleccionada.partidas[idx];
+  var entregas=p.entregas||[];
+  if(!entregas.length){alert('No hay entregas registradas para esta partida.');return;}
+  var total=0;
+  var rows=entregas.map(function(e){
+    total+=e.qty||0;
+    return (e.fecha||'—')+' | '+((e.qty||0).toFixed(2))+' ud | '+(e.resp||'—');
+  }).join('\n');
+  alert('📦 ENTREGAS de: '+p.material+'\nTotal: '+total.toFixed(2)+' ud ('+entregas.length+' registros)\n\n'+rows);
 }
 
 function actualizarPrecioAlquiler(idx,val){
