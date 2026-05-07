@@ -2140,14 +2140,15 @@ function renderPartidas(){
         var pend=(l.contratado||0)-(l.suministrado||0);
         var tipo=l.tipo||'venta';
         var esAlquiler=(tipo==='alquiler'||tipo==='alquiler-indek'||tipo==='alquiler-propio');
-        var badgeClass=tipo==='alquiler-indek'?'warn':tipo==='alquiler-propio'?'info':'ok';
-        var badgeTxt=tipo==='alquiler-indek'?'🔧 INDE-K':tipo==='alquiler-propio'?'🏭 PROPIO':'💰 VENTA';
+        var esPersonal=(tipo==='personal');
+        var badgeClass=tipo==='alquiler-indek'?'warn':tipo==='alquiler-propio'?'info':tipo==='personal'?'info':'ok';
+        var badgeTxt=tipo==='alquiler-indek'?'🔧 INDE-K':tipo==='alquiler-propio'?'🏭 PROPIO':tipo==='personal'?'👷 PERSONAL':'💰 VENTA';
         return '<tr>'+
           '<td style="padding:5px 4px;font-size:11px">'+l.material+'</td>'+
           '<td style="padding:5px 4px;text-align:center">'+
-            '<span class="badge '+(badgeClass)+'" style="cursor:pointer;font-size:10px" onclick="toggleTipoPartida('+pidx+')" title="Clic para cambiar tipo">'+
-              badgeTxt+
-            '</span>'+
+            (esPersonal
+              ? '<span class="badge '+(badgeClass)+'" style="font-size:10px">'+badgeTxt+'</span>'
+              : '<span class="badge '+(badgeClass)+'" style="cursor:pointer;font-size:10px" onclick="toggleTipoPartida('+pidx+')" title="Clic para cambiar tipo">'+badgeTxt+'</span>')+
           '</td>'+
           '<td style="text-align:right;padding:5px 4px">'+(l.contratado||0)+'</td>'+
           '<td style="text-align:right;padding:5px 4px">'+
@@ -2160,7 +2161,7 @@ function renderPartidas(){
               '<input type="number" value="'+(l.precioAlquiler||0)+'" min="0" step="0.01" style="width:70px;text-align:right;padding:3px 5px;font-size:12px;border:1px solid var(--accent);border-radius:4px" title="€/ud/mes para cálculo de costes" onchange="actualizarPrecioAlquiler('+pidx+',this.value)">'
               :'<span style="color:var(--text2);font-size:10px">—</span>')+
           '</td>'+
-          (function(){
+          (esPersonal ? '<td style="text-align:right;padding:5px 4px;color:var(--text2)">—</td>' : (function(){
   var kMat=normalizarMat(l.material);
   var kPart=(l.partida||'').toLowerCase();
   var k= kPart ? kPart+'|||'+kMat : kMat;
@@ -2172,8 +2173,8 @@ function renderPartidas(){
   if(et>0) badges+='<span style="background:#d6eaf8;color:#1a5276;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🔵 '+et+' ud</span> ';
   if(epend>0) badges+='<span style="background:#fef9e7;color:#7d6608;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600">🟡 '+epend+' ud</span>';
   return '<td style="padding:5px 4px;text-align:right">'+badges+'</td>';
-})() +
-          (function(){
+})()) +
+          (esPersonal ? '<td style="text-align:right;padding:5px 4px;color:var(--text2)">—</td>' : (function(){
   var kMat2=l.material.toLowerCase();
   var kPart2=(l.partida||'').toLowerCase();
   var k2=kPart2?kPart2+'|||'+kMat2:kMat2;
@@ -2190,7 +2191,7 @@ function renderPartidas(){
   var nota=cubreAlm?' <span style="font-size:9px;color:var(--success)">(hay en almacén)</span>':'';
   return '<td style="text-align:right;padding:5px 4px">'+
     '<span style="'+bg+';font-size:12px;font-weight:700;padding:2px 7px;border-radius:5px">'+aPedir+' ud</span>'+nota+'</td>';
-})() +
+})()) +
           '<td style="padding:5px 4px">'+
             '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
               '<button class="btn primary" style="font-size:10px;padding:3px 5px" title="Pedido/Salida" onclick="abrirModalPedidoPartida('+pidx+')">🛒</button>'+
@@ -2364,6 +2365,7 @@ function confirmarSalidaPartida(){
 function toggleTipoPartida(idx){
   if(!obraSeleccionada||!obraSeleccionada.partidas[idx])return;
   var p=obraSeleccionada.partidas[idx];
+  if(p.tipo==='personal') return; // personal no cambia de tipo
   var ciclo={'alquiler-indek':'alquiler-propio','alquiler-propio':'venta','venta':'alquiler-indek','alquiler':'alquiler-propio'};
   p.tipo=ciclo[p.tipo]||'alquiler-indek';
   renderPartidas();
@@ -4072,6 +4074,7 @@ function recalcularSuministradoTodo(skipConfirm) {
       partidas: (o.partidas||[])
         .filter(function(p) { return !p.extra; }) // quitar extras antiguas — se recrean
         .map(function(p) {
+          if (p.tipo === 'personal') return Object.assign({}, p); // no resetear suministrado de personal
           return Object.assign({}, p, { suministrado: 0, entregas: [] });
         })
     });
