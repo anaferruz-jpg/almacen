@@ -4927,15 +4927,21 @@ function presExportarAlmacen() {
   // Recoger presupuesto actual del DOM (estado vivo)
   var pres = presRecoger();
   // Construir lista de items a exportar desde el DESPIECE (materiales individuales calculados)
-  var items = [];
+  // Los materiales se suman si aparecen en varios equipos → lista plana sin duplicados
+  var itemsMap = {}; // material_name → {partida, material, ud, contratado, tipo}
   var desp = calcDespiecePres(pres);
   desp.forEach(function(sec){
     sec.materiales.forEach(function(mat){
       var cant = parseFloat(mat.cantidad)||0;
       if (cant <= 0) return;
-      items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
+      if (itemsMap[mat.n]) {
+        itemsMap[mat.n].contratado += cant; // sumar si ya existe
+      } else {
+        itemsMap[mat.n] = { partida:'FUNGIBLES', material:mat.n, ud:'ud', contratado:cant, tipo:'venta' };
+      }
     });
   });
+  var items = Object.keys(itemsMap).map(function(k){ return itemsMap[k]; });
   // Si no hay despiece definido en EQUIPOS_DEF, caer a ventaItems/alquilerItems
   if (!items.length) {
     (pres.ventaItems||[]).forEach(function(it){
@@ -5064,47 +5070,29 @@ function _expAlmConfirmar() {
   var partidas = (obra.partidas||[]).map(function(p){ return Object.assign({}, p); });
   var nuevas = 0, actualizadas = 0;
 
-  // Agrupar: si el mismo material del despiece aparece en varios equipos, sumar cantidades
-  var idxYaActualizado = {}; // matchIdx → true (para sumar en vez de sobrescribir)
   matches.forEach(function(m, mi){
     var chk = document.getElementById('exp-chk-'+mi);
-    if (!chk || !chk.checked) return; // desmarcado → saltar
+    if (!chk || !chk.checked) return;
 
     if (m.matchIdx >= 0) {
-      if (idxYaActualizado[m.matchIdx]) {
-        // Ya actualizado antes: SUMAR el contratado (mismo material en dos equipos)
-        partidas[m.matchIdx].contratado += m.item.contratado;
-      } else {
-        // Primera vez: establecer el contratado
-        partidas[m.matchIdx].contratado = m.item.contratado;
-        idxYaActualizado[m.matchIdx] = true;
-      }
+      // Actualizar CONTRATADO de partida existente (no tocar suministrado)
+      partidas[m.matchIdx].contratado = m.item.contratado;
       actualizadas++;
     } else {
-      // Crear nueva partida — o sumar si ya creamos una con el mismo nombre
-      var existeNueva = partidas.findIndex(function(p){
-        return p.material === m.item.material && p.extra !== true && p._fromExport;
+      // Crear nueva partida
+      partidas.push({
+        partida:      m.item.partida,
+        material:     m.item.material,
+        ud:           m.item.ud,
+        contratado:   m.item.contratado,
+        suministrado: 0,
+        entregado:    0,
+        entregas:     [],
+        tipo:         m.item.tipo
       });
-      if (existeNueva >= 0) {
-        partidas[existeNueva].contratado += m.item.contratado;
-      } else {
-        partidas.push({
-          partida:     m.item.partida,
-          material:    m.item.material,
-          ud:          m.item.ud,
-          contratado:  m.item.contratado,
-          suministrado: 0,
-          entregado:   0,
-          entregas:    [],
-          tipo:        m.item.tipo,
-          _fromExport: true
-        });
-        nuevas++;
-      }
+      nuevas++;
     }
   });
-  // Limpiar flag temporal
-  partidas.forEach(function(p){ delete p._fromExport; });
 
   var inner = document.getElementById('modal-exportar-almacen-inner');
   inner.innerHTML = '<p style="color:var(--text2);padding:20px">Guardando en almacén…</p>';
