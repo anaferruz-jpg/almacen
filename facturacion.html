@@ -5747,13 +5747,26 @@ function prfAbrirEditor(pi) {
         _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
       });
     }
+    var _prfDescsAnteriores = {};
     proformas.forEach(function(prev){
+      // Solo acumular proformas aprobadas o facturadas — los borradores no cuentan como origen
+      if (prev.estado !== 'aprobada' && prev.estado !== 'facturada') return;
       (prev.lineas||[]).forEach(function(pl){
+        if (pl.tipo==='dto_venta'||pl.tipo==='dto_alquiler') return;
+        if ((pl.mes||0) > 0) _prfDescsAnteriores[pl.desc] = true; // líneas con importe real
         _prfLineas.forEach(function(l){
           if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
         });
       });
     });
+    // Avisar si hay descripciones con importe en proformas previas que no cuadran con las actuales
+    var _sinMatch = Object.keys(_prfDescsAnteriores).filter(function(d){
+      return !_prfLineas.some(function(l){ return l.desc===d; });
+    });
+    if (_sinMatch.length) {
+      console.warn('[PROFORMA] Líneas anteriores sin coincidencia en la nueva proforma:', _sinMatch);
+      toast('⚠️ '+_sinMatch.length+' línea(s) de proformas anteriores no coinciden con el presupuesto actual. Revisa los orígenes.', true);
+    }
   } else {
     // Proforma existente: usar el anterior guardado tal cual (el usuario puede haberlo ajustado manualmente)
     _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({}, l); });
@@ -6251,6 +6264,14 @@ function prfGenerarFactura(pi) {
   var prfs    = getPrfForObra(presKey);
   var prf     = prfs[pi];
   if (!prf) return;
+  // Si el editor está abierto para esta proforma, leer DOM primero para no perder cambios
+  if (_prfIdx === pi && document.getElementById('prf-view-editor').style.display !== 'none') {
+    var existing = prfs[pi];
+    var prfActual = Object.assign(prfLeerCamposDOM(existing), { estado: existing.estado||'aprobada' });
+    prfs[pi] = prfActual;
+    prf = prfActual;
+    savePrfForObra(presKey, prfs);
+  }
   var isCerrado = (pres.tipoContrato||'cerrado') === 'cerrado';
   // Siempre usar el desglose de la proforma (todas las partidas con precio)
   // Usar el campo 'anterior' ya guardado en la proforma (medición acumulada certificaciones previas)
