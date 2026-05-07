@@ -4926,17 +4926,28 @@ var _expAlmMatches = [];
 function presExportarAlmacen() {
   // Recoger presupuesto actual del DOM (estado vivo)
   var pres = presRecoger();
-  // Construir lista de items a exportar (venta + alquiler con medición > 0)
+  // Construir lista de items a exportar desde el DESPIECE (materiales individuales calculados)
   var items = [];
-  (pres.ventaItems||[]).forEach(function(it){
-    if ((parseFloat(it.medicion)||0) <= 0) return;
-    items.push({ partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:parseFloat(it.medicion)||0, tipo:'venta' });
+  var desp = calcDespiecePres(pres);
+  desp.forEach(function(sec){
+    sec.materiales.forEach(function(mat){
+      var cant = parseFloat(mat.cantidad)||0;
+      if (cant <= 0) return;
+      items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
+    });
   });
-  (pres.alquilerItems||[]).forEach(function(it){
-    if ((parseFloat(it.medicion)||0) <= 0) return;
-    items.push({ partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:parseFloat(it.medicion)||0, tipo:'alquiler' });
-  });
-  if (!items.length) { toast('El presupuesto no tiene partidas con medición > 0', true); return; }
+  // Si no hay despiece definido en EQUIPOS_DEF, caer a ventaItems/alquilerItems
+  if (!items.length) {
+    (pres.ventaItems||[]).forEach(function(it){
+      if ((parseFloat(it.medicion)||0) <= 0) return;
+      items.push({ partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:parseFloat(it.medicion)||0, tipo:'venta' });
+    });
+    (pres.alquilerItems||[]).forEach(function(it){
+      if ((parseFloat(it.medicion)||0) <= 0) return;
+      items.push({ partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:parseFloat(it.medicion)||0, tipo:'alquiler' });
+    });
+  }
+  if (!items.length) { toast('El presupuesto no tiene despiece calculado. Introduce mediciones primero.', true); return; }
   _expAlmItems = items;
 
   var modal = document.getElementById('modal-exportar-almacen');
