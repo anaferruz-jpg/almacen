@@ -4938,16 +4938,19 @@ function presExportarAlmacen() {
       items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
     });
   });
-  // 2. AlquilerItems: si tienen EQUIPOS_DEF → expandir en materiales; si no → exportar directamente
+  // 2. AlquilerItems: traducir desc → clave EQUIPOS_DEF via ALQ_TO_EQ, luego expandir
+  var _nPlantas = pres.nPlantas || pres.nPlants || 3;
   (pres.alquilerItems||[]).forEach(function(it){
     var medicion = parseFloat(it.medicion)||0;
     if (medicion <= 0) return;
-    var def = EQUIPOS_DEF[it.desc];
+    var eqKey = ALQ_TO_EQ[it.desc] || it.desc; // intentar alias, si no usar desc directo
+    var def = EQUIPOS_DEF[eqKey];
     if (def) {
+      var partida = it.desc; // nombre visible = el del alquilerItem (más legible)
       def.forEach(function(d){
-        var cant = Math.round(d.f(medicion, pres.nPlants||3) * 100) / 100;
+        var cant = Math.round(d.f(medicion, _nPlantas) * 100) / 100;
         if (cant <= 0) return;
-        items.push({ partida: it.desc, material: d.n, ud:'ud', contratado: cant, tipo:'alquiler' });
+        items.push({ partida: partida, material: d.n, ud:'ud', contratado: cant, tipo:'alquiler' });
       });
     } else {
       // Sin despiece definido → exportar como línea directa con la medición
@@ -6724,6 +6727,21 @@ var EQUIPOS_DEF = {
   ]
 };
 
+// Mapeo: descripción de alquilerItem → clave en EQUIPOS_DEF
+// Necesario porque PRES_DEF_ALQUILER usa nombres distintos a EQUIPOS_DEF
+var ALQ_TO_EQ = {
+  'Barandilla provisional en encofrado':                    'Barandilla provisional en encofrado',
+  'Barandilla perimetral forjado':                          'Material fungible para barandilla perimetral forjado',
+  'Protección perimetral codos y mástiles 2m con red':     'Protección perimetral codos y mástil 2m con red',
+  'Sistema de protección perimetral para fase de estructura (INDEK)': 'Sistema de protección: PROTECCION PERIMETRAL (INDEK)',
+  'Sistema de protección tipo HORCA (alquiler)':            'Sistema de protección tipo HORCA',
+  'Sistema de protección tipo CORTA (alquiler)':            'Sistema de protección tipo CORTA',
+  'Postes 2m líneas de vida (alquiler)':                    'Postes 2m para líneas de vida horizontales',
+  'Marquesina de red y mosquitera (alquiler)':              'Marquesina de red y mosquitera',
+  'Redes horizontales cubiertas metálicas (alquiler)':      'Redes horizontales cubiertas metálicas',
+  'Redes horizontales cubiertas hormigón (alquiler)':       'Redes horizontales cubiertas hormigón'
+};
+
 // Calcula despiece de materiales para un presupuesto
 function calcDespiecePres(p) {
   var items = (p.ventaItems||[]).filter(function(it){return it.medicion>0;});
@@ -7207,19 +7225,7 @@ function presCrearObraDesdePresupuesto(p) {
       'Barandilla provisional en encofrado':               'BARANDILLA ENCOFRADO'
     };
 
-    // Mapeo: descripción alquiler → clave EQUIPOS_DEF
-    var ALQ_TO_EQ = {
-      'Barandilla provisional en encofrado':                    'Barandilla provisional en encofrado',
-      'Barandilla perimetral forjado':                          'Material fungible para barandilla perimetral forjado',
-      'Protección perimetral codos y mástiles 2m con red':     'Protección perimetral codos y mástil 2m con red',
-      'Sistema de protección perimetral para fase de estructura (INDEK)': 'Sistema de protección: PROTECCION PERIMETRAL (INDEK)',
-      'Sistema de protección tipo HORCA (alquiler)':            'Sistema de protección tipo HORCA',
-      'Sistema de protección tipo CORTA (alquiler)':            'Sistema de protección tipo CORTA',
-      'Postes 2m líneas de vida (alquiler)':                    'Postes 2m para líneas de vida horizontales',
-      'Marquesina de red y mosquitera (alquiler)':              'Marquesina de red y mosquitera',
-      'Redes horizontales cubiertas metálicas (alquiler)':      'Redes horizontales cubiertas metálicas',
-      'Redes horizontales cubiertas hormigón (alquiler)':       'Redes horizontales cubiertas hormigón'
-    };
+    // Mapeo: descripción alquiler → clave EQUIPOS_DEF (variable global ALQ_TO_EQ)
 
     // ── 1. BOM desde EQUIPOS_DEF (ventaItems con medición > 0) ────────────
     var desp = calcDespiecePres(pres);
