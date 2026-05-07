@@ -3248,15 +3248,70 @@ function guardarPrevision(){
 
 function renderPrevision(){
   var cont=document.getElementById('prevision-lista');
-  if(!obraSeleccionada||!obraSeleccionada.previsionPersonal||!obraSeleccionada.previsionPersonal.length){
-    cont.innerHTML='<div class="empty">Sin previsión de personal añadida.<br>Añade fases arriba.</div>';return;
+  var o=obraSeleccionada;
+  if(!o){cont.innerHTML='';return;}
+
+  // ── Tabla de planning mensual (desde partidas tipo personal + MES N) ──
+  var mesPartidas=(o.partidas||[]).filter(function(p){return p.tipo==='personal'&&/^MES \d+/i.test(p.material);});
+  mesPartidas.sort(function(a,b){
+    var na=parseInt((a.material.match(/^MES (\d+)/i)||[0,0])[1]);
+    var nb=parseInt((b.material.match(/^MES (\d+)/i)||[0,0])[1]);
+    return na-nb;
+  });
+  var planningHTML='';
+  if(mesPartidas.length){
+    var totPrev=mesPartidas.reduce(function(a,p){return a+(p.contratado||0);},0);
+    var totReal=mesPartidas.reduce(function(a,p){return a+(p.suministrado||0);},0);
+    var pct=totPrev>0?Math.round(totReal/totPrev*100):0;
+    var thH='<th style="min-width:68px"></th>';
+    var faseH='<td></td>';
+    var prevH='<td style="font-size:10px;font-weight:600;color:var(--text2);padding:6px 8px 4px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">Previsto</td>';
+    var realH='<td style="font-size:10px;font-weight:700;color:var(--primary);padding:4px 8px 8px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">Real</td>';
+    mesPartidas.forEach(function(p){
+      var pidx=o.partidas.indexOf(p);
+      var mNum=(p.material.match(/^MES (\d+)/i)||['','?'])[1];
+      var fase=(p.material.match(/^MES \d+\s*[·\-]\s*(.+)$/i)||['',''])[1].trim();
+      var prev=p.contratado||0;
+      var real=p.suministrado||0;
+      var done=prev>0&&real>=prev;
+      var bg=done?'background:#eaf3de':'background:#f5f0ea';
+      thH+='<th style="text-align:center;min-width:70px;padding:5px 4px;'+bg+';color:var(--primary);font-size:11px;font-weight:700;border-radius:4px 4px 0 0">MES '+mNum+'</th>';
+      faseH+='<td style="text-align:center;font-size:9px;color:var(--text2);padding:2px 4px;letter-spacing:.04em">'+fase+'</td>';
+      prevH+='<td style="text-align:center;padding:6px 4px;font-weight:700;font-size:14px;color:var(--text)">'+prev+'<span style="font-size:9px;font-weight:400;color:var(--text2);margin-left:2px">op</span></td>';
+      realH+='<td style="text-align:center;padding:4px"><input type="number" value="'+real+'" min="0" step="1" '+
+        'style="width:54px;text-align:center;padding:4px 2px;font-size:14px;font-weight:700;border:1.5px solid '+(done?'var(--success)':'var(--border)')+';border-radius:6px;background:'+(done?'#eaf3de':'var(--bg)')+';color:'+(done?'var(--success)':'var(--text)')+'" '+
+        'onchange="actualizarSuministrado('+pidx+',this.value)"></td>';
+    });
+    planningHTML=
+      '<div class="card" style="margin-bottom:14px;border:1.5px solid var(--primary)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">'+
+          '<div style="font-size:13px;font-weight:700;color:var(--primary)">👷 Planning de operarios (presupuesto)</div>'+
+          '<span class="badge '+(pct>=100?'ok':pct>50?'warn':'')+'">'+pct+'% completado</span>'+
+        '</div>'+
+        '<div style="background:#e0e0e0;border-radius:4px;height:5px;margin-bottom:14px;overflow:hidden">'+
+          '<div style="height:100%;background:'+(pct>=100?'var(--success)':pct>50?'var(--warn)':'var(--text2)')+';border-radius:4px;width:'+Math.min(pct,100)+'%"></div>'+
+        '</div>'+
+        '<div style="overflow-x:auto">'+
+          '<table style="border-collapse:separate;border-spacing:3px 0;font-size:12px;margin:0 auto">'+
+            '<thead><tr>'+thH+'</tr><tr>'+faseH+'</tr></thead>'+
+            '<tbody><tr>'+prevH+'</tr><tr>'+realH+'</tr></tbody>'+
+          '</table>'+
+          '<div style="text-align:right;font-size:11px;color:var(--text2);margin-top:6px">'+totReal+' / '+totPrev+' op·mes realizados</div>'+
+        '</div>'+
+      '</div>';
   }
-  var prev=obraSeleccionada.previsionPersonal;
+
+  // ── Previsión manual (previsionPersonal) ──
+  var prev=o.previsionPersonal;
+  if(!prev||!prev.length){
+    cont.innerHTML=planningHTML||'<div class="empty">Sin previsión de personal.<br>Exporta el presupuesto desde facturación o añade fases arriba.</div>';
+    return;
+  }
   var totalCoste=prev.reduce(function(a,p){return a+(p.costeTotal||0);},0);
   var totalOps=prev.reduce(function(a,p){return a+(p.operarios||0);},0);
   var cats={oficial:0,peon:0,encargado:0,mixto:0};
   prev.forEach(function(p){if(cats[p.categoria]!==undefined)cats[p.categoria]+=(p.operarios||0);});
-  cont.innerHTML=
+  cont.innerHTML=planningHTML+
     '<div class="stats" style="margin-bottom:10px">'+
       '<div class="stat"><div class="stat-label">Total operarios</div><div class="stat-val">'+totalOps+'</div></div>'+
       '<div class="stat"><div class="stat-label">Coste previsto</div><div class="stat-val '+(totalCoste>0?'danger':'')+'">'+Number(totalCoste).toFixed(0)+' €</div></div>'+
