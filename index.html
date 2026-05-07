@@ -4208,17 +4208,31 @@ function recalcularSuministradoTodo() {
           + '<p style="color:#92400e;margin:4px 0 8px">Asigna la partida correcta en cada material y pulsa <b>Guardar y re-sincronizar</b> para reasignarlos. Si no hay partida equivalente, se mantendrán como extras.</p>';
         Object.keys(porObra).forEach(function(obra){
           var matsObra = _sincExtrasInfo[obra] || {};
+          // Obtener partidas reales de esta obra desde OBRAS (siempre actualizado)
+          var obraObj2 = OBRAS.find(function(o){ return o.nombre === obra; });
+          var partidasReales = obraObj2
+            ? (obraObj2.partidas||[]).filter(function(p){ return !p.extra; }).map(function(p){ return p.material; }).filter(function(v,i,a){ return a.indexOf(v)===i; })
+            : [];
           html += '<div style="margin-top:8px"><b>📋 '+obra+'</b>';
           html += '<table style="width:100%;border-collapse:collapse;margin-top:4px">';
           html += '<tr style="background:#fef08a;font-size:11px"><th style="padding:3px 6px;text-align:left">Material en Sheets</th><th style="padding:3px 6px;text-align:left">Asignar a partida</th></tr>';
           porObra[obra].forEach(function(mat){
             var info = matsObra[mat] || { norm: normalizarMat(mat), partidas: [] };
+            // Usar partidas de OBRAS si _sincExtrasInfo está vacío
+            var optsArr = partidasReales.length ? partidasReales : info.partidas;
+            // Auto-sugerir la partida más similar
+            var bestPart = '', bestScore = 0;
+            var matNorm2 = normalizarMat(mat);
+            optsArr.forEach(function(p){
+              var s = _fuzzyMatchMat(normalizarMat(p), matNorm2) ? 1 : 0;
+              if (s > bestScore) { bestScore = s; bestPart = p; }
+            });
             var opts = '<option value="">— Mantener como EXTRA —</option>'
-              + info.partidas.map(function(p){
-                  return '<option value="'+p.replace(/"/g,'&quot;')+'">'+p+'</option>';
+              + optsArr.map(function(p){
+                  return '<option value="'+p.replace(/"/g,'&quot;')+'"'+(p===bestPart&&bestScore>0?' selected':'')+'>'+p+'</option>';
                 }).join('');
             html += '<tr style="border-bottom:1px solid #fde68a">'
-              + '<td style="padding:4px 6px;color:#78350f">'+mat+'</td>'
+              + '<td style="padding:4px 6px;color:#78350f;font-size:11px">'+mat+'<br><span style="color:#92400e;font-size:10px">→ '+matNorm2+'</span></td>'
               + '<td style="padding:4px 6px"><select class="sinc-mat-sel" data-obra="'+obra.replace(/"/g,'&quot;')+'" data-mat="'+info.norm+'" style="width:100%;font-size:11px;padding:3px 4px;border:1px solid #d97706;border-radius:4px">'+opts+'</select></td>'
               + '</tr>';
           });
@@ -5379,7 +5393,7 @@ function guardarMapeoYResincronizar() {
   });
   saveMaterialMapping(map);
   document.getElementById('sinc-modal').style.display='none';
-  setTimeout(function(){ sincronizarConHistorial(); }, 100);
+  setTimeout(function(){ recalcularSuministradoTodo(); }, 100);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
