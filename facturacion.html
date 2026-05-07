@@ -4927,21 +4927,16 @@ function presExportarAlmacen() {
   // Recoger presupuesto actual del DOM (estado vivo)
   var pres = presRecoger();
   // Construir lista de items a exportar desde el DESPIECE (materiales individuales calculados)
-  // Los materiales se suman si aparecen en varios equipos → lista plana sin duplicados
-  var itemsMap = {}; // material_name → {partida, material, ud, contratado, tipo}
+  // Cada sección de equipo se convierte en un bloque de partidas independiente
+  var items = [];
   var desp = calcDespiecePres(pres);
   desp.forEach(function(sec){
     sec.materiales.forEach(function(mat){
       var cant = parseFloat(mat.cantidad)||0;
       if (cant <= 0) return;
-      if (itemsMap[mat.n]) {
-        itemsMap[mat.n].contratado += cant; // sumar si ya existe
-      } else {
-        itemsMap[mat.n] = { partida:'FUNGIBLES', material:mat.n, ud:'ud', contratado:cant, tipo:'venta' };
-      }
+      items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
     });
   });
-  var items = Object.keys(itemsMap).map(function(k){ return itemsMap[k]; });
   // Si no hay despiece definido en EQUIPOS_DEF, caer a ventaItems/alquilerItems
   if (!items.length) {
     (pres.ventaItems||[]).forEach(function(it){
@@ -5069,17 +5064,19 @@ function _expAlmConfirmar() {
   // Copia de partidas actuales de la obra
   var partidas = (obra.partidas||[]).map(function(p){ return Object.assign({}, p); });
   var nuevas = 0, actualizadas = 0;
+  var usedMatchIdx = {}; // evita que dos secciones distintas sobrescriban la misma partida existente
 
   matches.forEach(function(m, mi){
     var chk = document.getElementById('exp-chk-'+mi);
     if (!chk || !chk.checked) return;
 
-    if (m.matchIdx >= 0) {
+    if (m.matchIdx >= 0 && !usedMatchIdx[m.matchIdx]) {
       // Actualizar CONTRATADO de partida existente (no tocar suministrado)
       partidas[m.matchIdx].contratado = m.item.contratado;
+      usedMatchIdx[m.matchIdx] = true;
       actualizadas++;
     } else {
-      // Crear nueva partida
+      // Crear nueva partida (o la misma matchIdx ya fue usada por otra sección)
       partidas.push({
         partida:      m.item.partida,
         material:     m.item.material,
