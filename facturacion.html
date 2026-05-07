@@ -4938,29 +4938,29 @@ function presExportarAlmacen() {
       items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
     });
   });
-  // 2. AlquilerItems que también tienen EQUIPOS_DEF (ej: barandilla encofrado, barandilla forjado)
+  // 2. AlquilerItems: si tienen EQUIPOS_DEF → expandir en materiales; si no → exportar directamente
   (pres.alquilerItems||[]).forEach(function(it){
     var medicion = parseFloat(it.medicion)||0;
     if (medicion <= 0) return;
     var def = EQUIPOS_DEF[it.desc];
-    if (!def) return; // sin despiece definido → saltar
-    def.forEach(function(d){
-      var cant = Math.round(d.f(medicion, pres.nPlants||3) * 100) / 100;
-      if (cant <= 0) return;
-      items.push({ partida: it.desc, material: d.n, ud:'ud', contratado: cant, tipo:'alquiler' });
-    });
+    if (def) {
+      def.forEach(function(d){
+        var cant = Math.round(d.f(medicion, pres.nPlants||3) * 100) / 100;
+        if (cant <= 0) return;
+        items.push({ partida: it.desc, material: d.n, ud:'ud', contratado: cant, tipo:'alquiler' });
+      });
+    } else {
+      // Sin despiece definido → exportar como línea directa con la medición
+      items.push({ partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado: medicion, tipo:'alquiler' });
+    }
   });
-  // Si no hay despiece definido en EQUIPOS_DEF, caer a ventaItems/alquilerItems
-  if (!items.length) {
-    (pres.ventaItems||[]).forEach(function(it){
-      if ((parseFloat(it.medicion)||0) <= 0) return;
-      items.push({ partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:parseFloat(it.medicion)||0, tipo:'venta' });
-    });
-    (pres.alquilerItems||[]).forEach(function(it){
-      if ((parseFloat(it.medicion)||0) <= 0) return;
-      items.push({ partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:parseFloat(it.medicion)||0, tipo:'alquiler' });
-    });
-  }
+  // 2b. VentaItems sin despiece en EQUIPOS_DEF → exportar directamente (complemento a calcDespiecePres)
+  (pres.ventaItems||[]).forEach(function(it){
+    var medicion = parseFloat(it.medicion)||0;
+    if (medicion <= 0) return;
+    if (EQUIPOS_DEF[it.desc]) return; // ya procesado por calcDespiecePres arriba
+    items.push({ partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado: medicion, tipo:'venta' });
+  });
   // 3. Personal (moItems) — siempre, independiente del despiece de materiales
   var _plan      = pres.planning || {};
   var _planOps   = _plan.ops   || [];
