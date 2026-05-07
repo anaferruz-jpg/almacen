@@ -5000,34 +5000,80 @@ function presExportarAlmacen() {
       return;
     }
     _expAlmObras = obras;
-    // Auto-sugerir obra por similitud de nombre con pres.proyecto
-    var scored = obras.map(function(o, i){ return {i:i, s:_fuzzyScore(o.nombre, pres.proyecto||'')}; });
+    // Auto-sugerir: primero por código de oferta, luego por similitud de nombre
+    var scored = obras.map(function(o, i){ return {i:i, s: _expAlmObraScore(o, pres)}; });
     scored.sort(function(a,b){ return b.s-a.s; });
     var bestIdx = scored[0].i;
     _expAlmRenderSelector(pres, bestIdx);
   });
 }
 
+function _expAlmObraScore(o, pres) {
+  var normCod = function(s){ return (s||'').trim().toLowerCase().replace(/[\s\-\/\.]/g,''); };
+  var sNombre = _fuzzyScore(o.nombre, pres.proyecto||'');
+  var sCod = 0;
+  if (pres.numOferta && o.codObra) {
+    var nc = normCod(o.codObra), np = normCod(pres.numOferta);
+    if (nc === np) sCod = 1.0;
+    else if (nc.indexOf(np) >= 0 || np.indexOf(nc) >= 0) sCod = 0.85;
+  }
+  return Math.max(sNombre, sCod);
+}
+
 function _expAlmRenderSelector(pres, defaultIdx) {
   var inner = document.getElementById('modal-exportar-almacen-inner');
-  var opts = _expAlmObras.map(function(o, i){
-    var score = _fuzzyScore(o.nombre, pres.proyecto||'');
-    var star = score >= 0.4 ? ' ⭐' : '';
-    return '<option value="'+i+'"'+(i===defaultIdx?' selected':'')+'>'+o.nombre+star+'</option>';
-  }).join('');
+
+  // Construir lista con puntuación usando también codObra
+  var _expAlmObrasList = _expAlmObras.map(function(o, i){
+    return { i: i, nombre: o.nombre, score: _expAlmObraScore(o, pres) };
+  });
+
+  var buildOpts = function(filtro) {
+    var f = (filtro||'').toLowerCase().trim();
+    return _expAlmObrasList.filter(function(x){
+      return !f || x.nombre.toLowerCase().indexOf(f) >= 0;
+    }).map(function(x){
+      var star = x.score >= 0.4 ? ' ⭐' : '';
+      return '<option value="'+x.i+'"'+(x.i===defaultIdx?' selected':'')+'>'+x.nombre+star+'</option>';
+    }).join('');
+  };
 
   inner.innerHTML =
     '<h3 style="margin:0 0 8px">📦 Exportar a Almacén</h3>'+
     '<p style="color:var(--text2);font-size:13px;margin-bottom:16px">Presupuesto: <strong>'+(pres.proyecto||'Sin nombre')+'</strong> — '+_expAlmItems.length+' partidas con medición</p>'+
     '<div class="form-group">'+
       '<label style="font-weight:600">Selecciona la obra en almacén:</label>'+
-      '<select id="exp-alm-sel" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;margin-top:4px">'+opts+'</select>'+
-      '<div style="font-size:11px;color:var(--text2);margin-top:4px">⭐ = coincidencia sugerida automáticamente</div>'+
+      '<input id="exp-alm-filtro" type="text" placeholder="🔍 Filtrar obras..." style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;margin-top:4px;margin-bottom:6px" oninput="_expAlmFiltrarObras(this.value)">'+
+      '<select id="exp-alm-sel" size="8" style="width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px">'+buildOpts('')+'</select>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:4px">⭐ = coincidencia sugerida por código/nombre &nbsp;|&nbsp; Haz clic para seleccionar</div>'+
     '</div>'+
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">'+
       '<button class="btn" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cancelar</button>'+
       '<button class="btn primary" onclick="_expAlmRevisar()">Siguiente → Revisar partidas</button>'+
     '</div>';
+
+  // Guardar referencia al pres actual para el filtro
+  window._expAlmPresCurrent = pres;
+  window._expAlmDefaultIdx  = defaultIdx;
+}
+
+function _expAlmFiltrarObras(filtro) {
+  var pres = window._expAlmPresCurrent || {};
+  var defaultIdx = window._expAlmDefaultIdx || 0;
+  var f = (filtro||'').toLowerCase().trim();
+  var lista = _expAlmObras.map(function(o, i){
+    return { i: i, nombre: o.nombre, score: _expAlmObraScore(o, pres) };
+  }).filter(function(x){
+    return !f || x.nombre.toLowerCase().indexOf(f) >= 0;
+  });
+  var sel = document.getElementById('exp-alm-sel');
+  if (!sel) return;
+  sel.innerHTML = lista.map(function(x){
+    var star = x.score >= 0.4 ? ' ⭐' : '';
+    return '<option value="'+x.i+'"'+(x.i===defaultIdx?' selected':'')+'>'+x.nombre+star+'</option>';
+  }).join('');
+  // Auto-seleccionar si sólo queda una opción
+  if (lista.length === 1) sel.selectedIndex = 0;
 }
 
 function _expAlmRevisar() {
