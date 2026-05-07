@@ -4929,12 +4929,25 @@ function presExportarAlmacen() {
   // Construir lista de items a exportar desde el DESPIECE (materiales individuales calculados)
   // Cada sección de equipo se convierte en un bloque de partidas independiente
   var items = [];
+  // 1. VentaItems con despiece definido en EQUIPOS_DEF
   var desp = calcDespiecePres(pres);
   desp.forEach(function(sec){
     sec.materiales.forEach(function(mat){
       var cant = parseFloat(mat.cantidad)||0;
       if (cant <= 0) return;
       items.push({ partida: sec.desc, material: mat.n, ud:'ud', contratado: cant, tipo:'venta' });
+    });
+  });
+  // 2. AlquilerItems que también tienen EQUIPOS_DEF (ej: barandilla encofrado, barandilla forjado)
+  (pres.alquilerItems||[]).forEach(function(it){
+    var medicion = parseFloat(it.medicion)||0;
+    if (medicion <= 0) return;
+    var def = EQUIPOS_DEF[it.desc];
+    if (!def) return; // sin despiece definido → saltar
+    def.forEach(function(d){
+      var cant = Math.round(d.f(medicion, pres.nPlants||3) * 100) / 100;
+      if (cant <= 0) return;
+      items.push({ partida: it.desc, material: d.n, ud:'ud', contratado: cant, tipo:'alquiler' });
     });
   });
   // Si no hay despiece definido en EQUIPOS_DEF, caer a ventaItems/alquilerItems
