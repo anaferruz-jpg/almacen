@@ -4521,6 +4521,8 @@ var PRF_STORE_KEY   = 'segufija_proformas';
 var OBRAS_EST_KEY   = 'segufija_obras_est';
 // Precios venta por obra/partida: { [obraKey]: { [desc]: precio } }
 var OBRAS_PRC_KEY   = 'segufija_obras_precios';
+// Previsión de facturación por obra: { inicio, fin, meses:{YYYY-MM: importe} }
+var PRF_PREV_KEY    = 'segufija_prf_prevision';
 
 function getPrfStore()    { try{ return JSON.parse(localStorage.getItem(PRF_STORE_KEY)||'{}'); }catch(e){ return {}; } }
 function savePrfStore(o)  { try{ localStorage.setItem(PRF_STORE_KEY, JSON.stringify(o)); }catch(e){} }
@@ -4528,6 +4530,8 @@ function getObrasEst()    { try{ return JSON.parse(localStorage.getItem(OBRAS_ES
 function saveObrasEst(o)  { try{ localStorage.setItem(OBRAS_EST_KEY, JSON.stringify(o)); }catch(e){} }
 function getObrasPrc()    { try{ return JSON.parse(localStorage.getItem(OBRAS_PRC_KEY)||'{}'); }catch(e){ return {}; } }
 function saveObrasPrc(o)  { try{ localStorage.setItem(OBRAS_PRC_KEY, JSON.stringify(o)); }catch(e){} }
+function getPrfPrev(pk)   { var s=JSON.parse(localStorage.getItem(PRF_PREV_KEY)||'{}'); return s[pk]||{inicio:'',fin:'',meses:{}}; }
+function savePrfPrev(pk,v){ var s=JSON.parse(localStorage.getItem(PRF_PREV_KEY)||'{}'); s[pk]=v; localStorage.setItem(PRF_PREV_KEY,JSON.stringify(s)); }
 
 function getObraKey(o)    { return (o.corto||o.nombre||'').replace(/\s+/g,'_').toLowerCase(); }
 function getPresKey(p)    { return ((p.numOferta||p.proyecto||'').replace(/\s+/g,'_').toLowerCase()); }
@@ -4889,6 +4893,7 @@ var _prfIdx     = -1;
 var _prfLineas  = [];   // lineas en edición activa
 var _prfPresKey = '';   // key de la obra/presupuesto activo
 var _prfPresObj = null; // objeto presupuesto/obra activo
+var _prfVistaTab = 'proformas'; // 'proformas' | 'prevision'
 
 function prfGetPres() {
   if (_prfPresObj) return _prfPresObj;
@@ -4948,7 +4953,7 @@ function abrirProformasModal(pKey) {
       }
     }
   }
-  _prfObraIdx = -1; _prfIdx = -1;
+  _prfObraIdx = -1; _prfIdx = -1; _prfVistaTab = 'proformas';
   document.getElementById('crm-proforma-modal').style.display = '';
   prfRenderLista();
 }
@@ -4990,18 +4995,27 @@ function prfRenderLista() {
   });
   if (!proformas.length) rowsHtml = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text2)">No hay proformas todavía. Crea la primera.</td></tr>';
   var tipoTxt = pres.tipoContrato==='produccion'?'📐 A Producción':pres.tipoContrato==='ml'?'📏 A ml':'🔒 Precio Cerrado';
-  el.innerHTML =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'+
+
+  // Cabecera + tabs
+  var tabStyle = function(k){ return 'padding:7px 16px;border:none;border-bottom:2px solid '+((_prfVistaTab===k)?'var(--brand)':'transparent')+';background:transparent;cursor:pointer;font-weight:'+(_prfVistaTab===k?'700':'400')+';color:'+(_prfVistaTab===k?'var(--brand)':'var(--text2)')+';font-size:13px'; };
+  var cabeceraHtml =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">'+
       '<div>'+
         '<p style="font-size:15px;font-weight:700;margin:0">📋 Proformas — '+(pres.proyecto||'')+'</p>'+
         '<p style="font-size:12px;color:var(--text2);margin:2px 0 0">'+(pres.cliente||'')+' &nbsp;|&nbsp; '+(pres.numOferta||'')+' &nbsp;|&nbsp; '+tipoTxt+'</p>'+
       '</div>'+
       '<div style="display:flex;gap:8px">'+
-        '<button class="btn" onclick="prfForzarRecarga()" title="Borra datos locales y recarga desde servidor (útil para sincronizar con compañeros)" style="font-size:11px;padding:4px 8px">🔄 Recargar Sheets</button>'+
-        '<button class="btn primary" onclick="prfNuevaProforma()">➕ Nueva Proforma</button>'+
+        '<button class="btn" onclick="prfForzarRecarga()" title="Recargar desde Sheets" style="font-size:11px;padding:4px 8px">🔄 Recargar Sheets</button>'+
+        (_prfVistaTab==='proformas' ? '<button class="btn primary" onclick="prfNuevaProforma()">➕ Nueva Proforma</button>' : '')+
         '<button class="btn" onclick="cerrarProformaModal()">✕ Cerrar</button>'+
       '</div>'+
     '</div>'+
+    '<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px">'+
+      '<button style="'+tabStyle('proformas')+'" onclick="_prfVistaTab=\'proformas\';prfRenderLista()">📋 Proformas</button>'+
+      '<button style="'+tabStyle('prevision')+'" onclick="_prfVistaTab=\'prevision\';prfRenderLista()">📅 Previsión de facturación</button>'+
+    '</div>';
+
+  el.innerHTML = cabeceraHtml + (_prfVistaTab === 'prevision' ? prfRenderPrevisionHtml(presKey, pres, proformas) :
     '<div class="card" style="padding:0;overflow:auto">'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
         '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
@@ -5015,7 +5029,188 @@ function prfRenderLista() {
         '</tr></thead>'+
         '<tbody>'+rowsHtml+'</tbody>'+
       '</table>'+
+    '</div>');
+}
+
+// ── Previsión de facturación ──────────────────
+function prfMesKey(str) {
+  // Normaliza strings de proforma.mes a YYYY-MM: acepta '2026-04', 'Abril 2026', 'abril-2026', etc.
+  if (!str) return '';
+  var s = String(str).trim();
+  // formato YYYY-MM directo
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  // formato 'Mes YYYY' o 'Mes-YYYY'
+  var mNames = {enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12};
+  var m = s.toLowerCase().match(/([a-záéíóú]+)[\s\-]+(\d{4})/);
+  if (!m) { m = s.toLowerCase().match(/(\d{4})[\s\-]+([a-záéíóú]+)/); if(m){var t=m[1];m[1]=m[2];m[2]=t;} }
+  if (m && mNames[m[1]]) return m[2]+'-'+String(mNames[m[1]]).padStart(2,'0');
+  return '';
+}
+
+function prfRenderPrevisionHtml(presKey, pres, proformas) {
+  var fmtE = function(n){ return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; };
+  var prev = getPrfPrev(presKey);
+  var hoy = new Date();
+  var mesHoy = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+
+  // Real facturado por mes (de proformas aprobadas/facturadas)
+  var realPorMes = {};
+  proformas.forEach(function(prf){
+    var mk = prfMesKey(prf.mes);
+    if (!mk) return;
+    var imp = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||0); },0);
+    if (prf.estado==='aprobada'||prf.estado==='facturada') realPorMes[mk] = (realPorMes[mk]||0) + imp;
+  });
+
+  // Generar lista de meses del rango
+  var meses = [];
+  if (prev.inicio && prev.fin) {
+    var cur = new Date(prev.inicio+'-01');
+    var end = new Date(prev.fin+'-01');
+    while (cur <= end) {
+      var mk = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0');
+      meses.push(mk);
+      cur.setMonth(cur.getMonth()+1);
+    }
+  }
+
+  var totPrev = meses.reduce(function(a,mk){ return a+(parseFloat(prev.meses&&prev.meses[mk])||0); },0);
+  var totReal = meses.reduce(function(a,mk){ return a+(realPorMes[mk]||0); },0);
+  var totalObra = parseFloat(pres.totalObra)||0;
+
+  var configHtml =
+    '<div class="card" style="padding:14px 16px;margin-bottom:14px">'+
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">'+
+        '<div>'+
+          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Mes inicio</label>'+
+          '<input type="month" id="prev-inicio" value="'+(prev.inicio||'')+'" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+        '</div>'+
+        '<div>'+
+          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Mes fin</label>'+
+          '<input type="month" id="prev-fin" value="'+(prev.fin||'')+'" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+        '</div>'+
+        '<div>'+
+          '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Total obra (€)</label>'+
+          '<input type="number" id="prev-total" value="'+(totalObra||'')+'" min="0" step="100" placeholder="0" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px">'+
+        '</div>'+
+        '<button class="btn" onclick="prfPrevActualizarRango()" style="font-size:12px;padding:6px 12px">Aplicar rango</button>'+
+        (meses.length?'<button class="btn" onclick="prfPrevDistribuir()" style="font-size:12px;padding:6px 12px" title="Reparte el total de la obra en partes iguales entre los meses del rango">⚖️ Distribuir igual</button>':'')+
+        '<button class="btn primary" onclick="prfPrevGuardar(\''+presKey+'\')" style="font-size:12px;padding:6px 12px">💾 Guardar previsión</button>'+
+      '</div>'+
     '</div>';
+
+  if (!meses.length) {
+    return configHtml +
+      '<div style="text-align:center;padding:32px;color:var(--text2);background:var(--bg2);border-radius:10px">'+
+        '<p style="font-size:15px;margin-bottom:6px">Define el rango de la obra</p>'+
+        '<p style="font-size:12px">Introduce el mes de inicio y fin y pulsa <strong>Aplicar rango</strong></p>'+
+      '</div>';
+  }
+
+  var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var rowsHtml = meses.map(function(mk){
+    var parts = mk.split('-');
+    var mesNombre = MESES_ES[parseInt(parts[1])-1]+' '+parts[0];
+    var prevImp = parseFloat((prev.meses||{})[mk])||0;
+    var real = realPorMes[mk]||0;
+    var diff = real - prevImp;
+    var esPasado = mk < mesHoy;
+    var esActual = mk === mesHoy;
+    var estado = '';
+    if (prevImp > 0) {
+      if (real >= prevImp)         estado = '<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">✅ Cumplido</span>';
+      else if (esPasado||esActual) estado = '<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">⚠️ Pendiente</span>';
+      else                         estado = '<span style="background:#f3f4f6;color:#6b7280;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">➡️ Próximo</span>';
+    }
+    var rowBg = esActual?'background:#fffbeb':esPasado&&prevImp>0&&real<prevImp?'background:#fff5f5':'';
+    return '<tr style="border-bottom:1px solid var(--border);'+rowBg+'">'+
+      '<td style="padding:8px 12px;font-weight:'+(esActual?'700':'500')+'">'+(esActual?'<span style="background:#f59e0b;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:4px">HOY</span>':'')+mesNombre+'</td>'+
+      '<td style="padding:8px 12px;text-align:right">'+
+        '<input type="number" min="0" step="100" value="'+(prevImp||'')+'" placeholder="0" '+
+        'id="prev-imp-'+mk+'" '+
+        'style="width:110px;text-align:right;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px">'+
+      '</td>'+
+      '<td style="padding:8px 12px;text-align:right;font-weight:'+(real>0?'700':'400')+';color:'+(real>0?'var(--success)':'var(--text2)')+'">'+fmtE(real)+'</td>'+
+      '<td style="padding:8px 12px;text-align:right;color:'+(diff>0?'#1a7c3e':diff<0?'#dc2626':'var(--text2)')+'">'+
+        (prevImp>0?(diff>=0?'+':'')+fmtE(diff):'—')+
+      '</td>'+
+      '<td style="padding:8px 12px">'+estado+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var pendiente = totPrev - totReal;
+
+  return configHtml +
+    '<div class="card" style="padding:0;overflow:auto">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
+          '<th style="padding:9px 12px;text-align:left">Mes</th>'+
+          '<th style="padding:9px 12px;text-align:right">Prev. pactada</th>'+
+          '<th style="padding:9px 12px;text-align:right">Real facturado</th>'+
+          '<th style="padding:9px 12px;text-align:right">Diferencia</th>'+
+          '<th style="padding:9px 12px;text-align:left">Estado</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rowsHtml+'</tbody>'+
+        '<tfoot><tr style="background:var(--bg2);border-top:2px solid var(--border);font-weight:700">'+
+          '<td style="padding:9px 12px">TOTAL</td>'+
+          '<td style="padding:9px 12px;text-align:right">'+fmtE(totPrev)+'</td>'+
+          '<td style="padding:9px 12px;text-align:right;color:var(--success)">'+fmtE(totReal)+'</td>'+
+          '<td style="padding:9px 12px;text-align:right;color:'+(pendiente>0?'#dc2626':'#1a7c3e')+'">'+
+            (totPrev>0?(pendiente>0?'−'+fmtE(pendiente):'+'+fmtE(Math.abs(pendiente))):'—')+
+          '</td>'+
+          '<td style="padding:9px 12px;font-size:11px;color:var(--text2)">'+
+            (totalObra>0?'Total obra: '+fmtE(totalObra):'')+
+          '</td>'+
+        '</tr></tfoot>'+
+      '</table>'+
+    '</div>';
+}
+
+function prfPrevActualizarRango() {
+  var pres = prfGetPres()||{};
+  var presKey = getPresKey(pres);
+  var prev = getPrfPrev(presKey);
+  prev.inicio = (document.getElementById('prev-inicio')||{}).value || '';
+  prev.fin    = (document.getElementById('prev-fin')||{}).value || '';
+  var tot = parseFloat((document.getElementById('prev-total')||{}).value)||0;
+  if (tot) { if(!pres.totalObra) pres.totalObra=tot; }
+  savePrfPrev(presKey, prev);
+  _prfPresObj = Object.assign({}, pres, {totalObra: tot||pres.totalObra||0});
+  prfRenderLista();
+}
+
+function prfPrevDistribuir() {
+  var pres = prfGetPres()||{};
+  var presKey = getPresKey(pres);
+  var prev = getPrfPrev(presKey);
+  var tot = parseFloat((document.getElementById('prev-total')||{}).value) || parseFloat(pres.totalObra)||0;
+  var inicio = (document.getElementById('prev-inicio')||{}).value || prev.inicio;
+  var fin    = (document.getElementById('prev-fin')||{}).value   || prev.fin;
+  if (!inicio||!fin||!tot) { toast('Introduce mes inicio, fin y total de obra primero', true); return; }
+  var meses = [];
+  var cur = new Date(inicio+'-01'), end = new Date(fin+'-01');
+  while (cur<=end){ meses.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')); cur.setMonth(cur.getMonth()+1); }
+  if (!meses.length) return;
+  var imp = Math.round(tot/meses.length*100)/100;
+  if (!prev.meses) prev.meses={};
+  meses.forEach(function(mk){ prev.meses[mk]=imp; });
+  // actualizar inputs directamente si existen
+  meses.forEach(function(mk){ var el=document.getElementById('prev-imp-'+mk); if(el) el.value=imp; });
+  savePrfPrev(presKey, prev);
+  toast('✅ Distribuido: '+fmtE(imp)+' / mes');
+}
+function prfPrevGuardar(presKey) {
+  var prev = getPrfPrev(presKey);
+  if (!prev.meses) prev.meses={};
+  // Recoger todos los inputs de importe
+  document.querySelectorAll('[id^="prev-imp-"]').forEach(function(inp){
+    var mk = inp.id.replace('prev-imp-','');
+    prev.meses[mk] = parseFloat(inp.value)||0;
+  });
+  prev.inicio = (document.getElementById('prev-inicio')||{}).value || prev.inicio;
+  prev.fin    = (document.getElementById('prev-fin')||{}).value   || prev.fin;
+  savePrfPrev(presKey, prev);
+  toast('✅ Previsión guardada');
 }
 
 // ── Abrir editor (nueva o existente) ─────────
