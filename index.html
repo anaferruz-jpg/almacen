@@ -2198,7 +2198,8 @@ function renderPartidas(){
           '</td>'+
         '</tr>';
       }).join('')+'</tbody></table></div>'+
-      '<div style="display:flex;justify-content:flex-end;margin-top:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'+
+        '<button class="btn danger" style="font-size:11px" onclick="borrarTodasPartidas()">🗑 Borrar TODAS las partidas</button>'+
         '<button class="btn primary" style="font-size:11px" onclick="guardarPartidas()">💾 Guardar cambios partidas</button>'+
       '</div>'+
     '</div>';
@@ -2255,6 +2256,18 @@ function confirmarEntregaManual(){
       renderPartidas();
       toast('Entrega registrada: +'+qty+' ud en '+p.material);
     });
+  });
+}
+
+function borrarTodasPartidas(){
+  if(!obraSeleccionada) return;
+  var n = (obraSeleccionada.partidas||[]).length;
+  if(!n){ toast('No hay partidas que borrar'); return; }
+  if(!confirm('⚠️ ¿Borrar las '+n+' partidas de "'+obraSeleccionada.nombre+'"?\n\nSe perderán los datos de contratado y suministrado.\nEl historial de salidas NO se borra.\n\n¿Continuar?')) return;
+  obraSeleccionada.partidas = [];
+  guardarPartidasSilencioso(function(){
+    renderPartidas();
+    toast('✅ Todas las partidas eliminadas. Ahora exporta el presupuesto desde facturación.');
   });
 }
 
