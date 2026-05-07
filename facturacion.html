@@ -5122,8 +5122,15 @@ function _expAlmRevisar() {
     '</tr>';
   }).join('');
 
+  var _cntV = _expAlmItems.filter(function(x){return x.tipo==='venta';}).length;
+  var _cntA = _expAlmItems.filter(function(x){return x.tipo==='alquiler';}).length;
+  var _cntP = _expAlmItems.filter(function(x){return x.tipo==='personal';}).length;
+  var _resumen = '<span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:4px">🔧 Venta: '+_cntV+'</span>'+
+                 '<span style="background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:4px">📦 Alquiler: '+_cntA+'</span>'+
+                 (_cntP?'<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:11px">👷 Personal: '+_cntP+'</span>':'');
   inner.innerHTML =
     '<h3 style="margin:0 0 4px">📦 Revisión de partidas — <span style="font-weight:400;font-size:14px">'+obra.nombre+'</span></h3>'+
+    '<div style="margin-bottom:8px">'+_resumen+'</div>'+
     '<p style="color:var(--text2);font-size:12px;margin-bottom:12px">Solo se actualizará <strong>CONTRATADO</strong>. Lo ya entregado/suministrado queda intacto. Desmarca las filas que no quieras exportar.</p>'+
     '<table style="width:100%;border-collapse:collapse;font-size:13px">'+
       '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
@@ -7124,7 +7131,8 @@ function presRecoger() {
   var total=tV+tA+tMO;
   var rawDriveUrl = (document.getElementById('ped-carpeta-drive')||{value:''}).value.trim();
   var presCarpetaId = extraerIdCarpetaDrive(rawDriveUrl) || (rawDriveUrl.length > 20 && !/\s/.test(rawDriveUrl) ? rawDriveUrl : '');
-  return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), tipoContrato:document.getElementById('ped-tipo-contrato').value||'cerrado', carpetaDriveId:presCarpetaId, ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
+  var nPlants = parseFloat((document.getElementById('pmed-nplantas')||{value:'3'}).value)||3;
+  return {numOferta:document.getElementById('ped-oferta').value.trim(), fecha:document.getElementById('ped-fecha').value, estado:document.getElementById('ped-estado').value, att:document.getElementById('ped-att').value.trim(), cliente:document.getElementById('ped-cliente').value.trim(), proyecto:document.getElementById('ped-proyecto').value.trim(), tipoContrato:document.getElementById('ped-tipo-contrato').value||'cerrado', carpetaDriveId:presCarpetaId, nPlants:nPlants, ventaItems:vItems, alquilerItems:aItems, moItems:moItems, descuentoVenta:descV, descuentoAlquiler:descA, totalVenta:tV, totalAlquiler:tA, totalMO:tMO, totalObra:total, iva:total*0.21, totalConIva:total*1.21, medicion:presGetMedicion(), planning:presGetPlanning()};
 }
 
 function presGuardar() {
