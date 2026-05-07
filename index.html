@@ -4009,7 +4009,7 @@ function guardarObraSilencioso(obraObj, cb) {
 // Resetea suministrado + entregas en todas las partidas y reprocesa
 // todas las salidas del historial en orden cronológico.
 // Guarda las obras de forma secuencial para no saturar la API.
-function recalcularSuministradoTodo() {
+function recalcularSuministradoTodo(skipConfirm) {
   // Diagnóstico previo — informar si los datos aún no están cargados
   if (!OBRAS || !OBRAS.length) {
     alert('⚠️ Las obras aún no están cargadas.\nEspera a que la página termine de cargar y vuelve a intentarlo.');
@@ -4038,7 +4038,7 @@ function recalcularSuministradoTodo() {
       && h.obra && Array.isArray(h.items) && h.items.length;
   }).length;
 
-  if (!confirm(
+  if (!skipConfirm && !confirm(
     '🔄 REGULARIZAR SUMINISTRADO DESDE HISTORIAL\n\n' +
     'Obras con partidas: ' + obrasConPartidas + '\n' +
     'Salidas en historial: ' + salidasTotal + '\n' +
@@ -4128,7 +4128,20 @@ function recalcularSuministradoTodo() {
           // Comprobar si el usuario ha guardado un mapeo manual para este material+obra
           var _obraKeyMap = (h.obra||'').toLowerCase().trim();
           var _mappedNorm = _matMap[_obraKeyMap+':'+matNorm];
-          if (_mappedNorm) {
+          if (_mappedNorm === '__extra__') {
+            // El usuario eligió explícitamente "Mantener como EXTRA" → registrar sin aviso
+            obraObj.partidas.push({
+              partida:      '⚠️ EXTRAS (no planificadas)',
+              material:     c.nombre,
+              contratado:   0,
+              suministrado: qtyRestante,
+              ud:           c.ud || 'ud',
+              tipo:         'venta',
+              extra:        true,
+              entregas:     [{ fecha: h.fecha, qty: qtyRestante, resp: h.resp||'' }]
+            });
+            // No añadir a sinPartida → no aparece en el aviso
+          } else if (_mappedNorm) {
             // Usar el nombre de partida mapeado por el usuario
             var mappedMatch = null;
             for (var jj=0; jj<obraObj.partidas.length; jj++) {
@@ -4143,7 +4156,7 @@ function recalcularSuministradoTodo() {
             } else { _mappedNorm = null; } // mapeo ya no existe, tratar como extra
           }
           if (!_mappedNorm) {
-            // No hay partida con ese nombre → crear partida extra para que quede registrada
+            // No hay partida con ese nombre → crear partida extra y pedir asignación
             var nuevaPartida = {
               partida:     '⚠️ EXTRAS (no planificadas)',
               material:    c.nombre,
@@ -5400,14 +5413,19 @@ function guardarMapeoYResincronizar() {
   var map = getMaterialMapping();
   var sels = document.querySelectorAll('.sinc-mat-sel');
   sels.forEach(function(sel) {
-    if (!sel.value) return;
     var obraKey = (sel.dataset.obra||'').toLowerCase().trim();
     var matNorm = sel.dataset.mat;
-    map[obraKey+':'+matNorm] = normalizarMat(sel.value);
+    if (!sel.value) {
+      // "Mantener como EXTRA" → guardar flag especial para no preguntar de nuevo
+      map[obraKey+':'+matNorm] = '__extra__';
+    } else {
+      map[obraKey+':'+matNorm] = normalizarMat(sel.value);
+    }
   });
   saveMaterialMapping(map);
   document.getElementById('sinc-modal').style.display='none';
-  setTimeout(function(){ recalcularSuministradoTodo(); }, 100);
+  // Re-sincronizar sin pedir confirmación (ya la dio antes)
+  setTimeout(function(){ recalcularSuministradoTodo(true); }, 100);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
