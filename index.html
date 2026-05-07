@@ -2467,13 +2467,13 @@ function mostrarDiagnosticoObra(){
       h.tipo==='pedido'?'✅ Pedido entregado':'?';
     (Array.isArray(h.items)?h.items:[]).forEach(function(item){
       var normItem=normalizarMat(item.nombre);
-      // Buscar partida coincidente
+      // Buscar partida coincidente (exacta o difusa)
       var match=null;
       if(item.pidx!==undefined&&o.partidas[item.pidx]){
         match=o.partidas[item.pidx];
       } else {
         match=(o.partidas||[]).find(function(p){
-          return !p.extra && normalizarMat(p.material)===normItem;
+          return !p.extra && _fuzzyMatchMat(normalizarMat(p.material), normItem);
         });
       }
       filas.push({
@@ -4086,10 +4086,11 @@ function recalcularSuministradoTodo() {
       var qtyRestante = parseFloat(c.qty)||0;
       if (!matNorm || qtyRestante <= 0) return;
 
-      // First-fit: partidas con capacidad disponible (match por nombre normalizado)
+      // First-fit: partidas con capacidad disponible (match exacto por nombre normalizado)
       obraObj.partidas.forEach(function(p) {
         if (qtyRestante <= 0) return;
-        if (normalizarMat(p.material) !== matNorm) return;
+        if (!_fuzzyMatchMat(normalizarMat(p.material), matNorm)) return;
+        if (p.extra) return; // no contar en extras
         var disponible = Math.max(0, (p.contratado||0) - (p.suministrado||0));
         if (disponible <= 0) return;
         var aSuministrar = Math.min(qtyRestante, disponible);
@@ -4099,9 +4100,10 @@ function recalcularSuministradoTodo() {
       });
 
       if (qtyRestante > 0) {
+        // Buscar primera partida coincidente (exacta o difusa)
         var firstMatch = null;
         for (var j=0; j<obraObj.partidas.length; j++) {
-          if (normalizarMat(obraObj.partidas[j].material) === matNorm) {
+          if (!obraObj.partidas[j].extra && _fuzzyMatchMat(normalizarMat(obraObj.partidas[j].material), matNorm)) {
             firstMatch = obraObj.partidas[j]; break;
           }
         }
@@ -5302,6 +5304,25 @@ var MAT_NORM_MAP = (function(){
   Object.keys(rev).forEach(function(k){ if(!m[k]) m[k] = rev[k]; });
   return m;
 })();
+
+// ── Matching difuso entre nombres normalizados ───────────────────
+// Devuelve true si normA y normB son suficientemente similares
+// para considerar que son el mismo material
+function _fuzzyMatchMat(normA, normB) {
+  if (!normA || !normB) return false;
+  if (normA === normB) return true;
+  // Si uno contiene al otro completamente → coincidencia (ej. nombre historial más largo)
+  if (normA.indexOf(normB) >= 0 || normB.indexOf(normA) >= 0) return true;
+  // Solapamiento de palabras (ignora palabras cortas ≤2 chars)
+  var wa = normA.split(/\s+/).filter(function(w){ return w.length > 2; });
+  var wb = normB.split(/\s+/).filter(function(w){ return w.length > 2; });
+  if (!wa.length || !wb.length) return false;
+  var common = wa.filter(function(w){
+    return wb.some(function(x){ return x.indexOf(w) >= 0 || w.indexOf(x) >= 0; });
+  }).length;
+  // Requiere ≥70% de palabras coincidentes sobre el nombre más corto
+  return common / Math.min(wa.length, wb.length) >= 0.70;
+}
 
 function normalizarMat(nombre) {
   var k = (nombre||'')

@@ -687,6 +687,13 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- ══════ MODAL EXPORTAR A ALMACÉN ══════ -->
+<div id="modal-exportar-almacen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1050;overflow:auto;align-items:center;justify-content:center">
+  <div id="modal-exportar-almacen-inner" style="background:var(--bg);border-radius:12px;max-width:860px;width:95vw;margin:24px auto;padding:24px;position:relative;max-height:90vh;overflow-y:auto">
+    <p style="color:var(--text2)">Cargando…</p>
+  </div>
+</div>
+
 <!-- ══════ MODAL PROFORMAS ══════ -->
 <div id="crm-proforma-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1001;overflow:auto">
   <div style="background:var(--bg);border-radius:12px;max-width:980px;margin:24px auto;padding:24px;position:relative">
@@ -743,6 +750,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" onclick="presGenerarPDF()">🖨️ Generar PDF</button>
         <button class="btn" id="btn-pres-drive" onclick="presGuardarEnDrive()" style="display:none">📁 Guardar en Drive</button>
+        <button class="btn" id="btn-pres-exportar-alm" onclick="presExportarAlmacen()" style="display:none" title="Sincronizar partidas del presupuesto con la obra en Almacén">📦 Exportar a Almacén</button>
         <button class="btn primary" onclick="presGuardar()">💾 Guardar</button>
         <button class="btn" onclick="presVolverLista()">← Volver</button>
       </div>
@@ -4886,6 +4894,215 @@ function obraEjSetEstado(pKey, estado) {
 }
 
 // ══════════════════════════════════════════════
+// EXPORTAR PRESUPUESTO A ALMACÉN
+// ══════════════════════════════════════════════
+
+// ── Helpers de matching difuso ────────────────
+function _normMatch(s) {
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function _fuzzyScore(a, b) {
+  var na = _normMatch(a), nb = _normMatch(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.indexOf(nb) >= 0 || nb.indexOf(na) >= 0) return 0.9;
+  var wa = na.split(' ').filter(function(w){ return w.length > 1; });
+  var wb = nb.split(' ').filter(function(w){ return w.length > 1; });
+  if (!wa.length || !wb.length) return 0;
+  var common = wa.filter(function(w){
+    return wb.some(function(x){ return x.indexOf(w)>=0 || w.indexOf(x)>=0; });
+  }).length;
+  return common / Math.max(wa.length, wb.length);
+}
+
+var _expAlmObras   = [];
+var _expAlmObra    = null;
+var _expAlmItems   = [];
+var _expAlmMatches = [];
+
+function presExportarAlmacen() {
+  // Recoger presupuesto actual del DOM (estado vivo)
+  var pres = presRecoger();
+  // Construir lista de items a exportar (venta + alquiler con medición > 0)
+  var items = [];
+  (pres.ventaItems||[]).forEach(function(it){
+    if ((parseFloat(it.medicion)||0) <= 0) return;
+    items.push({ partida:'FUNGIBLES', material:it.desc, ud:it.ud||'ud', contratado:parseFloat(it.medicion)||0, tipo:'venta' });
+  });
+  (pres.alquilerItems||[]).forEach(function(it){
+    if ((parseFloat(it.medicion)||0) <= 0) return;
+    items.push({ partida:'ALQUILER', material:it.desc, ud:it.ud||'ml', contratado:parseFloat(it.medicion)||0, tipo:'alquiler' });
+  });
+  if (!items.length) { toast('El presupuesto no tiene partidas con medición > 0', true); return; }
+  _expAlmItems = items;
+
+  var modal = document.getElementById('modal-exportar-almacen');
+  var inner = document.getElementById('modal-exportar-almacen-inner');
+  modal.style.display = 'flex';
+  inner.innerHTML = '<p style="color:var(--text2);padding:20px">Cargando obras de almacén…</p>';
+
+  callAPI('getObras', function(err, obras) {
+    if (err || !Array.isArray(obras) || !obras.length) {
+      inner.innerHTML = '<p style="color:#dc2626;padding:20px">Error al cargar obras de almacén. Comprueba la conexión.</p>'+
+        '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cerrar</button></div>';
+      return;
+    }
+    _expAlmObras = obras;
+    // Auto-sugerir obra por similitud de nombre con pres.proyecto
+    var scored = obras.map(function(o, i){ return {i:i, s:_fuzzyScore(o.nombre, pres.proyecto||'')}; });
+    scored.sort(function(a,b){ return b.s-a.s; });
+    var bestIdx = scored[0].i;
+    _expAlmRenderSelector(pres, bestIdx);
+  });
+}
+
+function _expAlmRenderSelector(pres, defaultIdx) {
+  var inner = document.getElementById('modal-exportar-almacen-inner');
+  var opts = _expAlmObras.map(function(o, i){
+    var score = _fuzzyScore(o.nombre, pres.proyecto||'');
+    var star = score >= 0.4 ? ' ⭐' : '';
+    return '<option value="'+i+'"'+(i===defaultIdx?' selected':'')+'>'+o.nombre+star+'</option>';
+  }).join('');
+
+  inner.innerHTML =
+    '<h3 style="margin:0 0 8px">📦 Exportar a Almacén</h3>'+
+    '<p style="color:var(--text2);font-size:13px;margin-bottom:16px">Presupuesto: <strong>'+(pres.proyecto||'Sin nombre')+'</strong> — '+_expAlmItems.length+' partidas con medición</p>'+
+    '<div class="form-group">'+
+      '<label style="font-weight:600">Selecciona la obra en almacén:</label>'+
+      '<select id="exp-alm-sel" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;margin-top:4px">'+opts+'</select>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:4px">⭐ = coincidencia sugerida automáticamente</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">'+
+      '<button class="btn" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cancelar</button>'+
+      '<button class="btn primary" onclick="_expAlmRevisar()">Siguiente → Revisar partidas</button>'+
+    '</div>';
+}
+
+function _expAlmRevisar() {
+  var sel = document.getElementById('exp-alm-sel');
+  if (!sel) return;
+  var obraIdx = parseInt(sel.value);
+  var obra = _expAlmObras[obraIdx];
+  _expAlmObra = obra;
+  var partidas = obra.partidas || [];
+
+  // Matching: cada item del presupuesto → mejor partida existente en almacén
+  _expAlmMatches = _expAlmItems.map(function(item){
+    var bestScore = 0, bestPartida = null, bestIdx = -1;
+    partidas.forEach(function(ep, ei){
+      var s = _fuzzyScore(item.material, ep.material);
+      if (s > bestScore) { bestScore = s; bestPartida = ep; bestIdx = ei; }
+    });
+    return {
+      item:     item,
+      match:    bestScore >= 0.35 ? bestPartida : null,
+      matchIdx: bestScore >= 0.35 ? bestIdx : -1,
+      score:    bestScore,
+      accion:   bestScore >= 0.70 ? 'update' : bestScore >= 0.35 ? 'revisar' : 'nuevo'
+    };
+  });
+
+  var inner = document.getElementById('modal-exportar-almacen-inner');
+  var rows = _expAlmMatches.map(function(m, mi){
+    var icon  = m.accion==='update' ? '✅' : m.accion==='revisar' ? '⚠️' : '➕';
+    var color = m.accion==='update' ? '#065f46' : m.accion==='revisar' ? '#92400e' : '#1e40af';
+    var bgRow = m.accion==='update' ? '#f0fdf4' : m.accion==='revisar' ? '#fffbeb' : '#eff6ff';
+    var matchCell = m.match
+      ? '<strong>'+m.match.material+'</strong><br><span style="font-size:11px;color:var(--text2)">'+(Math.round(m.score*100))+'% coincidencia</span>'
+      : '<em style="color:var(--text2)">Sin coincidencia — se creará nueva</em>';
+    var entregado = m.match ? (m.match.suministrado||m.match.entregado||0) : '—';
+    var accionLabel = m.accion==='update' ? 'Actualizar contratado' : m.accion==='revisar' ? 'Actualizar (revisar)' : 'Crear nueva partida';
+    return '<tr style="border-bottom:1px solid var(--border);background:'+bgRow+'">'+
+      '<td style="padding:8px;text-align:center"><input type="checkbox" id="exp-chk-'+mi+'" checked style="width:16px;height:16px;cursor:pointer"></td>'+
+      '<td style="padding:8px"><strong>'+m.item.material+'</strong><br><span style="font-size:12px;color:var(--text2)">'+m.item.contratado+' '+m.item.ud+'</span></td>'+
+      '<td style="padding:8px">'+matchCell+'</td>'+
+      '<td style="padding:8px;text-align:center;font-weight:600">'+entregado+'</td>'+
+      '<td style="padding:8px"><span style="font-size:12px;font-weight:600;color:'+color+'">'+icon+' '+accionLabel+'</span></td>'+
+    '</tr>';
+  }).join('');
+
+  inner.innerHTML =
+    '<h3 style="margin:0 0 4px">📦 Revisión de partidas — <span style="font-weight:400;font-size:14px">'+obra.nombre+'</span></h3>'+
+    '<p style="color:var(--text2);font-size:12px;margin-bottom:12px">Solo se actualizará <strong>CONTRATADO</strong>. Lo ya entregado/suministrado queda intacto. Desmarca las filas que no quieras exportar.</p>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">'+
+      '<thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border)">'+
+        '<th style="padding:8px;width:40px">✓</th>'+
+        '<th style="padding:8px;text-align:left">PRESUPUESTO</th>'+
+        '<th style="padding:8px;text-align:left">PARTIDA EN ALMACÉN</th>'+
+        '<th style="padding:8px;text-align:center">ENTREGADO</th>'+
+        '<th style="padding:8px;text-align:left">ACCIÓN</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap">'+
+      '<button class="btn" onclick="presExportarAlmacen()">← Volver</button>'+
+      '<button class="btn" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cancelar</button>'+
+      '<button class="btn primary" onclick="_expAlmConfirmar()">💾 Confirmar y exportar</button>'+
+    '</div>';
+}
+
+function _expAlmConfirmar() {
+  var obra    = _expAlmObra;
+  var matches = _expAlmMatches;
+  if (!obra) return;
+
+  // Copia de partidas actuales de la obra
+  var partidas = (obra.partidas||[]).map(function(p){ return Object.assign({}, p); });
+  var nuevas = 0, actualizadas = 0;
+
+  matches.forEach(function(m, mi){
+    var chk = document.getElementById('exp-chk-'+mi);
+    if (!chk || !chk.checked) return; // desmarcado → saltar
+
+    if (m.matchIdx >= 0) {
+      // Actualizar solo contratado de la partida existente
+      partidas[m.matchIdx].contratado = m.item.contratado;
+      actualizadas++;
+    } else {
+      // Crear nueva partida
+      partidas.push({
+        partida:     m.item.partida,
+        material:    m.item.material,
+        ud:          m.item.ud,
+        contratado:  m.item.contratado,
+        suministrado: 0,
+        entregado:   0,
+        entregas:    [],
+        tipo:        m.item.tipo
+      });
+      nuevas++;
+    }
+  });
+
+  var inner = document.getElementById('modal-exportar-almacen-inner');
+  inner.innerHTML = '<p style="color:var(--text2);padding:20px">Guardando en almacén…</p>';
+
+  var payload = Object.assign({}, obra, {
+    action:         'saveObra',
+    partidas:       partidas,
+    nombreOriginal: obra.nombre
+  });
+  postAPI(payload, function(err, res){
+    if (err || !(res&&res.ok)) {
+      inner.innerHTML = '<p style="color:#dc2626;padding:20px">Error al guardar: '+(err||'respuesta no OK')+'</p>'+
+        '<div style="text-align:right"><button class="btn" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cerrar</button></div>';
+      return;
+    }
+    inner.innerHTML =
+      '<div style="text-align:center;padding:32px">'+
+        '<div style="font-size:48px;margin-bottom:12px">✅</div>'+
+        '<h3 style="margin:0 0 8px">¡Exportación completada!</h3>'+
+        '<p style="color:var(--text2)"><strong>'+actualizadas+'</strong> partidas actualizadas · <strong>'+nuevas+'</strong> partidas nuevas creadas</p>'+
+        '<p style="color:var(--text2);font-size:12px;margin-top:4px">Lo entregado y suministrado no ha sido modificado.</p>'+
+        '<button class="btn primary" style="margin-top:16px" onclick="document.getElementById(\'modal-exportar-almacen\').style.display=\'none\'">Cerrar</button>'+
+      '</div>';
+  });
+}
+
+// ══════════════════════════════════════════════
 // PROFORMAS
 // ══════════════════════════════════════════════
 var _prfObraIdx = -1;
@@ -5058,20 +5275,52 @@ function prfRenderPrevisionHtml(presKey, pres, proformas) {
   // ── Real facturado por mes ──────────────────────────────────────
   // 1) Facturas de esta obra (fuente principal: importes reales emitidos)
   var realPorMes = {};
-  var obraNorm = (pres.proyecto||'').toLowerCase().trim();
+  var obraNorm    = (pres.proyecto||'').toLowerCase().trim();
+  var codObraNorm = (pres.numOferta||pres.codObra||'').toLowerCase().trim();
+  // Helper: ¿coincide esta factura con esta obra?
+  function _facMatchObra(f) {
+    var fObra    = (f.obra||'').toLowerCase().trim();
+    var fCodObra = (f.codObra||'').toLowerCase().trim();
+    // Por código de obra (más fiable)
+    if (codObraNorm && fCodObra && fCodObra === codObraNorm) return true;
+    // Por nombre exacto o parcial (una contiene a la otra)
+    if (!obraNorm || !fObra) return false;
+    if (fObra === obraNorm) return true;
+    if (fObra.indexOf(obraNorm) >= 0) return true;
+    if (obraNorm.indexOf(fObra) >= 0) return true;
+    return false;
+  }
+  console.log('[PREV-DEBUG] obraNorm=', obraNorm, 'codObraNorm=', codObraNorm);
+  console.log('[PREV-DEBUG] facturas totales=', (facturas||[]).length, 'proformas=', proformas.length);
+  console.log('[PREV-DEBUG] proformas detalle=', JSON.stringify(proformas.map(function(p){return {est:p.estado,num:p.facturaNum,mes:p.mes};})));
+  var _facIdsContados = {};
   (facturas||[]).forEach(function(f){
     if (!f.fecha || f.estado==='borrador') return;
-    var fObra = (f.obra||'').toLowerCase().trim();
-    if (!obraNorm || !fObra) return;
-    // match exacto o parcial (la obra puede estar abreviada en la factura)
-    if (fObra !== obraNorm && fObra.indexOf(obraNorm)<0 && obraNorm.indexOf(fObra)<0) return;
+    var match = _facMatchObra(f);
+    if (!match) return;
     var mk = _dateToMk(f.fecha);
     if (!mk) return;
+    console.log('[PREV-DEBUG] match por nombre:', f.numero, 'obra=', f.obra, 'base=', f.base, 'mes=', mk);
     realPorMes[mk] = (realPorMes[mk]||0) + (parseFloat(f.base)||0);
+    if (f.numero) _facIdsContados[f.numero] = true;
   });
-  // 2) Proformas aprobadas sin factura generada (complemento)
+  // 2) Fallback por proformas facturadas: buscar la factura real por facturaNum
+  //    (cubre casos donde f.obra no coincide con pres.proyecto pero sí está vinculada)
   proformas.forEach(function(prf){
-    if (prf.estado!=='aprobada') return; // 'facturada' ya contada en facturas
+    if (prf.estado !== 'facturada' || !prf.facturaNum) return;
+    if (_facIdsContados[prf.facturaNum]) return; // ya contada por nombre
+    var fac = (facturas||[]).find(function(f){ return f.numero === prf.facturaNum; });
+    console.log('[PREV-DEBUG] fallback prf', prf.facturaNum, '→ fac=', fac ? fac.numero : 'NO ENCONTRADA', fac ? 'base='+fac.base : '');
+    if (!fac || !fac.fecha || fac.estado === 'borrador') return;
+    var mk = _dateToMk(fac.fecha);
+    if (!mk) return;
+    realPorMes[mk] = (realPorMes[mk]||0) + (parseFloat(fac.base)||0);
+    _facIdsContados[prf.facturaNum] = true;
+  });
+  console.log('[PREV-DEBUG] realPorMes final=', JSON.stringify(realPorMes));
+  // 3) Proformas aprobadas sin factura generada (complemento)
+  proformas.forEach(function(prf){
+    if (prf.estado!=='aprobada') return; // 'facturada' ya contada arriba
     var mk = prfMesKey(prf.mes);
     if (!mk || realPorMes[mk]) return;  // no sobreescribir si ya hay factura
     var imp = prf.total || (prf.lineas||[]).reduce(function(a,l){ return a+(l.mes||0)*(l.precioUnit||0); },0);
@@ -6556,6 +6805,9 @@ function presCalcTotales() {
   document.getElementById('pres-res-total').textContent=presFmtE(total);
   document.getElementById('pres-res-iva').textContent=presFmtE(iva);
   document.getElementById('pres-res-total-iva').textContent=presFmtE(total+iva);
+  // Mostrar/ocultar botón exportar almacén según haya mediciones
+  var btnExp = document.getElementById('btn-pres-exportar-alm');
+  if (btnExp) btnExp.style.display = (tV>0||tA>0) ? 'inline-flex' : 'none';
 }
 
 var _escAttr=function(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
@@ -6635,6 +6887,10 @@ function presAbrirEditor(p) {
   document.getElementById('ped-carpeta-drive').value = carpetaVal;
   document.getElementById('btn-ped-drive-abrir').style.display = carpetaVal ? '' : 'none';
   document.getElementById('btn-pres-drive').style.display = _folderId ? 'inline-flex' : 'none';
+  // Mostrar botón "Exportar a Almacén" si hay items en el presupuesto
+  var tieneItemsAlm = (p.ventaItems||[]).some(function(it){ return (parseFloat(it.medicion)||0)>0; }) ||
+                      (p.alquilerItems||[]).some(function(it){ return (parseFloat(it.medicion)||0)>0; });
+  document.getElementById('btn-pres-exportar-alm').style.display = tieneItemsAlm ? 'inline-flex' : 'none';
   document.getElementById('ped-carpeta-drive').oninput = function() {
     document.getElementById('btn-ped-drive-abrir').style.display = this.value ? '' : 'none';
   };
