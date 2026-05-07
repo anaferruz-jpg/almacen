@@ -2116,6 +2116,90 @@ function renderPartidas(){
     var totS=lineas.reduce(function(a,l){return a+(l.suministrado||0);},0);
     var pct=totC>0?Math.round(totS/totC*100):0;
     var color=pct>=100?'var(--danger)':pct>75?'var(--warn)':'var(--success)';
+
+    // ── Render especial para 👷 PERSONAL ──────────────────────────────
+    if (partida === '👷 PERSONAL') {
+      var mesLineas   = lineas.filter(function(l){ return /^MES \d+/i.test(l.material); });
+      var otrasLineas = lineas.filter(function(l){ return !/^MES \d+/i.test(l.material); });
+      // Ordenar por número de mes
+      mesLineas.sort(function(a,b){
+        var na=parseInt((a.material.match(/^MES (\d+)/i)||[0,0])[1]);
+        var nb=parseInt((b.material.match(/^MES (\d+)/i)||[0,0])[1]);
+        return na-nb;
+      });
+      var totalPrev = mesLineas.reduce(function(a,l){return a+(l.contratado||0);},0);
+      var totalReal = mesLineas.reduce(function(a,l){return a+(l.suministrado||0);},0);
+      var pctP = totalPrev>0?Math.round(totalReal/totalPrev*100):0;
+      var colorP = pctP>=100?'var(--success)':pctP>60?'var(--warn)':'var(--text2)';
+      var thCols='', faseCols='', prevCols='', realCols='';
+      mesLineas.forEach(function(l){
+        var pidx = o.partidas.indexOf(l);
+        var mNum = (l.material.match(/^MES (\d+)/i)||['','?'])[1];
+        var fase = (l.material.match(/^MES \d+\s*[··\-]\s*(.+)$/i)||['',''])[1].trim();
+        var prev = l.contratado||0;
+        var real = l.suministrado||0;
+        var done = prev>0 && real>=prev;
+        var bgH = done?'background:#eaf3de':'background:#f5f0ea';
+        thCols   += '<th style="text-align:center;min-width:72px;padding:5px 4px;'+bgH+';color:var(--primary);font-size:11px;font-weight:700;border-radius:4px 4px 0 0">MES '+mNum+'</th>';
+        faseCols += '<td style="text-align:center;font-size:9px;color:var(--text2);padding:2px 4px;letter-spacing:.04em">'+fase+'</td>';
+        prevCols += '<td style="text-align:center;padding:6px 4px;font-weight:700;font-size:13px;color:var(--text)">'+prev+'<span style="font-size:9px;font-weight:400;color:var(--text2);margin-left:2px">op</span></td>';
+        realCols += '<td style="text-align:center;padding:4px 4px">'+
+          '<input type="number" value="'+real+'" min="0" step="1" '+
+          'style="width:52px;text-align:center;padding:4px 2px;font-size:13px;font-weight:700;border:1.5px solid '+(done?'var(--success)':'var(--border)')+';border-radius:6px;background:'+(done?'#eaf3de':'var(--bg)')+';color:'+(done?'var(--success)':'var(--text)')+'" '+
+          'onchange="actualizarSuministrado('+pidx+',this.value)">'+
+        '</td>';
+      });
+      var mesTabla = mesLineas.length ? (
+        '<div style="overflow-x:auto;margin-bottom:'+(otrasLineas.length?'12px':'0')+'">' +
+        '<table style="border-collapse:separate;border-spacing:3px 0;font-size:12px;margin:0 auto">' +
+          '<thead>' +
+            '<tr><th style="min-width:70px"></th>'+thCols+'</tr>' +
+            '<tr><td></td>'+faseCols+'</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            '<tr>' +
+              '<td style="font-size:10px;font-weight:600;color:var(--text2);padding:6px 6px 4px;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em">Previsto</td>' +
+              prevCols +
+            '</tr>' +
+            '<tr>' +
+              '<td style="font-size:10px;font-weight:700;color:var(--primary);padding:4px 6px 6px;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em">Real</td>' +
+              realCols +
+            '</tr>' +
+          '</tbody>' +
+        '</table>' +
+        '<div style="text-align:right;font-size:11px;color:'+colorP+';margin-top:4px;font-weight:600">'+totalReal+' / '+totalPrev+' op·mes realizados</div>' +
+        '</div>'
+      ) : '';
+      // Otras partidas (OPERARIO DÍA, HORA EXTRA…) en formato compacto
+      var otrasTabla = otrasLineas.length ? (
+        '<table style="width:100%;font-size:12px;border-collapse:collapse"><tbody>' +
+        otrasLineas.map(function(l){
+          var pidx2=o.partidas.indexOf(l);
+          var pend2=(l.contratado||0)-(l.suministrado||0);
+          return '<tr>'+
+            '<td style="padding:5px 4px;font-size:11px;color:var(--text)">'+l.material+'</td>'+
+            '<td style="padding:5px 4px;text-align:right;color:var(--text2)">'+l.contratado+' '+(l.ud||'ud')+'</td>'+
+            '<td style="text-align:right;padding:5px 4px">'+
+              '<input type="number" value="'+(l.suministrado||0)+'" min="0" step="0.01" class="partida-input" onchange="actualizarSuministrado('+pidx2+',this.value)">'+
+            '</td>'+
+            '<td style="text-align:right;padding:5px 4px;font-weight:600;color:'+(pend2<0?'var(--danger)':pend2===0?'var(--success)':'inherit')+'">'+pend2.toFixed(pend2%1===0?0:2)+'</td>'+
+          '</tr>';
+        }).join('')+
+        '</tbody></table>'
+      ) : '';
+      return '<div class="partida-card">'+
+        '<div class="partida-header">'+
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">'+partida+'</div>'+
+          '<span class="badge '+(pctP>=100?'ok':pctP>60?'warn':'')+'">'+pctP+'% completado</span>'+
+        '</div>'+
+        '<div style="background:#e0e0e0;border-radius:4px;height:5px;margin-bottom:12px;overflow:hidden">'+
+          '<div style="height:100%;background:'+colorP+';border-radius:4px;width:'+Math.min(pctP,100)+'%"></div>'+
+        '</div>'+
+        mesTabla + otrasTabla +
+      '</div>';
+    }
+    // ── Render normal para el resto de partidas ────────────────────────
+
     return '<div class="partida-card">'+
       '<div class="partida-header">'+
         '<div style="font-size:13px;font-weight:600;color:var(--text)">'+partida+'</div>'+
