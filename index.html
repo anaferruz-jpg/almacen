@@ -5164,6 +5164,8 @@ var MAT_NORM_MAP = (function(){
     'codo - anclaje lateral - soporte de 160 en l para guardacuderpo': C.SOP160,
     'codo anclaje lateral soporte de 160 en l':      C.SOP160,
     'anclaje lateral soporte de 160 en l':           C.SOP160,
+    'base codo 160 en l guardacuerpo':               C.SOP160,  // EQUIPOS_DEF codos y mástil
+    'base codo 160 en l':                            C.SOP160,
     // ── RODAPIÉ ───────────────────────────────────────────────────
     'rodapie 2,5m':                            C.ROD25,
     'rodapié 2,5m':                            C.ROD25,
@@ -5240,7 +5242,9 @@ var MAT_NORM_MAP = (function(){
     'taco d12 corto anclaje m10x70 d/12':     C.TAD12C,
     'taco d12':                               C.TAD12C,
     'taco d12 m-10x70':                       C.TAD12C,
-    // ── CÁNCAMO ARGOLLA D10 ───────────────────────────────────────
+    // ── CÁNCAMO / TACO ARGOLLA D10 ───────────────────────────────
+    'taco d10 anclaje m8x60':                C.CAN10,  // EQUIPOS_DEF barandilla: TACO D10 ANCLAJE M8x60
+    'taco d10 anclaje':                      C.CAN10,
     'cancamo argolla d10 m8x60':              C.CAN10,
     'cancamo argolla d10 m 8x60':            C.CAN10,
     'cancamo argolla d10 m-8x60':            C.CAN10,
@@ -5273,6 +5277,7 @@ var MAT_NORM_MAP = (function(){
     'linea de vida luisa300':                           C.LV20,
     'linea de vida 20m c/mochila':                      C.LV20,
     'linea de vida 20m':                                C.LV20,
+    'luisa 300 linea vida horizontal 2p con mochila':   C.LV20,  // EQUIPOS_DEF: nombre real del artículo
     // ── POSTE / BASE LDV ──────────────────────────────────────────
     'poste mastil ldv 60x40':                 C.POST60,
     'poste / mastil linea de vida base 60x40':C.POST60,
@@ -5282,6 +5287,7 @@ var MAT_NORM_MAP = (function(){
     'punto anclaje ac02 estela':              C.ANC02,
     'punto de anclaje - ac02':                C.ANC02,
     'punto de anclaje - disp. anclaje estela ac02': C.ANC02,
+    'punto de anclaje estela ac02':           C.ANC02,  // EQUIPOS_DEF sin guión intermedio
     'punto anclaje a1 cesar 1,5m eslinga':    C.ESLING,
     'punto anclaje a1 cesar':                 C.ESLING,
     'punto anclaje a1 césar':                 C.ESLING,
@@ -5314,6 +5320,8 @@ var MAT_NORM_MAP = (function(){
     'basquit / conix':                            C.BAS200,
     'basquit / conix para guardacuerpo':          C.BAS200,
     'basquit conix para guardacuerpo':            C.BAS200,
+    'basquit/conix para guardacuerpo':            C.BAS200,  // EQUIPOS_DEF sin espacios en /
+    'basquit/conix':                              C.BAS200,
     'basquit':                                    C.BAS200,
     'conix':                                      C.BAS200,
     // ── BRIDA 4,8x200 ─────────────────────────────────────────────
@@ -5399,6 +5407,7 @@ function normalizarMat(nombre) {
     .replace(/\s*\[[^\]]*\]/g, '')           // quitar [...]
     .replace(/\bune\s+en\s*\d+/gi, '')      // quitar UNE EN####
     .replace(/\bune\s*\d+/gi, '')           // quitar UNE#### (también UNE 81652 etc)
+    .replace(/\s+en\s*[\d-]+\s*$/gi, '')  // quitar " EN 13374" / "EN13374" al final sin prefijo UNE
     .replace(/\s*-\s*(unetra|indexfix|wurth|multigarben|visornets|palet|pale|caja|bote|unidad|uds?\.?).*/gi, '')
     .replace(/\s*-\s*\d+\s*uds?\.?.*/gi, '')       // quitar "- 50UDS - ACHT12L" etc
     .replace(/\s+b-\d+\s*$/gi, '')                  // quitar " B-100" al final
