@@ -7189,12 +7189,15 @@ function presGuardarEnDriveAuto(p) {
   }
   // 3. Fallback: carpeta general de OFERTAS
   if (!folderId) folderId = '1OtYCuQM-Py8bjfTJkFjAP9DB4L2cZwZB';
-  var fileName = 'Presupuesto_' + (p.numOferta||p.proyecto||'pres').replace(/[^a-zA-Z0-9_\-]/g,'_') + '.html';
+  var fileName = 'Presupuesto_' + (p.numOferta||p.proyecto||'pres').replace(/[^a-zA-Z0-9_\-]/g,'_') + '.pdf';
+  toast('⏳ Generando PDF y subiendo a Drive…');
   presGenerarPDF(true, function(html) {
     var encoded = btoa(unescape(encodeURIComponent(html)));
-    postAPI({ action:'saveFileToFolder', folderId: folderId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
+    postAPI({ action:'saveHtmlAsPdf', folderId: folderId, fileName: fileName, content: encoded }, function(err, resp) {
       if (!err && resp && resp.ok) {
         toast('✓ Guardado en Drive: ' + fileName);
+      } else {
+        toast('Error al guardar PDF en Drive: ' + (resp&&resp.error||err||'sin respuesta'), true);
       }
     });
   });
@@ -7403,15 +7406,16 @@ function presGuardarEnDrive() {
   var p = presRecoger();
   var folderId = getCarpetaDeObra(p.numOferta, p.proyecto, p.carpetaDriveId);
   if (!folderId) { toast('Esta obra no tiene carpeta Drive vinculada en el CRM', true); return; }
-  var fileName = 'Presupuesto_' + (p.numOferta||p.proyecto||'pres').replace(/\s+/g,'_') + '_' + (p.fecha||new Date().toISOString().split('T')[0]) + '.html';
+  var fileName = 'Presupuesto_' + (p.numOferta||p.proyecto||'pres').replace(/\s+/g,'_') + '_' + (p.fecha||new Date().toISOString().split('T')[0]) + '.pdf';
+  toast('⏳ Generando PDF y subiendo a Drive…');
   presGenerarPDF(true, function(html) {
     var encoded = btoa(unescape(encodeURIComponent(html)));
-    postAPI({ action:'saveFileToFolder', folderId: folderId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
+    postAPI({ action:'saveHtmlAsPdf', folderId: folderId, fileName: fileName, content: encoded }, function(err, resp) {
       if (!err && resp && resp.ok) {
         toast('✓ Guardado en Drive: ' + fileName);
         if (resp.fileUrl) window.open(resp.fileUrl, '_blank');
       } else {
-        toast('Error al guardar en Drive: ' + (resp&&resp.error||'sin respuesta'), true);
+        toast('Error al guardar PDF en Drive: ' + (resp&&resp.error||'sin respuesta'), true);
       }
     });
   });
