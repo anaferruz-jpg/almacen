@@ -365,6 +365,11 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
     <button class="btn" onclick="exportMargenCSV()">⬇️ CSV</button>
   </div>
   <div id="margen-content"></div>
+  <!-- Gastos de obra detalle -->
+  <div style="margin-top:20px">
+    <p style="font-size:14px;font-weight:600;font-family:Playfair Display,serif;margin-bottom:10px">🏗️ Gastos vinculados a obras</p>
+    <div id="gastos-obra-content"></div>
+  </div>
 </div>
 
 <!-- ══════ EXPORT GESTORÍA ══════ -->
@@ -488,10 +493,9 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <option value="oficina">🏢 Oficina</option>
       <option value="nominas">👷 Nóminas y SS</option>
       <option value="vehiculos">🚗 Vehículos</option>
-      <option value="financiero">🏦 Financiero</option>
-      <option value="impuestos">📋 Impuestos</option>
+      <option value="financiero">🏦 Financieros</option>
+      <option value="impuestos">📋 Impuestos y tasas</option>
       <option value="obra">🏗️ Por obra</option>
-      <option value="otro">Otro</option>
     </select>
     <select id="filtro-gi-mes" onchange="renderGastosInternos()">
       <option value="">Todos los meses</option>
@@ -517,6 +521,8 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
   <!-- Cuenta resultados -->
   <div id="cont-resultados"></div>
+  <!-- Control trimestral IVA (Modelo 303) -->
+  <div id="cont-iva-trim" style="margin-top:16px"></div>
   <!-- Balance mensual -->
   <div id="cont-balance-mensual" style="margin-top:16px"></div>
   <!-- Desglose categorías -->
@@ -1245,13 +1251,12 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div class="form-group">
         <label>Categoría *</label>
         <select id="gi-categoria" onchange="toggleGIObra()">
-          <option value="oficina">🏢 Oficina (luz, teléfono, alquiler...)</option>
-          <option value="nominas">👷 Nóminas y Seguridad Social</option>
+          <option value="oficina">🏢 Oficina (alquiler, luz, teléfono, internet, material)</option>
+          <option value="nominas">👷 Nóminas y SS (salario neto, cuota SS, IRPF retenido)</option>
           <option value="vehiculos">🚗 Vehículos y combustible</option>
-          <option value="financiero">🏦 Gastos financieros (banco, intereses)</option>
-          <option value="impuestos">📋 Impuestos y tasas</option>
-          <option value="obra">🏗️ Gasto por obra</option>
-          <option value="otro">📦 Otro</option>
+          <option value="financiero">🏦 Financieros (banco, intereses, seguros empresa)</option>
+          <option value="impuestos">📋 Impuestos y tasas (Mod. 111, 303, 200, 115)</option>
+          <option value="obra">🏗️ Por obra (gasto asignado a obra concreta)</option>
         </select>
       </div>
       <div class="form-group">
@@ -1271,12 +1276,24 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         <input type="date" id="gi-fecha">
       </div>
       <div class="form-group">
-        <label>Importe (€) — total con IVA si aplica</label>
-        <input type="number" id="gi-importe" placeholder="0.00" min="0" step="0.01">
+        <label>Fecha vencimiento pago</label>
+        <input type="date" id="gi-vencimiento">
       </div>
       <div class="form-group">
-        <label>Base imponible (€)</label>
-        <input type="number" id="gi-base" placeholder="0.00" min="0" step="0.01">
+        <label>Base imponible (€) *</label>
+        <input type="number" id="gi-base" placeholder="0.00" min="0" step="0.01" oninput="calcGastoInterno()">
+      </div>
+      <div class="form-group">
+        <label>% IVA</label>
+        <select id="gi-iva" onchange="calcGastoInterno()">
+          <option value="21">21%</option>
+          <option value="10">10%</option>
+          <option value="0">0% (exento)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Total con IVA (€)</label>
+        <input type="text" id="gi-total" readonly style="background:var(--bg2);font-weight:600">
       </div>
       <div class="form-group">
         <label>¿Es recurrente?</label>
@@ -2465,6 +2482,12 @@ function calcGasto() {
   document.getElementById('gas-total').value = (base * (1 + pct / 100)).toFixed(2) + ' €';
 }
 
+function calcGastoInterno() {
+  var base = parseFloat(document.getElementById('gi-base').value) || 0;
+  var pct = parseFloat(document.getElementById('gi-iva').value) || 0;
+  document.getElementById('gi-total').value = (base * (1 + pct / 100)).toFixed(2) + ' €';
+}
+
 function abrirModalGasto() {
   _editGastoIdx = -1;
   document.getElementById('gas-proveedor').value = '';
@@ -2662,20 +2685,28 @@ function renderCobros() {
 function renderMargen() {
   var cont = document.getElementById('margen-content');
   var obras = {};
+  function initObra(nombre) {
+    if (!obras[nombre]) obras[nombre] = { ingresos: 0, gastosProv: 0, gastosInt: 0, cobrado: 0, pagado: 0 };
+  }
   // Ingresos (facturas emitidas/cobradas por obra)
   facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) {
-    if (!obras[f.obra]) obras[f.obra] = { ingresos: 0, gastos: 0, cobrado: 0, pagado: 0 };
+    initObra(f.obra);
     obras[f.obra].ingresos += f.base;
     if (f.estado === 'cobrada') obras[f.obra].cobrado += f.base;
   });
-  // Gastos por obra
+  // Gastos de proveedor por obra
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) {
-    if (!obras[g.obra]) obras[g.obra] = { ingresos: 0, gastos: 0, cobrado: 0, pagado: 0 };
-    obras[g.obra].gastos += g.base;
+    initObra(g.obra);
+    obras[g.obra].gastosProv += g.base;
     if (g.estado === 'pagado') obras[g.obra].pagado += g.base;
   });
+  // Gastos internos asignados a obra (categoría "obra" o "nominas" con obra)
+  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) {
+    initObra(g.obra);
+    obras[g.obra].gastosInt += (g.base || g.total || g.importe || 0);
+  });
 
-  var obrasList = Object.keys(obras);
+  var obrasList = Object.keys(obras).sort();
   if (!obrasList.length) {
     cont.innerHTML = '<div class="empty">Sin datos suficientes — registra facturas y gastos vinculados a obras para ver el margen.</div>';
     return;
@@ -2683,23 +2714,66 @@ function renderMargen() {
 
   cont.innerHTML = obrasList.map(function(nombre) {
     var o = obras[nombre];
-    var margen = o.ingresos - o.gastos;
+    var totalGastos = o.gastosProv + o.gastosInt;
+    var margen = o.ingresos - totalGastos;
     var pct = o.ingresos > 0 ? Math.round(margen / o.ingresos * 100) : 0;
     var color = pct >= 20 ? 'var(--success)' : pct >= 0 ? 'var(--warn)' : 'var(--danger)';
     return '<div class="margen-card">' +
       '<div class="margen-obra-nombre">' + nombre + '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px">' +
         '<div><div style="font-size:11px;color:var(--text2)">Ingresos (base)</div><div style="font-weight:700;color:var(--success)">' + fmt(o.ingresos) + '</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">Gastos (base)</div><div style="font-weight:700;color:var(--danger)">' + fmt(o.gastos) + '</div></div>' +
+        '<div><div style="font-size:11px;color:var(--text2)">Gastos proveedores</div><div style="font-weight:700;color:var(--danger)">' + fmt(o.gastosProv) + '</div></div>' +
+        (o.gastosInt > 0 ? '<div><div style="font-size:11px;color:var(--text2)">Gastos internos</div><div style="font-weight:700;color:var(--danger)">' + fmt(o.gastosInt) + '</div></div>' : '') +
+        '<div><div style="font-size:11px;color:var(--text2)">Total gastos</div><div style="font-weight:700;color:var(--danger)">' + fmt(totalGastos) + '</div></div>' +
         '<div><div style="font-size:11px;color:var(--text2)">Margen bruto</div><div style="font-weight:700;color:' + color + '">' + fmt(margen) + '</div></div>' +
         '<div><div style="font-size:11px;color:var(--text2)">% Margen</div><div style="font-weight:700;color:' + color + '">' + pct + '%</div></div>' +
         '<div><div style="font-size:11px;color:var(--text2)">Cobrado</div><div style="font-weight:600;color:var(--text2)">' + fmt(o.cobrado) + '</div></div>' +
         '<div><div style="font-size:11px;color:var(--text2)">Pagado</div><div style="font-weight:600;color:var(--text2)">' + fmt(o.pagado) + '</div></div>' +
       '</div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>Margen</span><span style="color:' + color + ';font-weight:600">' + pct + '%</span></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>Margen sobre ingresos</span><span style="color:' + color + ';font-weight:600">' + pct + '%</span></div>' +
       '<div class="margen-bar-wrap"><div class="margen-bar" style="width:' + Math.min(Math.max(pct, 0), 100) + '%;background:' + color + '"></div></div>' +
     '</div>';
   }).join('');
+
+  // ── GASTOS DE OBRA (proveedores + internos) ──
+  renderGastosObra();
+}
+
+function renderGastosObra() {
+  var cont = document.getElementById('gastos-obra-content');
+  if (!cont) return;
+  // Recoger todos los gastos con obra (proveedores + internos)
+  var items = [];
+  gastos.filter(function(g) { return g.obra; }).forEach(function(g) {
+    items.push({ fecha: g.fecha, obra: g.obra, tipo: 'Proveedor', concepto: g.proveedor + (g.concepto ? ' — ' + g.concepto : ''), base: g.base, total: g.total, estado: g.estado });
+  });
+  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) {
+    items.push({ fecha: g.fecha, obra: g.obra, tipo: CAT_LABELS[g.categoria] || g.categoria, concepto: g.concepto, base: g.base || g.importe || 0, total: g.total || g.importe || 0, estado: '—' });
+  });
+  items.sort(function(a, b) { return (b.fecha || '').localeCompare(a.fecha || ''); });
+  if (!items.length) {
+    cont.innerHTML = '<div class="empty">Sin gastos asignados a obras todavía.</div>';
+    return;
+  }
+  var totalObra = items.reduce(function(a, i) { return a + (i.base || 0); }, 0);
+  cont.innerHTML =
+    '<div style="text-align:right;font-size:13px;font-weight:600;color:var(--danger);margin-bottom:8px">Total gastos obra: ' + fmt(totalObra) + '</div>' +
+    '<div class="tbl-wrap"><table><thead><tr>' +
+      '<th>Fecha</th><th>Obra</th><th>Tipo</th><th>Concepto</th>' +
+      '<th style="text-align:right">Base</th><th style="text-align:right">Total</th><th>Estado</th>' +
+    '</tr></thead><tbody>' +
+    items.map(function(i) {
+      return '<tr>' +
+        '<td style="font-size:12px">' + fmtDate(i.fecha) + '</td>' +
+        '<td><span style="background:var(--brand-light);color:var(--brand2);font-size:11px;padding:2px 6px;border-radius:3px">' + i.obra + '</span></td>' +
+        '<td style="font-size:11px;color:var(--text2)">' + i.tipo + '</td>' +
+        '<td style="font-size:12px">' + (i.concepto || '—') + '</td>' +
+        '<td style="text-align:right;font-size:12px;color:var(--text2)">' + fmt(i.base) + '</td>' +
+        '<td style="text-align:right;font-weight:600;color:var(--danger)">' + fmt(i.total) + '</td>' +
+        '<td style="font-size:11px">' + (i.estado || '—') + '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
 }
 
 // ══════════════════════════════════════════════
@@ -2806,11 +2880,16 @@ function exportCobrosCSV() {
   dlCSV(rows, 'cobros_pagos_segufija');
 }
 function exportMargenCSV() {
-  var rows = [['Obra', 'Ingresos (base)', 'Gastos (base)', 'Margen', '% Margen']];
+  var rows = [['Obra', 'Ingresos (base)', 'Gastos proveedores', 'Gastos internos', 'Total gastos', 'Margen', '% Margen']];
   var obras = {};
-  facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) { if (!obras[f.obra]) obras[f.obra] = { i: 0, g: 0 }; obras[f.obra].i += f.base; });
-  gastos.filter(function(g) { return g.obra; }).forEach(function(g) { if (!obras[g.obra]) obras[g.obra] = { i: 0, g: 0 }; obras[g.obra].g += g.base; });
-  Object.keys(obras).forEach(function(n) { var o = obras[n]; var m = o.i - o.g; rows.push([n, o.i.toFixed(2), o.g.toFixed(2), m.toFixed(2), (o.i > 0 ? Math.round(m / o.i * 100) : 0) + '%']); });
+  function initO(n) { if (!obras[n]) obras[n] = { i: 0, gp: 0, gi: 0 }; }
+  facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) { initO(f.obra); obras[f.obra].i += f.base; });
+  gastos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gp += g.base; });
+  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gi += (g.base || g.total || g.importe || 0); });
+  Object.keys(obras).sort().forEach(function(n) {
+    var o = obras[n]; var tg = o.gp + o.gi; var m = o.i - tg;
+    rows.push([n, o.i.toFixed(2), o.gp.toFixed(2), o.gi.toFixed(2), tg.toFixed(2), m.toFixed(2), (o.i > 0 ? Math.round(m / o.i * 100) : 0) + '%']);
+  });
   dlCSV(rows, 'margen_obras_segufija');
 }
 
@@ -2919,6 +2998,35 @@ function calcularAlertas() {
     else if (dias <= DIAS_AVISO) alertas.push({ tipo: 'pago', urgencia: 'proxima', texto: '📅 Vence en ' + dias + 'd — Pagar ' + fmt(g.total) + ' a ' + g.proveedor, importe: g.total });
   });
 
+  // Gastos internos próximos a vencer o vencidos
+  gastosInternos.filter(function(g) { return g.vencimiento; }).forEach(function(g) {
+    var venc = new Date(g.vencimiento); venc.setHours(0,0,0,0);
+    var dias = Math.round((venc - hoy) / 86400000);
+    var total = g.total || g.importe || 0;
+    var quien = g.proveedor || g.concepto || 'Gasto interno';
+    if (dias < 0) alertas.push({ tipo: 'pago', urgencia: 'vencida', texto: '⚠️ VENCIDO ' + Math.abs(dias) + 'd — Pagar ' + fmt(total) + ' (' + quien + ')', importe: total });
+    else if (dias <= DIAS_AVISO) alertas.push({ tipo: 'pago', urgencia: 'proxima', texto: '📅 Vence en ' + dias + 'd — Pagar ' + fmt(total) + ' (' + quien + ')', importe: total });
+  });
+
+  // ── AVISOS MODELOS FISCALES TRIMESTRALES ──
+  var anyo = hoy.getFullYear();
+  var DIAS_MODELOS = 15; // avisar 15 días antes
+  var modelos = [
+    // Trimestrales
+    { nombre: 'Mod. 111 + 303 + 115 (1T)', fecha: anyo + '-04-20' },
+    { nombre: 'Mod. 111 + 303 + 115 (2T)', fecha: anyo + '-07-20' },
+    { nombre: 'Mod. 111 + 303 + 115 (3T)', fecha: anyo + '-10-20' },
+    { nombre: 'Mod. 111 + 303 + 115 (4T)', fecha: (anyo+1) + '-01-20' },
+    // Anual
+    { nombre: 'Mod. 200 (Imp. Sociedades)', fecha: anyo + '-07-25' }
+  ];
+  modelos.forEach(function(m) {
+    var venc = new Date(m.fecha); venc.setHours(0,0,0,0);
+    var dias = Math.round((venc - hoy) / 86400000);
+    if (dias < 0 && dias >= -30) alertas.push({ tipo: 'fiscal', urgencia: 'vencida', texto: '🏛️ PLAZO PASADO ' + Math.abs(dias) + 'd — ' + m.nombre, importe: 0 });
+    else if (dias >= 0 && dias <= DIAS_MODELOS) alertas.push({ tipo: 'fiscal', urgencia: 'proxima', texto: '🏛️ Vence en ' + dias + 'd — ' + m.nombre, importe: 0 });
+  });
+
   return alertas;
 }
 
@@ -2962,13 +3070,13 @@ var gastosInternos = [];
 var _giIdx = -1;
 
 var CAT_LABELS = {
-  oficina: '🏢 Oficina',
-  nominas: '👷 Nóminas y SS',
+  oficina:   '🏢 Oficina',
+  nominas:   '👷 Nóminas y SS',
   vehiculos: '🚗 Vehículos',
-  financiero: '🏦 Financiero',
-  impuestos: '📋 Impuestos',
-  obra: '🏗️ Por obra',
-  otro: '📦 Otro'
+  financiero:'🏦 Financieros',
+  impuestos: '📋 Impuestos y tasas',
+  obra:      '🏗️ Por obra',
+  otro:      '📦 Otro'  // compatibilidad datos antiguos
 };
 
 function loadGastosInternos() { try { gastosInternos = JSON.parse(localStorage.getItem('sf_gastos_internos') || '[]'); } catch(e) { gastosInternos = []; } }
@@ -2976,7 +3084,7 @@ function saveGastosInternos() { try { localStorage.setItem('sf_gastos_internos',
 
 function toggleGIObra() {
   var cat = document.getElementById('gi-categoria').value;
-  document.getElementById('gi-obra-wrap').style.display = cat === 'obra' ? 'block' : 'none';
+  document.getElementById('gi-obra-wrap').style.display = (cat === 'obra' || cat === 'nominas') ? 'block' : 'none';
 }
 
 function abrirModalGastoInterno(idx) {
@@ -2987,15 +3095,23 @@ function abrirModalGastoInterno(idx) {
   document.getElementById('gi-concepto').value = g.concepto || '';
   document.getElementById('gi-proveedor').value = g.proveedor || '';
   document.getElementById('gi-fecha').value = g.fecha || today;
-  document.getElementById('gi-importe').value = g.importe || '';
+  // Vencimiento: si es nuevo, 30 días; si es edición, el guardado
+  if (_giIdx >= 0) {
+    document.getElementById('gi-vencimiento').value = g.vencimiento || '';
+  } else {
+    var vGI = new Date(); vGI.setDate(vGI.getDate() + 30);
+    document.getElementById('gi-vencimiento').value = vGI.toISOString().split('T')[0];
+  }
   document.getElementById('gi-base').value = g.base || '';
+  document.getElementById('gi-iva').value = g.pctIva !== undefined ? g.pctIva : '21';
+  calcGastoInterno();
   document.getElementById('gi-recurrente').value = g.recurrente || 'no';
   document.getElementById('gi-forma-pago').value = g.formaPago || 'transferencia';
   document.getElementById('gi-obs').value = g.obs || '';
   // Obras select
   var sel = document.getElementById('gi-obra');
   sel.innerHTML = '<option value="">Sin obra específica</option>' + OBRAS.map(function(o) { return '<option value="' + o.nombre + '"' + (g.obra === o.nombre ? ' selected' : '') + '>' + o.nombre + '</option>'; }).join('');
-  document.getElementById('gi-obra-wrap').style.display = (g.categoria === 'obra') ? 'block' : 'none';
+  document.getElementById('gi-obra-wrap').style.display = (g.categoria === 'obra' || g.categoria === 'nominas') ? 'block' : 'none';
   document.getElementById('modal-gasto-interno').classList.add('open');
 }
 
@@ -3003,9 +3119,12 @@ function cerrarModalGastoInterno() { document.getElementById('modal-gasto-intern
 
 function guardarGastoInterno() {
   var concepto = document.getElementById('gi-concepto').value.trim();
-  var importe = parseFloat(document.getElementById('gi-importe').value) || 0;
+  var base = parseFloat(document.getElementById('gi-base').value) || 0;
   if (!concepto) { toast('El concepto es obligatorio', true); return; }
-  if (!importe) { toast('Introduce el importe', true); return; }
+  if (!base) { toast('Introduce la base imponible', true); return; }
+  var pctIva = parseFloat(document.getElementById('gi-iva').value) || 0;
+  var iva = parseFloat((base * pctIva / 100).toFixed(2));
+  var total = parseFloat((base + iva).toFixed(2));
   var fechaGI = document.getElementById('gi-fecha').value;
   var g = {
     categoria: document.getElementById('gi-categoria').value,
@@ -3013,8 +3132,12 @@ function guardarGastoInterno() {
     proveedor: document.getElementById('gi-proveedor').value.trim(),
     obra: document.getElementById('gi-obra').value,
     fecha: fechaGI,
-    importe: importe,
-    base: parseFloat(document.getElementById('gi-base').value) || importe,
+    vencimiento: document.getElementById('gi-vencimiento').value,
+    base: base,
+    pctIva: pctIva,
+    iva: iva,
+    total: total,
+    importe: total,
     recurrente: document.getElementById('gi-recurrente').value,
     formaPago: document.getElementById('gi-forma-pago').value,
     obs: document.getElementById('gi-obs').value.trim(),
@@ -3075,7 +3198,7 @@ function renderGastosInternos() {
   var statsCat = {};
   gastosInternos.forEach(function(g) {
     if (!statsCat[g.categoria]) statsCat[g.categoria] = 0;
-    statsCat[g.categoria] += g.importe || 0;
+    statsCat[g.categoria] += g.total || g.importe || 0;
   });
   filtrarGiCat = function(cat) { document.getElementById('filtro-gi-cat').value = cat; renderGastosInternos(); };
   document.getElementById('gi-stats').innerHTML = Object.keys(CAT_LABELS).filter(function(c) { return statsCat[c]; }).map(function(c) {
@@ -3089,21 +3212,29 @@ function renderGastosInternos() {
   if (!data.length) { cont.innerHTML = '<div class="empty">Sin gastos registrados en esta categoría</div>'; return; }
 
   // Total filtrado
-  var totalFiltrado = data.reduce(function(a, g) { return a + (g.importe || 0); }, 0);
+  var totalFiltrado = data.reduce(function(a, g) { return a + (g.total || g.importe || 0); }, 0);
   cont.innerHTML = '<div style="text-align:right;font-size:13px;font-weight:600;color:var(--brand2);margin-bottom:8px">Total: ' + fmt(totalFiltrado) + '</div>' +
   '<div class="tbl-wrap"><table><thead><tr>' +
     '<th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Proveedor</th><th>Obra</th>' +
-    '<th style="text-align:right">Importe</th><th>Recurrencia</th><th>Pago</th><th></th>' +
+    '<th style="text-align:right">Base</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Vencimiento</th><th>Recurrencia</th><th>Pago</th><th></th>' +
   '</tr></thead><tbody>' +
   data.slice().reverse().map(function(g) {
     var idx = gastosInternos.indexOf(g);
+    var base = g.base || g.importe || 0;
+    var pctIva = g.pctIva !== undefined ? g.pctIva : (g.iva && g.base ? Math.round(g.iva / g.base * 100) : '—');
+    var iva = g.iva !== undefined ? g.iva : (g.importe && g.base ? g.importe - g.base : 0);
+    var total = g.total || g.importe || 0;
+    var vencGI = g.vencimiento && g.vencimiento < today;
     return '<tr>' +
       '<td>' + fmtDate(g.fecha) + '</td>' +
       '<td><span style="font-size:11px;background:var(--bg2);padding:2px 7px;border-radius:4px">' + (CAT_LABELS[g.categoria] || g.categoria) + '</span></td>' +
       '<td style="font-weight:500;font-size:12px">' + g.concepto + '</td>' +
       '<td style="font-size:12px;color:var(--text2)">' + (g.proveedor || '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.obra ? '<span style="background:var(--brand-light);color:var(--brand2);padding:1px 5px;border-radius:3px">' + g.obra.substring(0,18) + '</span>' : '—') + '</td>' +
-      '<td style="text-align:right;font-weight:700;color:var(--danger)">' + fmt(g.importe) + '</td>' +
+      '<td style="text-align:right;font-size:12px;color:var(--text2)">' + fmt(base) + '</td>' +
+      '<td style="text-align:right;font-size:11px;color:var(--text3)">' + (pctIva !== '—' ? pctIva + '%' : '—') + '</td>' +
+      '<td style="text-align:right;font-weight:700;color:var(--danger)">' + fmt(total) + '</td>' +
+      '<td style="font-size:11px;color:' + (vencGI ? 'var(--danger)' : 'inherit') + '">' + (g.vencimiento ? (vencGI ? '⚠️ ' : '') + fmtDate(g.vencimiento) : '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.recurrente !== 'no' ? '🔄 ' + g.recurrente : '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.formaPago || '—') + '</td>' +
       '<td><div style="display:flex;gap:3px">' +
@@ -3117,8 +3248,14 @@ function renderGastosInternos() {
 }
 
 function exportGastosInternosCSV() {
-  var rows = [['Fecha','Categoría','Concepto','Proveedor','Obra','Importe','Base','Recurrente','Forma pago','Observaciones']];
-  gastosInternos.forEach(function(g) { rows.push([g.fecha,CAT_LABELS[g.categoria]||g.categoria,g.concepto,g.proveedor||'',g.obra||'',g.importe,g.base||g.importe,g.recurrente,g.formaPago,g.obs||'']); });
+  var rows = [['Fecha','Vencimiento','Categoría','Concepto','Proveedor','Obra','Base','% IVA','IVA','Total','Recurrente','Forma pago','Observaciones']];
+  gastosInternos.forEach(function(g) {
+    var base = g.base || g.importe || 0;
+    var pctIva = g.pctIva !== undefined ? g.pctIva : '';
+    var iva = g.iva !== undefined ? g.iva : '';
+    var total = g.total || g.importe || 0;
+    rows.push([g.fecha,g.vencimiento||'',CAT_LABELS[g.categoria]||g.categoria,g.concepto,g.proveedor||'',g.obra||'',base,pctIva,iva,total,g.recurrente,g.formaPago,g.obs||'']);
+  });
   dlCSV(rows, 'gastos_internos_segufija');
 }
 
@@ -3154,6 +3291,40 @@ function renderContabilidad() {
       '<tr style="background:var(--bg2);border-top:2px solid var(--border)"><td style="padding:10px 8px;font-weight:700;font-size:15px;font-family:Playfair Display,serif">= RESULTADO BRUTO</td><td style="text-align:right;padding:10px 8px;font-weight:700;font-size:15px;color:' + (baii >= 0 ? 'var(--success)' : 'var(--danger)') + '">' + fmt(baii) + '</td></tr>' +
       '<tr><td style="padding:6px 8px;color:var(--text2)">Resultado IVA (a ingresar en Hacienda)</td><td style="text-align:right;padding:6px 8px;font-weight:600;color:var(--warn)">' + fmt(ivaResultado) + '</td></tr>' +
     '</table></div>';
+
+  // ── CONTROL TRIMESTRAL IVA (MODELO 303) ──
+  var trims = [
+    { label: '1T (Ene–Mar)', meses: [1,2,3],    venc: anyo + '-04-20' },
+    { label: '2T (Abr–Jun)', meses: [4,5,6],    venc: anyo + '-07-20' },
+    { label: '3T (Jul–Sep)', meses: [7,8,9],    venc: anyo + '-10-20' },
+    { label: '4T (Oct–Dic)', meses: [10,11,12], venc: (anyo+1) + '-01-20' }
+  ];
+  var ivaHtml = trims.map(function(t) {
+    var rep = facAnyo.filter(function(f) {
+      var m = f.fecha ? parseInt(f.fecha.substring(5,7)) : 0;
+      return t.meses.indexOf(m) >= 0;
+    }).reduce(function(a, f) { return a + f.iva; }, 0);
+    var sop = gasAnyo.filter(function(g) {
+      var m = g.fecha ? parseInt(g.fecha.substring(5,7)) : 0;
+      return t.meses.indexOf(m) >= 0;
+    }).reduce(function(a, g) { return a + g.iva; }, 0);
+    var dif = rep - sop;
+    var vencida = t.venc < today;
+    var colorDif = dif > 0 ? 'var(--danger)' : 'var(--success)';
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">' +
+      '<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">' + t.label + '</div>' +
+      '<div style="font-size:12px;margin-bottom:4px;display:flex;justify-content:space-between"><span style="color:var(--text2)">IVA repercutido</span><span style="color:var(--success);font-weight:600">+' + fmt(rep) + '</span></div>' +
+      '<div style="font-size:12px;margin-bottom:4px;display:flex;justify-content:space-between"><span style="color:var(--text2)">IVA soportado</span><span style="color:var(--danger);font-weight:600">-' + fmt(sop) + '</span></div>' +
+      '<div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px;display:flex;justify-content:space-between;font-weight:700;font-size:13px">' +
+        '<span>Mod. 303</span>' +
+        '<span style="color:' + colorDif + '">' + (dif > 0 ? 'A pagar ' : 'A compensar ') + fmt(Math.abs(dif)) + '</span>' +
+      '</div>' +
+      '<div style="font-size:10px;color:' + (vencida ? 'var(--danger)' : 'var(--text3)') + ';margin-top:6px">' + (vencida ? '⚠️ Vencido — ' : '📅 Vence ') + fmtDate(t.venc) + '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('cont-iva-trim').innerHTML =
+    '<div class="card"><div class="card-title">📋 Control trimestral IVA — Modelo 303 (' + anyo + ')</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">' + ivaHtml + '</div></div>';
 
   // ── BALANCE MENSUAL ──
   var mesesData = {};
@@ -3622,7 +3793,7 @@ function renderProveedores() {
     var gastosProv = gastos.filter(function(g) { return g.proveedor && g.proveedor.toLowerCase().indexOf(p.nombre.toLowerCase()) >= 0; });
     var gastosIntProv = gastosInternos.filter(function(g) { return g.proveedor && g.proveedor.toLowerCase().indexOf(p.nombre.toLowerCase()) >= 0; });
     var totalGas = gastosProv.reduce(function(a, g) { return a + (g.total||0); }, 0)
-                + gastosIntProv.reduce(function(a, g) { return a + (parseFloat(g.importe)||0); }, 0);
+                + gastosIntProv.reduce(function(a, g) { return a + (parseFloat(g.total||g.importe)||0); }, 0);
     var pendientePago = gastosProv.filter(function(g) { return g.estado === 'pendiente'; }).reduce(function(a, g) { return a + (g.total||0); }, 0);
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
@@ -8300,12 +8471,13 @@ function renderResumenMensual(){
     meses[d.getMonth()].gastoProv+=(parseFloat(g.base||g.total)||0);
   });
 
-  // GASTOS INTERNOS → por fecha (no tienen vencimiento)
+  // GASTOS INTERNOS → por vencimiento si existe, si no por fecha
   (gastosInternos||[]).forEach(function(g){
-    if(!g.fecha)return;
-    var d=new Date(g.fecha);
+    var fechaGI = g.vencimiento || g.fecha;
+    if(!fechaGI)return;
+    var d=new Date(fechaGI);
     if(d.getFullYear()!==ano)return;
-    meses[d.getMonth()].gastoInt+=(parseFloat(g.base||g.importe)||0);
+    meses[d.getMonth()].gastoInt+=(parseFloat(g.base||g.total||g.importe)||0);
   });
 
   // Totales año
