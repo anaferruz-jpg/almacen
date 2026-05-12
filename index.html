@@ -1147,6 +1147,20 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- ══ MODAL ENTREGA PARCIAL ══ -->
+<div class="modal-overlay" id="modal-entrega-parcial">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-title">📦 Confirmar recepción de material</div>
+    <div class="modal-sub" id="modal-ep-sub" style="margin-bottom:6px"></div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Marca los ítems que han llegado y ajusta la cantidad recibida. Los que no marques quedan como <b>pendiente del proveedor</b>.</p>
+    <div id="modal-ep-items"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn" onclick="cerrarModalEntregaParcial()">Cancelar</button>
+      <button class="btn primary" onclick="confirmarEntrega()">✅ Confirmar recepción</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL PEDIDO DESDE PARTIDA ══ -->
 <div class="modal-full" id="modal-pedido-partida">
   <div class="modal-full-box">
@@ -3785,84 +3799,134 @@ function confirmarAnular(){
 }
 
 /* ── MARCAR PEDIDO ENTREGADO ── */
-function marcarEntregado(idx){
+// itemsConfirmados: [{item: <objeto item del pedido>, qty: <cantidad recibida>}]
+// Si es null/undefined → entrega total (comportamiento original)
+function marcarEntregado(idx, itemsConfirmados){
   var h=historial[idx];
   if(!h||h.tipo!=='pedido')return;
-  h.entregado=true;h.estadoPedido='entregado';h.fechaEntrega=today;
-  postAPI({action:'marcarPedidoEntregado',rowIndex:h.rowIndex||0,fecha:h.fecha,obra:h.obra,fechaEntrega:today,estadoPedido:'entregado'},function(err,d){
-    if(err||!d||!d.ok){toast('Error al marcar como entregado',true);return;}
 
-    // ── Pedido de ALMACÉN entregado → descuenta stock físico
+  // Determinar qué items y cantidades procesar
+  var items=Array.isArray(h.items)?h.items:[];
+  var procesarItems; // [{nombre, qty, pidx, partida, ...}] con qty = cantidad a confirmar ahora
+  if(itemsConfirmados){
+    // Entrega parcial: actualizar qtyEntregada en cada item
+    itemsConfirmados.forEach(function(ic){
+      ic.item.qtyEntregada=(parseFloat(ic.item.qtyEntregada)||0)+ic.qty;
+    });
+    procesarItems=itemsConfirmados.map(function(ic){
+      return Object.assign({},ic.item,{qty:ic.qty});
+    });
+    // Comprobar si quedan pendientes
+    var todoEntregado=items.every(function(it){
+      return (parseFloat(it.qtyEntregada)||0)>=(parseFloat(it.qty)||0);
+    });
+    h.estadoPedido=todoEntregado?'entregado':'entregado_parcial';
+    h.entregado=todoEntregado;
+    if(todoEntregado)h.fechaEntrega=today;
+  } else {
+    // Entrega total
+    procesarItems=items;
+    h.entregado=true; h.estadoPedido='entregado'; h.fechaEntrega=today;
+    items.forEach(function(it){it.qtyEntregada=parseFloat(it.qty)||0;});
+  }
+
+  var nuevoEstado=h.estadoPedido;
+  postAPI({action:'marcarPedidoEntregado',rowIndex:h.rowIndex||0,fecha:h.fecha,obra:h.obra,fechaEntrega:h.fechaEntrega||today,estadoPedido:nuevoEstado},function(err,d){
+    if(err||!d||!d.ok){toast('Error al guardar',true);return;}
+
+    // ── Pedido de ALMACÉN → descuenta stock físico (solo cantidades confirmadas)
     if(h.origenPedido==='almacen'||(h.tipoDestino==='almacen'&&!h.origenPedido)){
-      postAPI({action:'updateStock',items:h.items},function(){
-        (Array.isArray(h.items)?h.items:[]).forEach(function(item){
+      postAPI({action:'updateStock',items:procesarItems},function(){
+        procesarItems.forEach(function(item){
           var inv=inventario.find(function(i){return i.nombre===item.nombre;});
           if(inv)inv.stock=Math.max(0,(inv.stock||0)-(item.qty||0));
         });
         renderInv();
-        toast('📦 Stock descontado del almacén');
       });
     }
 
-    // ── Actualizar suministrado en la obra al marcar entregado
+    // ── Actualizar suministrado en la obra (solo cantidades confirmadas ahora)
     var obraObj=OBRAS.find(function(o){return o.nombre===h.obra;});
-    if(obraObj&&obraObj.partidas&&Array.isArray(h.items)){
+    if(obraObj&&obraObj.partidas&&procesarItems.length){
       var modificado=false;
-      h.items.forEach(function(item){
+      procesarItems.forEach(function(item){
         var qty=parseFloat(item.qty)||0;
         if(qty<=0)return;
         var match=null;
-
-        // 1) Coincidencia exacta por índice (pidx) — pedidos desde modal partida
         if(item.pidx!==undefined&&obraObj.partidas[item.pidx]){
           match=obraObj.partidas[item.pidx];
-
-        // 2) Coincidencia por nombre de partida + nombre material (exacto)
         } else if(item.partida){
           match=obraObj.partidas.find(function(p){
             return (p.material||'').toLowerCase()===(item.nombre||'').toLowerCase()
                 && (p.partida||'').toLowerCase()===(item.partida||'').toLowerCase();
           });
         }
-
-        // 3) Coincidencia por normalizarMat (mismo algoritmo del sync) — fallback para pedidos del tab
         if(!match){
           var normItem=normalizarMat(item.nombre);
-          // Intentar en partidas con capacidad disponible primero
           match=obraObj.partidas.find(function(p){
-            return !p.extra && normalizarMat(p.material)===normItem
-                && (p.contratado||0)-(p.suministrado||0)>0;
+            return !p.extra&&normalizarMat(p.material)===normItem&&(p.contratado||0)-(p.suministrado||0)>0;
           });
-          // Si no hay con capacidad, cualquier partida con ese material
-          if(!match){
-            match=obraObj.partidas.find(function(p){
-              return !p.extra && normalizarMat(p.material)===normItem;
-            });
-          }
+          if(!match) match=obraObj.partidas.find(function(p){return !p.extra&&normalizarMat(p.material)===normItem;});
         }
-
-        if(match){
-          match.suministrado=(match.suministrado||0)+qty;
-          modificado=true;
-        } else {
-          toast('⚠️ No se encontró partida para "'+item.nombre+'" — actualiza manualmente en la obra',true);
-        }
+        if(match){match.suministrado=(match.suministrado||0)+qty;modificado=true;}
+        else{toast('⚠️ Sin partida para "'+item.nombre+'" — actualiza manualmente',true);}
       });
       if(modificado){
         guardarPartidasSilencioso(function(){
-          // Actualizar KPIs si estamos viendo esa obra
-          if(obraSeleccionada&&obraSeleccionada.nombre===h.obra){
-            actualizarKPIsObra(obraSeleccionada);
-            renderPartidas();
-          }
+          if(obraSeleccionada&&obraSeleccionada.nombre===h.obra){actualizarKPIsObra(obraSeleccionada);renderPartidas();}
           buildObrasGrid();
         });
       }
     }
 
     renderHist();
-    toast('✅ Pedido marcado como entregado — partidas actualizadas');
+    if(nuevoEstado==='entregado') toast('✅ Pedido entregado completo — partidas actualizadas');
+    else toast('⚠️ Entrega parcial registrada — quedan ítems pendientes del proveedor');
   });
+}
+
+var _entregaIdx=-1;
+function abrirModalEntrega(idx){
+  var h=historial[idx];
+  if(!h)return;
+  _entregaIdx=idx;
+  document.getElementById('modal-ep-sub').textContent=(h.prov||'')+(h.obra?' · '+h.obra:'');
+  var items=(Array.isArray(h.items)?h.items:[]).filter(function(it){
+    return (parseFloat(it.qtyEntregada)||0)<(parseFloat(it.qty)||0);
+  });
+  document.getElementById('modal-ep-items').innerHTML=items.length?items.map(function(it,i){
+    var pendiente=(parseFloat(it.qty)||0)-(parseFloat(it.qtyEntregada)||0);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'+
+      '<input type="checkbox" id="ep-chk-'+i+'" checked style="width:16px;height:16px;cursor:pointer">'+
+      '<span style="flex:1;font-size:13px">'+it.nombre+'</span>'+
+      '<input type="number" id="ep-qty-'+i+'" value="'+pendiente+'" min="0" max="'+pendiente+'" step="1" style="width:64px;text-align:center;font-size:13px;padding:3px 6px;border:1px solid var(--border);border-radius:6px">'+
+      '<span style="font-size:12px;color:var(--text2);white-space:nowrap">/ '+pendiente+' ud</span>'+
+    '</div>';
+  }).join(''):'<p style="color:var(--text2);text-align:center;padding:12px 0">Todos los ítems ya están marcados como entregados.</p>';
+  document.getElementById('modal-entrega-parcial').classList.add('open');
+}
+function cerrarModalEntregaParcial(){
+  document.getElementById('modal-entrega-parcial').classList.remove('open');
+  _entregaIdx=-1;
+}
+function confirmarEntrega(){
+  var h=historial[_entregaIdx];
+  if(!h)return;
+  var items=(Array.isArray(h.items)?h.items:[]).filter(function(it){
+    return (parseFloat(it.qtyEntregada)||0)<(parseFloat(it.qty)||0);
+  });
+  var confirmados=[];
+  items.forEach(function(it,i){
+    var chk=document.getElementById('ep-chk-'+i);
+    var qtyEl=document.getElementById('ep-qty-'+i);
+    if(chk&&chk.checked){
+      var qty=parseFloat(qtyEl&&qtyEl.value)||0;
+      if(qty>0) confirmados.push({item:it,qty:qty});
+    }
+  });
+  if(!confirmados.length){toast('Selecciona al menos un ítem recibido',true);return;}
+  cerrarModalEntregaParcial();
+  marcarEntregado(_entregaIdx,confirmados);
 }
 
 function eliminarPedido(idx){
@@ -4856,10 +4920,11 @@ function actualizarInfoOrigen(){
 }
 
 function getEstadoPedido(h){
+  if(h.estadoPedido==='entregado_parcial') return 'entregado_parcial';
   if(h.entregado===true||h.entregado==='true') return 'entregado';
   if(h.estadoPedido==='en_transito') return 'en_transito';
   if(h.estadoPedido==='pendiente') return 'pendiente';
-  return 'pendiente'; // por defecto
+  return 'pendiente';
 }
 
 function renderHist(){
@@ -4925,20 +4990,28 @@ function renderHist(){
       (!an&&h.tipo==='pedido'?
         '<div style="margin-top:8px">'+
           // Badge estado
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
-            (getEstadoPedido(h)==='entregado'?
-              '<span class="badge ok">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
-            getEstadoPedido(h)==='en_transito'?
-              '<span class="badge" style="background:#d6eaf8;color:#1a5276">🔵 Pedido en tránsito</span>':
-              '<span class="badge warn">🟡 Pendiente de pedir al proveedor</span>')+
-            (h.fechaLimite?'<span style="font-size:11px;color:'+(h.fechaLimite<today?'var(--danger)':'var(--text2)')+'">📅 Fecha límite: '+h.fechaLimite+(h.fechaLimite<today?' ⚠️ VENCIDA':'')+'</span>':'')+
-          '</div>'+
+          (function(){
+            var ep=getEstadoPedido(h);
+            var pendientesHtml='';
+            if(ep==='entregado_parcial'){
+              var pend=(Array.isArray(h.items)?h.items:[]).filter(function(it){return (parseFloat(it.qtyEntregada)||0)<(parseFloat(it.qty)||0);});
+              if(pend.length) pendientesHtml='<div style="margin-top:4px;background:#fef9e7;border:1px solid #f9ca24;border-radius:6px;padding:5px 8px;font-size:11px;color:#7d6608">'+
+                '⏳ <b>Pendiente del proveedor:</b> '+pend.map(function(it){return it.nombre+' ('+(( parseFloat(it.qty)||0)-(parseFloat(it.qtyEntregada)||0))+' ud)';}).join(' · ')+'</div>';
+            }
+            return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+              (ep==='entregado'?'<span class="badge ok">✅ Entregado '+(h.fechaEntrega||'')+'</span>':
+               ep==='entregado_parcial'?'<span class="badge" style="background:#fef9e7;color:#7d6608;border:1px solid #f9ca24">⚠️ Entrega parcial</span>':
+               ep==='en_transito'?'<span class="badge" style="background:#d6eaf8;color:#1a5276">🔵 Pedido en tránsito</span>':
+               '<span class="badge warn">🟡 Pendiente de pedir al proveedor</span>')+
+              (h.fechaLimite?'<span style="font-size:11px;color:'+(h.fechaLimite<today?'var(--danger)':'var(--text2)')+'">📅 Fecha límite: '+h.fechaLimite+(h.fechaLimite<today?' ⚠️ VENCIDA':'')+'</span>':'')+
+            '</div>'+pendientesHtml;
+          })()+
           // Botones acción según estado
-          '<div style="display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap">'+
+          '<div style="display:flex;justify-content:flex-end;gap:5px;align-items:center;flex-wrap:wrap;margin-top:6px">'+
             (getEstadoPedido(h)==='pendiente'?
               '<button class="btn" style="font-size:11px;padding:4px 8px;background:#d6eaf8;color:#1a5276;border-color:#3498db" onclick="pedidoEnTransito('+realIdx+')">🔵 Marcar pedido realizado</button>':'') +
-            (getEstadoPedido(h)==='en_transito'?
-              '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="marcarEntregado('+realIdx+')">✅ Marcar entregado</button>':'')+
+            (getEstadoPedido(h)==='en_transito'||getEstadoPedido(h)==='entregado_parcial'?
+              '<button class="btn primary" style="font-size:11px;padding:4px 8px" onclick="abrirModalEntrega('+realIdx+')">'+(getEstadoPedido(h)==='entregado_parcial'?'📦 Registrar más material':'📦 Marcar entregado')+'</button>':'')+
             (getEstadoPedido(h)==='entregado'?'':
               '<button class="btn" style="font-size:11px;padding:4px 8px" onclick="editarFechaLimite('+realIdx+')">📅 '+(h.fechaLimite?'Cambiar':'Añadir')+' fecha límite</button>')+
             '<button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="eliminarPedido('+realIdx+')">🗑️</button>'+
