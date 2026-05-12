@@ -1510,6 +1510,7 @@ var gastos = [];     // guardadas en localStorage
 var _facIdx = -1;    // índice factura en edición
 var lineas = [];     // líneas de la factura actual
 var _scanFileGasto = null;   // archivo adjunto gasto proveedor
+var _editGastoIdx  = -1;     // índice del gasto en edición (-1 = nuevo)
 var _scanFileFac = null;     // archivo adjunto factura emitida
 var _scanFileGI = null;      // archivo adjunto gasto interno
 
@@ -2465,6 +2466,7 @@ function calcGasto() {
 }
 
 function abrirModalGasto() {
+  _editGastoIdx = -1;
   document.getElementById('gas-proveedor').value = '';
   document.getElementById('gas-numfac').value = '';
   document.getElementById('gas-obra').value = '';
@@ -2477,6 +2479,7 @@ function abrirModalGasto() {
   document.getElementById('gas-total').value = '';
   document.getElementById('gas-estado').value = 'pendiente';
   document.getElementById('gas-obs').value = '';
+  document.getElementById('btn-gas-guardar').textContent = '✅ Registrar gasto';
   document.getElementById('modal-gasto').classList.add('open');
 }
 
@@ -2492,8 +2495,9 @@ function guardarGasto() {
   var btn = document.getElementById('btn-gas-guardar');
   btn.disabled = true; btn.textContent = 'Guardando...';
   var fechaGasto = document.getElementById('gas-fecha').value;
+  var esEdicion = _editGastoIdx >= 0;
   var nuevoGasto = {
-    id: 'GAS-' + Date.now(),
+    id: esEdicion ? gastos[_editGastoIdx].id : 'GAS-' + Date.now(),
     proveedor: prov,
     numFac: document.getElementById('gas-numfac').value.trim(),
     obra: document.getElementById('gas-obra').value,
@@ -2503,17 +2507,23 @@ function guardarGasto() {
     base: base, iva: iva, pctIva: pctIva, total: base + iva,
     estado: document.getElementById('gas-estado').value,
     obs: document.getElementById('gas-obs').value.trim(),
-    creado: new Date().toISOString()
+    creado: esEdicion ? (gastos[_editGastoIdx].creado || new Date().toISOString()) : new Date().toISOString(),
+    driveUrl: esEdicion ? (gastos[_editGastoIdx].driveUrl || '') : ''
   };
   function finalizarGuardarGasto() {
-    gastos.push(nuevoGasto);
+    if (esEdicion) {
+      gastos[_editGastoIdx] = nuevoGasto;
+    } else {
+      gastos.push(nuevoGasto);
+    }
     saveGastos();
     saveGastoSheets(nuevoGasto);
+    _editGastoIdx = -1;
     btn.disabled = false; btn.textContent = '✅ Registrar gasto';
     cerrarModalGasto();
     renderGastos();
     renderDashboard();
-    toast('✅ Gasto registrado' + (nuevoGasto.driveUrl ? ' · 📎 guardado en Drive' : ''));
+    toast(esEdicion ? '✅ Gasto actualizado' : ('✅ Gasto registrado' + (nuevoGasto.driveUrl ? ' · 📎 guardado en Drive' : '')));
   }
   if (_scanFileGasto) {
     btn.textContent = 'Subiendo a Drive...';
@@ -2555,6 +2565,7 @@ function renderGastos() {
       '<td><div style="display:flex;gap:4px">' +
         (g.driveUrl ? '<a href="' + g.driveUrl + '" target="_blank" class="btn" style="font-size:10px;padding:3px 6px;text-decoration:none" title="Ver documento en Drive">📎</a>' : '') +
         (g.estado === 'pendiente' ? '<button class="btn success" style="font-size:10px;padding:3px 6px" onclick="marcarPagado(' + idx + ')">✅</button>' : '') +
+        '<button class="btn" style="font-size:10px;padding:3px 6px" onclick="editarGasto(' + idx + ')" title="Editar gasto">✏️</button>' +
         '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarGasto(' + idx + ')">🗑️</button>' +
       '</div></td>' +
     '</tr>';
@@ -2570,6 +2581,25 @@ function marcarPagado(idx) {
   renderGastos();
   renderDashboard();
   toast('✅ Gasto marcado como pagado');
+}
+
+function editarGasto(idx) {
+  var g = gastos[idx];
+  if (!g) return;
+  _editGastoIdx = idx;
+  document.getElementById('gas-proveedor').value = g.proveedor || '';
+  document.getElementById('gas-numfac').value = g.numFac || '';
+  document.getElementById('gas-obra').value = g.obra || '';
+  document.getElementById('gas-concepto').value = g.concepto || '';
+  document.getElementById('gas-fecha').value = g.fecha || today;
+  document.getElementById('gas-vencimiento').value = g.vencimiento || '';
+  document.getElementById('gas-base').value = g.base || '';
+  document.getElementById('gas-iva').value = g.pctIva !== undefined ? g.pctIva : '21';
+  document.getElementById('gas-estado').value = g.estado || 'pendiente';
+  document.getElementById('gas-obs').value = g.obs || '';
+  document.getElementById('btn-gas-guardar').textContent = '💾 Actualizar gasto';
+  calcGasto();
+  document.getElementById('modal-gasto').classList.add('open');
 }
 
 function eliminarGasto(idx) {
