@@ -3620,8 +3620,10 @@ function renderProveedores() {
   cont.innerHTML = data.map(function(p) {
     var idx = proveedores.indexOf(p);
     var gastosProv = gastos.filter(function(g) { return g.proveedor && g.proveedor.toLowerCase().indexOf(p.nombre.toLowerCase()) >= 0; });
-    var totalGas = gastosProv.reduce(function(a, g) { return a + g.total; }, 0);
-    var pendientePago = gastosProv.filter(function(g) { return g.estado === 'pendiente'; }).reduce(function(a, g) { return a + g.total; }, 0);
+    var gastosIntProv = gastosInternos.filter(function(g) { return g.proveedor && g.proveedor.toLowerCase().indexOf(p.nombre.toLowerCase()) >= 0; });
+    var totalGas = gastosProv.reduce(function(a, g) { return a + (g.total||0); }, 0)
+                + gastosIntProv.reduce(function(a, g) { return a + (parseFloat(g.importe)||0); }, 0);
+    var pendientePago = gastosProv.filter(function(g) { return g.estado === 'pendiente'; }).reduce(function(a, g) { return a + (g.total||0); }, 0);
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
         '<div style="flex:1;min-width:200px">' +
@@ -3645,7 +3647,7 @@ function renderProveedores() {
           (p.obs ? '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">' + p.obs + '</div>' : '') +
         '</div>' +
         '<div style="text-align:right;min-width:140px">' +
-          '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">' + gastosProv.length + ' facturas recibidas</div>' +
+          '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">' + gastosProv.length + ' fact.' + (gastosIntProv.length ? ' + ' + gastosIntProv.length + ' gastos int.' : '') + '</div>' +
           '<div style="font-size:13px;font-weight:700;color:var(--text)">' + fmt(totalGas) + ' total</div>' +
           (pendientePago > 0 ? '<div style="font-size:12px;color:var(--danger);font-weight:600">' + fmt(pendientePago) + ' pendiente</div>' : '<div style="font-size:11px;color:var(--success)">Al día ✅</div>') +
           '<div style="display:flex;gap:4px;justify-content:flex-end;margin-top:8px">' +
