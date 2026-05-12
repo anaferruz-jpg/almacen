@@ -4869,8 +4869,9 @@ function renderHist(){
   var filtProv=document.getElementById('hist-prov').value;
   var filtEstado=document.getElementById('hist-estado-pedido').value;
 
-  // Actualizar selector de proveedores
-  var provs=[...new Set(historial.filter(function(h){return h.prov;}).map(function(h){return h.prov;}))].sort();
+  // Actualizar selector de proveedores (normalizar: quitar sufijos de plazo en paréntesis)
+  var _normProv=function(p){return(p||'').replace(/\s*\(\d+[^)]*\)\s*$/,'').trim();};
+  var provs=[...new Set(historial.filter(function(h){return h.prov;}).map(function(h){return _normProv(h.prov);}))].sort();
   var selProv=document.getElementById('hist-prov');
   var valProv=selProv.value;
   selProv.innerHTML='<option value="">Todos los proveedores</option>'+provs.map(function(p){return '<option value="'+p+'"'+(p===valProv?' selected':'')+'>'+p+'</option>';}).join('');
@@ -4878,7 +4879,7 @@ function renderHist(){
   var data=historial.filter(function(h){
     if(tipo!=='todos'&&h.tipo!==tipo)return false;
     if(obra&&h.obra!==obra)return false;
-    if(filtProv&&h.prov!==filtProv)return false;
+    if(filtProv&&_normProv(h.prov)!==filtProv)return false;
     if(filtEstado&&h.tipo==='pedido'){
       if(getEstadoPedido(h)!==filtEstado)return false;
     }
