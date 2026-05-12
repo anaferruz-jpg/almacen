@@ -3910,7 +3910,8 @@ function cerrarModalEntregaParcial(){
   _entregaIdx=-1;
 }
 function confirmarEntrega(){
-  var h=historial[_entregaIdx];
+  var idx=_entregaIdx; // capturar antes de cerrar el modal (cerrar pone _entregaIdx=-1)
+  var h=historial[idx];
   if(!h)return;
   var items=(Array.isArray(h.items)?h.items:[]).filter(function(it){
     return (parseFloat(it.qtyEntregada)||0)<(parseFloat(it.qty)||0);
@@ -3926,7 +3927,7 @@ function confirmarEntrega(){
   });
   if(!confirmados.length){toast('Selecciona al menos un ítem recibido',true);return;}
   cerrarModalEntregaParcial();
-  marcarEntregado(_entregaIdx,confirmados);
+  marcarEntregado(idx,confirmados); // usar idx capturado, no _entregaIdx
 }
 
 function eliminarPedido(idx){
