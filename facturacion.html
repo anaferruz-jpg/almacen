@@ -496,6 +496,12 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <option value="financiero">🏦 Financieros</option>
       <option value="impuestos">📋 Impuestos y tasas</option>
       <option value="obra">🏗️ Por obra</option>
+      <option value="otro">📦 Otro</option>
+    </select>
+    <select id="filtro-gi-estado" onchange="renderGastosInternos()">
+      <option value="">Todos</option>
+      <option value="pendiente">Pendiente pago</option>
+      <option value="pagado">Pagado</option>
     </select>
     <select id="filtro-gi-mes" onchange="renderGastosInternos()">
       <option value="">Todos los meses</option>
@@ -1257,6 +1263,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
           <option value="financiero">🏦 Financieros (banco, intereses, seguros empresa)</option>
           <option value="impuestos">📋 Impuestos y tasas (Mod. 111, 303, 200, 115)</option>
           <option value="obra">🏗️ Por obra (gasto asignado a obra concreta)</option>
+          <option value="otro">📦 Otro</option>
         </select>
       </div>
       <div class="form-group">
@@ -1296,6 +1303,13 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <div class="form-group">
         <label>Total con IVA (€)</label>
         <input type="text" id="gi-total" readonly style="background:var(--bg2);font-weight:600">
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="gi-estado">
+          <option value="pendiente">Pendiente de pago</option>
+          <option value="pagado">Pagado</option>
+        </select>
       </div>
       <div class="form-group">
         <label>¿Es recurrente?</label>
@@ -3107,6 +3121,7 @@ function abrirModalGastoInterno(idx) {
   document.getElementById('gi-base').value = g.base || '';
   document.getElementById('gi-iva').value = g.pctIva !== undefined ? g.pctIva : '21';
   calcGastoInterno();
+  document.getElementById('gi-estado').value = g.estado || 'pendiente';
   document.getElementById('gi-recurrente').value = g.recurrente || 'no';
   document.getElementById('gi-forma-pago').value = g.formaPago || 'transferencia';
   document.getElementById('gi-obs').value = g.obs || '';
@@ -3140,6 +3155,7 @@ function guardarGastoInterno() {
     iva: iva,
     total: total,
     importe: total,
+    estado: document.getElementById('gi-estado').value,
     recurrente: document.getElementById('gi-recurrente').value,
     formaPago: document.getElementById('gi-forma-pago').value,
     obs: document.getElementById('gi-obs').value.trim(),
@@ -3178,9 +3194,20 @@ function eliminarGastoInterno(idx) {
   });
 }
 
+function marcarPagadoGI(idx) {
+  if (!confirm('¿Marcar este gasto interno como pagado?')) return;
+  gastosInternos[idx].estado = 'pagado';
+  gastosInternos[idx].fechaPago = today;
+  saveGastosInternos();
+  saveGastoInternoSheets(gastosInternos[idx]);
+  renderGastosInternos();
+  toast('✅ Gasto marcado como pagado');
+}
+
 function renderGastosInternos() {
   var q = (document.getElementById('buscar-gi').value || '').toLowerCase();
   var filtCat = document.getElementById('filtro-gi-cat').value;
+  var filtEst = document.getElementById('filtro-gi-estado').value;
   var filtMes = document.getElementById('filtro-gi-mes').value;
 
   // Rellenar selector de meses disponibles
@@ -3192,6 +3219,7 @@ function renderGastosInternos() {
   var data = gastosInternos.filter(function(g) {
     if (q && (g.concepto + (g.proveedor||'') + (g.obs||'')).toLowerCase().indexOf(q) === -1) return false;
     if (filtCat && g.categoria !== filtCat) return false;
+    if (filtEst && (g.estado || 'pendiente') !== filtEst) return false;
     if (filtMes && (!g.fecha || g.fecha.substring(0,7) !== filtMes)) return false;
     return true;
   });
@@ -3218,7 +3246,7 @@ function renderGastosInternos() {
   cont.innerHTML = '<div style="text-align:right;font-size:13px;font-weight:600;color:var(--brand2);margin-bottom:8px">Total: ' + fmt(totalFiltrado) + '</div>' +
   '<div class="tbl-wrap"><table><thead><tr>' +
     '<th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Proveedor</th><th>Obra</th>' +
-    '<th style="text-align:right">Base</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Vencimiento</th><th>Recurrencia</th><th>Pago</th><th></th>' +
+    '<th style="text-align:right">Base</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Vencimiento</th><th>Estado</th><th>Recurrencia</th><th>Pago</th><th></th>' +
   '</tr></thead><tbody>' +
   data.slice().reverse().map(function(g) {
     var idx = gastosInternos.indexOf(g);
@@ -3237,10 +3265,12 @@ function renderGastosInternos() {
       '<td style="text-align:right;font-size:12px;color:var(--text2)">' + fmt(iva) + '<br><span style="font-size:10px;color:var(--text3)">' + (pctIva !== '—' ? '(' + pctIva + '%)' : '(0%)') + '</span></td>' +
       '<td style="text-align:right;font-weight:700;color:var(--danger)">' + fmt(total) + '</td>' +
       '<td style="font-size:11px;color:' + (vencGI ? 'var(--danger)' : 'inherit') + '">' + (g.vencimiento ? (vencGI ? '⚠️ ' : '') + fmtDate(g.vencimiento) : '—') + '</td>' +
+      '<td><span class="badge ' + badgeClass(g.estado || 'pendiente') + '">' + (g.estado || 'pendiente') + '</span></td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.recurrente !== 'no' ? '🔄 ' + g.recurrente : '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.formaPago || '—') + '</td>' +
       '<td><div style="display:flex;gap:3px">' +
         (g.driveUrl ? '<a href="' + g.driveUrl + '" target="_blank" class="btn" style="font-size:10px;padding:3px 6px;text-decoration:none" title="Ver documento en Drive">📎</a>' : '') +
+        ((g.estado || 'pendiente') === 'pendiente' ? '<button class="btn success" style="font-size:10px;padding:3px 6px" onclick="marcarPagadoGI(' + idx + ')" title="Marcar pagado">✅</button>' : '') +
         '<button class="btn" style="font-size:10px;padding:3px 6px" onclick="abrirModalGastoInterno(' + idx + ')">✏️</button>' +
         '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarGastoInterno(' + idx + ')">🗑️</button>' +
       '</div></td>' +
