@@ -7545,6 +7545,21 @@ function presCrearObraDesdePresupuesto(p) {
 
     var partidasNuevas = presToPartidas(p);
 
+    // Convierte planning del presupuesto → array previsionPersonal del almacén
+    function planningToPrevision(planning) {
+      if (!planning) return [];
+      var nM = planning.meses || (planning.fases||[]).length || 0;
+      var out = [];
+      for (var m = 0; m < nM; m++) {
+        var ops  = parseFloat((planning.ops||[])[m]) || 0;
+        var fase = ((planning.fases||[])[m] || '').trim();
+        if (ops <= 0 && !fase) continue;
+        out.push({ fase: fase || ('MES ' + (m+1)), categoria: '', operarios: ops,
+                   jornadas: 22, semanas: 0, horasDia: 8, costeHora: 0, costeTotal: 0 });
+      }
+      return out;
+    }
+
     var obraAlmacen;
     if (existente) {
       // Mezclar: contratado siempre viene del presupuesto, suministrado/entregas se preservan del almacén
@@ -7579,23 +7594,27 @@ function presCrearObraDesdePresupuesto(p) {
         plazo:            existente.plazo  || '',
         partidas:         partidasFinales,
         personal:         existente.personal || [],
-        previsionPersonal:existente.previsionPersonal || [],
+        previsionPersonal:(existente.previsionPersonal && existente.previsionPersonal.length)
+                            ? existente.previsionPersonal
+                            : planningToPrevision(p.planning),
         contacto:         existente.contacto || {nombre:p.att||'',tel:'',email:''}
       };
     } else {
       obraAlmacen = {
-        action:         'saveObra',
-        nombre:         p.proyecto,
-        nombreOriginal: '',
-        codObra:        p.numOferta || '',
-        constructora:   p.cliente   || '',
-        cliente:        p.cliente   || '',
-        presupuesto:    p.totalObra || 0,
-        carpetaDriveId: folderId    || '',
-        estado:         'activa',
-        tipo:           'fija',
-        partidas:       partidasNuevas,
-        contacto:       {nombre:p.att||'',tel:'',email:''}
+        action:            'saveObra',
+        nombre:            p.proyecto,
+        nombreOriginal:    '',
+        codObra:           p.numOferta || '',
+        constructora:      p.cliente   || '',
+        cliente:           p.cliente   || '',
+        presupuesto:       p.totalObra || 0,
+        carpetaDriveId:    folderId    || '',
+        estado:            'activa',
+        tipo:              'fija',
+        partidas:          partidasNuevas,
+        personal:          [],
+        previsionPersonal: planningToPrevision(p.planning),
+        contacto:          {nombre:p.att||'',tel:'',email:''}
       };
     }
 
