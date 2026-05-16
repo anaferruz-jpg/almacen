@@ -1905,6 +1905,7 @@ function buildObrasGrid(){
       '<div class="obra-icon">'+o.icon+'</div>'+
       (o.codObra?'<div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.04em;margin-bottom:1px">'+o.codObra+'</div>':'')+
       '<div class="obra-nombre">'+o.corto+tipoBadge+'</div>'+
+      (o.constructora?'<div style="font-size:10px;color:var(--text2);margin-top:1px;font-style:italic">'+o.constructora+'</div>':'')+
       '<div class="obra-lugar">'+o.lugar+'</div>'+
       estadoBadge+
       (o.presupuesto>0?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+Number(o.presupuesto).toLocaleString('es')+'€</div>':'')+
