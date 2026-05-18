@@ -3459,8 +3459,25 @@ function renderContrato(){
 
 var _MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+// Rellena automáticamente los meses vacíos por secuencia a partir del primer mes conocido
+function ctrInferirMeses(pf){
+  var first=-1;
+  for(var i=0;i<pf.length;i++){if(_MESES_ES.indexOf(pf[i].mes)!==-1){first=i;break;}}
+  if(first===-1)return pf;
+  var base=_MESES_ES.indexOf(pf[first].mes);
+  return pf.map(function(entry,idx){
+    if(!entry.mes||_MESES_ES.indexOf(entry.mes)===-1){
+      var pos=((base+(idx-first))%12+12)%12;
+      return{mes:_MESES_ES[pos],fase:entry.fase,operarios:entry.operarios,importe:entry.importe};
+    }
+    return entry;
+  });
+}
+
 function ctrRenderTabla(pf){
   var n=_ctrMeses;
+  // Inferir meses vacíos antes de renderizar
+  var pfS=ctrInferirMeses(pf);
   var inpS='width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center';
   var o=obraSeleccionada;
   // Defaults desde previsionPersonal
@@ -3474,12 +3491,12 @@ function ctrRenderTabla(pf){
   // Cabecera MES 1, MES 2...
   var thH='<th style="min-width:130px;text-align:left;padding:6px 8px"></th>';
   for(var m=1;m<=n;m++) thH+='<th style="text-align:center;min-width:90px;padding:5px 4px;font-size:11px;font-weight:700;color:var(--primary)">MES '+m+'</th>';
-  // Fila mes calendario (Mayo, Junio...)
+  // Fila mes calendario (Mayo, Junio...) — usa pfS para mostrar meses inferidos
   var mesH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Mes</td>';
   for(var m=1;m<=n;m++){
-    var pfi=pf[m-1]||{};
+    var pfi=pfS[m-1]||{};
     var mesNom=pfi.mes||'';
-    mesH+='<td style="padding:4px 5px"><input type="text" id="ctrm-'+m+'" value="'+mesNom+'" list="ctr-meses-list" placeholder="Mayo..." style="'+inpS+';text-align:left"></td>';
+    mesH+='<td style="padding:4px 5px"><input type="text" id="ctrm-'+m+'" value="'+mesNom+'" list="ctr-meses-list" placeholder="Mayo..." style="'+inpS+';text-align:left" oninput="ctrAutoMeses('+m+')"></td>';
   }
   // Fila fase de obra
   var fasH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Fase de obra</td>';
@@ -3544,6 +3561,20 @@ function ctrActualizarResumen(){
     (imp>0&&total<imp?'<div class="stat" style="border-top:3px solid #e67e22"><div class="stat-label" style="color:#a04000">Sin asignar</div><div class="stat-val" style="color:#e67e22">'+Number(imp-total).toLocaleString('es')+'€</div></div>':'');
 }
 
+// Al escribir un mes en la fila Mes, auto-rellena los siguientes vacíos por secuencia
+function ctrAutoMeses(desde){
+  var mesVal=document.getElementById('ctrm-'+desde);
+  if(!mesVal)return;
+  var base=_MESES_ES.indexOf(mesVal.value);
+  if(base===-1)return; // no es un mes reconocido todavía
+  for(var m=desde+1;m<=_ctrMeses;m++){
+    var el=document.getElementById('ctrm-'+m);
+    if(el&&!el.value){
+      el.value=_MESES_ES[((base+(m-desde))%12+12)%12];
+    }
+  }
+}
+
 function ctrAddMes(){
   var pf=ctrGetPlanFac();
   _ctrMeses++;
@@ -3592,7 +3623,7 @@ function guardarContrato(){
   o.formaPago=document.getElementById('ctr-forma-pago').value||'';
   o.plazo=document.getElementById('ctr-plazo').value||'';
   o.contacto=document.getElementById('ctr-contacto').value||'';
-  o.planFac=ctrGetPlanFac();
+  o.planFac=ctrInferirMeses(ctrGetPlanFac()); // Inferir meses vacíos por secuencia
   // Sincronizar → previsionPersonal (preserva costes ya introducidos)
   o.previsionPersonal=ctrPlanFacToPrevision(o.planFac, o.previsionPersonal);
   postAPI({
