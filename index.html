@@ -3513,18 +3513,27 @@ function ctrRenderTabla(pf){
   // Cabecera MES 1, MES 2...
   var thH='<th style="min-width:130px;text-align:left;padding:6px 8px"></th>';
   for(var m=1;m<=n;m++) thH+='<th style="text-align:center;min-width:90px;padding:5px 4px;font-size:11px;font-weight:700;color:var(--primary)">MES '+m+'</th>';
-  // Fila mes calendario (Mayo, Junio...) — usa pfS para mostrar meses inferidos
+  // Fila mes calendario (Mayo, Junio...) — usa pfS; si vacío, intenta recuperar de previsionPersonal.fase
   var mesH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Mes</td>';
   for(var m=1;m<=n;m++){
     var pfi=pfS[m-1]||{};
     var mesNom=pfi.mes||'';
+    // Si mes vacío, intentar recuperar el mes desde previsionPersonal.fase (ej: "Marzo" o "Marzo · Estructura")
+    if(!mesNom && fasesDefault[m-1]){
+      var fasePartes=(fasesDefault[m-1]||'').split(' · ');
+      var posibleMes=fasePartes[0].trim();
+      if(_MESES_ES.indexOf(posibleMes)!==-1) mesNom=posibleMes;
+    }
     mesH+='<td style="padding:4px 5px"><input type="text" id="ctrm-'+m+'" value="'+mesNom+'" list="ctr-meses-list" placeholder="Mayo..." style="'+inpS+';text-align:left" oninput="ctrAutoMeses('+m+')"></td>';
   }
-  // Fila fase de obra
+  // Fila fase de obra (si fase coincide con un mes puro, no mostrar — ya está en MES)
   var fasH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Fase de obra</td>';
   for(var m=1;m<=n;m++){
     var pfi=pf[m-1]||{};
-    var fase=pfi.fase!==undefined?pfi.fase:(fasesDefault[m-1]||'');
+    var faseRaw=pfi.fase!==undefined?pfi.fase:(fasesDefault[m-1]||'');
+    // Si la fase es solo un nombre de mes (sin descripción), limpiarla para evitar duplicado con MES
+    var faseParts=(faseRaw||'').split(' · ');
+    var fase=(_MESES_ES.indexOf(faseParts[0].trim())!==-1&&faseParts.length===1)?'':faseRaw;
     fasH+='<td style="padding:4px 5px"><input type="text" id="ctrf-'+m+'" value="'+fase+'" placeholder="'+(m===1?'Estructura':'')+'" style="'+inpS+';text-align:left"></td>';
   }
   // Fila previsión personal (operarios)
