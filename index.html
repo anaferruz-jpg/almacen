@@ -3453,9 +3453,9 @@ function renderContrato(){
   document.getElementById('ctr-plazo').value=o.plazo||'';
   var ctrC=o.contacto; var ctrStr=typeof ctrC==='string'?ctrC:(ctrC&&typeof ctrC==='object'?(ctrC.nombre||ctrC.name||''):'');
   document.getElementById('ctr-contacto').value=ctrStr;
-  // Inicializar planFac
+  // Inicializar planFac — usar el mayor entre planFac y previsionPersonal para no perder meses
   var pf=o.planFac||[];
-  _ctrMeses=pf.length||6;
+  _ctrMeses=Math.max(pf.length,(o.previsionPersonal||[]).length,6);
   ctrRenderTabla(pf);
   ctrActualizarResumen();
 }
@@ -3632,22 +3632,26 @@ function ctrQuitarMes(){
 // Convierte planFac[] → previsionPersonal[], preservando costes existentes por índice
 function ctrPlanFacToPrevision(planFac, prevExistente) {
   var prev = prevExistente || [];
+  // Usar el mayor entre planFac y previsionPersonal para no truncar meses existentes
+  var n = Math.max(planFac.length, prev.length);
   var result = [];
-  planFac.forEach(function(pfi, idx) {
-    if (!pfi.operarios && !pfi.fase && !pfi.mes) return; // mes vacío, ignorar
+  for (var idx = 0; idx < n; idx++) {
+    var pfi = planFac[idx] || {};
     var ex = prev[idx] || {};
-    var label = [pfi.mes, pfi.fase].filter(Boolean).join(' · ') || ('MES ' + (idx+1));
+    // Si no hay datos en ninguno de los dos, ignorar
+    if (!pfi.operarios && !pfi.fase && !pfi.mes && !ex.fase && !ex.categoria && !ex.costeHora) continue;
+    var label = [pfi.mes, pfi.fase].filter(Boolean).join(' · ') || ex.fase || ('MES ' + (idx+1));
     result.push({
       fase:       label,
       categoria:  ex.categoria  || '',
-      operarios:  pfi.operarios || 0,
+      operarios:  pfi.operarios || ex.operarios || 0,
       jornadas:   ex.jornadas   || 22,
       semanas:    ex.semanas    || 0,
       horasDia:   ex.horasDia   || 8,
       costeHora:  ex.costeHora  || 0,
       costeTotal: ex.costeTotal || 0
     });
-  });
+  }
   return result;
 }
 
