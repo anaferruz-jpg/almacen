@@ -3231,7 +3231,10 @@ function renderPrevisionGlobal(reload){
     cont.innerHTML='<div class="empty"><span class="spinner"></span> Cargando previsiones...</div>';
     callAPI('getObras',function(err,data){
       if(!err&&Array.isArray(data)){
+        var iconos={'ARCADI PLA ST ADRIA':'🏢','GRUP MAS ST JOAN DESPI':'🏗️','LUIS PARES LLORET':'🏖️','VOPI 4 CUNIT':'🏠','CORP ABRERA':'🏭'};
         OBRAS=data.map(function(o){
+          o.icon=iconos[o.nombre]||'🏗️';
+          o.corto=o.nombre.substring(0,22);
           if(!o.partidas)o.partidas=[];
           if(!o.personal)o.personal=[];
           if(!o.previsionPersonal)o.previsionPersonal=[];
