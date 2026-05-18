@@ -3441,10 +3441,31 @@ function ctrQuitarMes(){
   ctrActualizarResumen();
 }
 
+// Convierte planFac[] → previsionPersonal[], preservando costes existentes por índice
+function ctrPlanFacToPrevision(planFac, prevExistente) {
+  var prev = prevExistente || [];
+  var result = [];
+  planFac.forEach(function(pfi, idx) {
+    if (!pfi.operarios && !pfi.fase && !pfi.mes) return; // mes vacío, ignorar
+    var ex = prev[idx] || {};
+    var label = [pfi.mes, pfi.fase].filter(Boolean).join(' · ') || ('MES ' + (idx+1));
+    result.push({
+      fase:       label,
+      categoria:  ex.categoria  || '',
+      operarios:  pfi.operarios || 0,
+      jornadas:   ex.jornadas   || 22,
+      semanas:    ex.semanas    || 0,
+      horasDia:   ex.horasDia   || 8,
+      costeHora:  ex.costeHora  || 0,
+      costeTotal: ex.costeTotal || 0
+    });
+  });
+  return result;
+}
+
 function guardarContrato(){
   var o=obraSeleccionada;
   if(!o)return;
-  // Leer y actualizar el objeto obra
   o.inicio=document.getElementById('ctr-inicio').value||'';
   o.fin=document.getElementById('ctr-fin').value||'';
   o.presupuesto=parseFloat(document.getElementById('ctr-importe').value)||0;
@@ -3452,6 +3473,8 @@ function guardarContrato(){
   o.plazo=document.getElementById('ctr-plazo').value||'';
   o.contacto=document.getElementById('ctr-contacto').value||'';
   o.planFac=ctrGetPlanFac();
+  // Sincronizar → previsionPersonal (preserva costes ya introducidos)
+  o.previsionPersonal=ctrPlanFacToPrevision(o.planFac, o.previsionPersonal);
   postAPI({
     action:'saveObra',
     nombreOriginal:o.nombre,nombre:o.nombre,codObra:o.codObra||'',
@@ -3460,14 +3483,15 @@ function guardarContrato(){
     ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',
     inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',
     partidas:o.partidas||[],personal:o.personal||[],
-    previsionPersonal:o.previsionPersonal||[],
+    previsionPersonal:o.previsionPersonal,
     formaPago:o.formaPago||'',plazo:o.plazo||'',contacto:o.contacto||'',
     planFac:o.planFac||[]
   },function(err){
     if(err)return toast('❌ Error al guardar',true);
-    toast('✅ Contrato guardado');
-    // Actualizar KPIs por si cambió presupuesto
+    toast('✅ Contrato guardado — previsión de personal actualizada');
     actualizarKPIsObra(o);
+    // Refrescar tabla de previsión si está visible
+    renderPrevision();
   });
 }
 
