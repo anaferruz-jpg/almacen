@@ -3424,12 +3424,27 @@ function guardarPrevision(){
 /* ── CONTRATO / PREVISIÓN FACTURACIÓN ── */
 var _ctrMeses=6;
 
+// Convierte cualquier formato de fecha a YYYY-MM-DD para <input type="date">
+function toInputDate(val){
+  if(!val)return'';
+  var s=String(val);
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);   // ya OK
+  var m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m)return m[3]+'-'+m[2]+'-'+m[1];                          // DD/MM/YYYY
+  var d=new Date(s);
+  if(!isNaN(d.getTime())){
+    var y=d.getFullYear(),mo=('0'+(d.getMonth()+1)).slice(-2),dy=('0'+d.getDate()).slice(-2);
+    return y+'-'+mo+'-'+dy;
+  }
+  return'';
+}
+
 function renderContrato(){
   var o=obraSeleccionada;
   if(!o)return;
-  // Rellenar datos del contrato
-  document.getElementById('ctr-inicio').value=o.inicio||'';
-  document.getElementById('ctr-fin').value=o.fin||'';
+  // Rellenar datos del contrato (convertir fechas a YYYY-MM-DD)
+  document.getElementById('ctr-inicio').value=toInputDate(o.inicio);
+  document.getElementById('ctr-fin').value=toInputDate(o.fin);
   document.getElementById('ctr-importe').value=o.presupuesto||'';
   document.getElementById('ctr-forma-pago').value=o.formaPago||'';
   document.getElementById('ctr-plazo').value=o.plazo||'';
@@ -3571,8 +3586,8 @@ function ctrPlanFacToPrevision(planFac, prevExistente) {
 function guardarContrato(){
   var o=obraSeleccionada;
   if(!o)return;
-  o.inicio=document.getElementById('ctr-inicio').value||'';
-  o.fin=document.getElementById('ctr-fin').value||'';
+  o.inicio=document.getElementById('ctr-inicio').value||o.inicio||'';
+  o.fin=document.getElementById('ctr-fin').value||o.fin||'';
   o.presupuesto=parseFloat(document.getElementById('ctr-importe').value)||0;
   o.formaPago=document.getElementById('ctr-forma-pago').value||'';
   o.plazo=document.getElementById('ctr-plazo').value||'';
