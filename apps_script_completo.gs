@@ -278,7 +278,8 @@ function getObras() {
       meses:            rows[i][14] || 0,
       formaPago:        rows[i][15] || '',
       plazo:            rows[i][16] || '',
-      contacto:         JSON.parse(rows[i][17] || '{}')
+      contacto:         JSON.parse(rows[i][17] || '{}'),
+      planFac:          JSON.parse(rows[i][18] || '[]')
     });
   }
   return result;
@@ -289,7 +290,7 @@ function saveObra(data) {
   var sheet = ss.getSheetByName('Obras');
   if (!sheet) {
     sheet = ss.insertSheet('Obras');
-    sheet.appendRow(['Nombre','Lugar','Presupuesto','Inicio','Fin','Estado','Obs','Partidas','Personal','PctAlquiler','DiasAlquiler','PrevisionPersonal','Tipo','ML','Meses','FormaPago','Plazo','Contacto']);
+    sheet.appendRow(['Nombre','Lugar','Presupuesto','Inicio','Fin','Estado','Obs','Partidas','Personal','PctAlquiler','DiasAlquiler','PrevisionPersonal','Tipo','ML','Meses','FormaPago','Plazo','Contacto','PlanFac']);
   }
   var rows = sheet.getDataRange().getValues();
   var rowData = [
@@ -299,11 +300,17 @@ function saveObra(data) {
     JSON.stringify(data.personal||[]), data.pctAlquiler||0,
     data.diasAlquiler||0, JSON.stringify(data.previsionPersonal||[]),
     data.tipo||'fija', data.ml||0, data.meses||0,
-    data.formaPago||'', data.plazo||'', JSON.stringify(data.contacto||{})
+    data.formaPago||'', data.plazo||'',
+    typeof data.contacto==='object'?JSON.stringify(data.contacto):data.contacto||'',
+    data.codObra||'', data.constructora||'', data.carpetaDriveId||'',
+    JSON.stringify(data.planFac||[])
   ];
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.nombreOriginal || rows[i][0] === data.nombre) {
-      sheet.getRange(i+1,1,1,18).setValues([rowData]);
+      // Preservar planFac y previsionPersonal si no vienen en la petición
+      if (data.planFac === undefined) rowData[21] = rows[i][21] || '[]';
+      if (data.previsionPersonal === undefined) rowData[11] = rows[i][11] || '[]';
+      sheet.getRange(i+1,1,1,22).setValues([rowData]);
       return {ok:true};
     }
   }
@@ -768,20 +775,31 @@ function getGastosInternos() {
   var result = [];
   for (var i = 1; i < rows.length; i++) {
     if (!rows[i][0]) continue;
+    var importe = rows[i][5] || 0;
+    // Columnas nuevas (12-16): Base, PctIva, Iva, Total, Vencimiento
+    var base   = (rows[i][12] !== '' && rows[i][12] !== undefined && rows[i][12] !== null) ? rows[i][12] : importe;
+    var pctIva = rows[i][13] || 0;
+    var iva    = rows[i][14] || 0;
+    var total  = (rows[i][15] !== '' && rows[i][15] !== undefined && rows[i][15] !== null) ? rows[i][15] : importe;
     result.push({
-      id:         rows[i][0],
-      categoria:  rows[i][1] || '',
-      concepto:   rows[i][2] || '',
-      proveedor:  rows[i][3] || '',
-      fecha:      rows[i][4] || '',
-      importe:    rows[i][5] || 0,
-      base:       rows[i][5] || 0,
-      recurrente: rows[i][6] || '',
-      formaPago:  rows[i][7] || '',
-      obs:        rows[i][8] || '',
-      obra:       rows[i][9] || '',
-      creado:     rows[i][10] || '',
-      driveUrl:   rows[i][11] || ''
+      id:          rows[i][0],
+      categoria:   rows[i][1] || '',
+      concepto:    rows[i][2] || '',
+      proveedor:   rows[i][3] || '',
+      fecha:       rows[i][4] || '',
+      importe:     importe,
+      recurrente:  rows[i][6] || '',
+      formaPago:   rows[i][7] || '',
+      obs:         rows[i][8] || '',
+      obra:        rows[i][9] || '',
+      creado:      rows[i][10] || '',
+      driveUrl:    rows[i][11] || '',
+      base:        base,
+      pctIva:      pctIva,
+      iva:         iva,
+      total:       total,
+      vencimiento: rows[i][16] || '',
+      estado:      rows[i][17] || 'pendiente'
     });
   }
   return result;
@@ -793,17 +811,22 @@ function saveGastoInterno(data) {
   var sheet = ss.getSheetByName('GastosInternos');
   if (!sheet) {
     sheet = ss.insertSheet('GastosInternos');
-    sheet.appendRow(['ID','Categoria','Concepto','Proveedor','Fecha','Importe','Recurrente','FormaPago','Obs','Obra','Creado','DriveUrl']);
+    sheet.appendRow(['ID','Categoria','Concepto','Proveedor','Fecha','Importe','Recurrente','FormaPago','Obs','Obra','Creado','DriveUrl','Base','PctIva','Iva','Total','Vencimiento','Estado']);
   }
+  var base   = g.base   !== undefined ? g.base   : (g.importe || 0);
+  var pctIva = g.pctIva !== undefined ? g.pctIva : 0;
+  var iva    = g.iva    !== undefined ? g.iva    : 0;
+  var total  = g.total  !== undefined ? g.total  : (g.importe || base);
   var rowData = [
     g.id, g.categoria||'', g.concepto||'', g.proveedor||'',
-    g.fecha||'', g.importe||g.base||0,
-    g.recurrente||'', g.formaPago||'', g.obs||'', g.obra||'', g.creado||'', g.driveUrl||''
+    g.fecha||'', total,
+    g.recurrente||'', g.formaPago||'', g.obs||'', g.obra||'', g.creado||'', g.driveUrl||'',
+    base, pctIva, iva, total, g.vencimiento||'', g.estado||'pendiente'
   ];
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === g.id) {
-      sheet.getRange(i+1,1,1,12).setValues([rowData]);
+      sheet.getRange(i+1,1,1,18).setValues([rowData]);
       return {ok:true};
     }
   }
@@ -1335,6 +1358,39 @@ function saveFileToFolder(data) {
     return {ok: true, fileUrl: file.getUrl(), fileId: file.getId()};
   } catch(e) {
     return {ok: false, error: e.message};
+  }
+}
+
+// ── GUARDAR HTML COMO PDF EN DRIVE ──────────────────────────────────────────
+// v79: Drive.Files.insert SIN parents (evita "File not found" en carpetas compartidas)
+// El PDF se guarda en la carpeta destino con DriveApp (más permisivo)
+function saveHtmlAsPdf(data) {
+  try {
+    var folderId  = data.folderId;
+    var fileName  = data.fileName;
+    var htmlBytes = Utilities.base64Decode(data.content);
+    var htmlBlob  = Utilities.newBlob(htmlBytes, 'text/html', fileName);
+    // 1. Crear Google Doc en raíz (sin parent para evitar error de permisos en carpetas compartidas)
+    var docMeta = Drive.Files.insert(
+      {
+        title: fileName.replace(/\.pdf$/i, ''),
+        mimeType: 'application/vnd.google-apps.document'
+      },
+      htmlBlob,
+      { convert: true }
+    );
+    // 2. Exportar como PDF
+    var pdfBlob = DriveApp.getFileById(docMeta.id).getAs('application/pdf');
+    pdfBlob.setName(fileName);
+    // 3. Guardar PDF en carpeta destino con DriveApp
+    var folder  = DriveApp.getFolderById(folderId);
+    var pdfFile = folder.createFile(pdfBlob);
+    pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // 4. Borrar Google Doc intermedio
+    DriveApp.getFileById(docMeta.id).setTrashed(true);
+    return { ok: true, url: pdfFile.getUrl(), id: pdfFile.getId() };
+  } catch(e) {
+    return { ok: false, error: e.toString() };
   }
 }
 
