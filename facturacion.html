@@ -859,21 +859,6 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
         </div>
       </div>
       <div style="overflow-x:auto"><div id="pp-planning-wrap"></div></div>
-      <!-- Datos de contrato + notas -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
-        <div>
-          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:3px">📅 Inicio contrato</label>
-          <input type="date" id="pp-inicio" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
-        </div>
-        <div>
-          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:3px">📅 Fin contrato</label>
-          <input type="date" id="pp-fin" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
-        </div>
-        <div>
-          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);display:block;margin-bottom:3px">💶 Importe contrato</label>
-          <input type="number" id="pp-importe" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
-        </div>
-      </div>
       <div style="margin-top:6px">
         <input type="text" id="pp-notas" placeholder="Observaciones del planning..." style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)">
       </div>
@@ -8152,51 +8137,41 @@ function presRenderPlanningTable(pl) {
   for (var m=1; m<=n; m++) fasH += '<td style="padding:4px 5px"><input type="text" id="ppf-'+m+'" value="'+((pl.fases&&pl.fases[m-1])||'')+'" placeholder="'+(m===1?'ESTRUCTURA':m===4?'CERRAMIENTOS':'')+'" style="'+inpS+'"></td>';
   var opsH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Nº Operarios</td>';
   for (var m=1; m<=n; m++) opsH += '<td style="padding:4px 5px"><input type="number" id="ppo-'+m+'" value="'+((pl.ops&&pl.ops[m-1])||0)+'" min="0" step="1" oninput="presCalcTotales()" style="'+inpS+';font-weight:600;font-size:12px"></td>';
-  var facH = '<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:#27ae60;text-transform:uppercase;letter-spacing:.05em">Facturación prevista (€)</td>';
-  for (var m=1; m<=n; m++) facH += '<td style="padding:4px 5px"><input type="number" id="ppfac-'+m+'" value="'+((pl.fac&&pl.fac[m-1])||'')+'" min="0" step="0.01" placeholder="0" style="'+inpS+';color:#27ae60;font-weight:600"></td>';
-  var tbl = '<table class="ptbl" style="min-width:'+Math.max(540,(n*90+130))+'px"><thead><tr>'+thH+'</tr></thead><tbody><tr>'+fasH+'</tr><tr>'+opsH+'</tr><tr>'+facH+'</tr></tbody></table>';
+  var tbl = '<table class="ptbl" style="min-width:'+Math.max(540,(n*90+130))+'px"><thead><tr>'+thH+'</tr></thead><tbody><tr>'+fasH+'</tr><tr>'+opsH+'</tr></tbody></table>';
   document.getElementById('pp-planning-wrap').innerHTML = tbl;
 }
 
 function presGetPlanning() {
-  var fas=[], ops=[], fac=[];
+  var fas=[], ops=[];
   for (var m=1; m<=_presMeses; m++) {
     fas.push((document.getElementById('ppf-'+m)||{value:''}).value||'');
     ops.push(parseFloat((document.getElementById('ppo-'+m)||{value:0}).value)||0);
-    fac.push(parseFloat((document.getElementById('ppfac-'+m)||{value:0}).value)||0);
   }
   return {
     meses:   _presMeses,
     fases:   fas,
     ops:     ops,
-    fac:     fac,
-    inicio:  (document.getElementById('pp-inicio')||{value:''}).value||'',
-    fin:     (document.getElementById('pp-fin')||{value:''}).value||'',
-    importe: parseFloat((document.getElementById('pp-importe')||{value:0}).value)||0,
     notas:   (document.getElementById('pp-notas')||{value:''}).value||''
   };
 }
 
 function presSetPlanning(pl) {
-  pl = pl||{meses:6, fases:[], ops:[], fac:[], notas:'', inicio:'', fin:'', importe:0};
+  pl = pl||{meses:6, fases:[], ops:[], notas:''};
   _presMeses = pl.meses || (pl.fases&&pl.fases.length) || 6;
   presRenderPlanningTable(pl);
   var ne=document.getElementById('pp-notas');    if(ne) ne.value=pl.notas||'';
-  var ei=document.getElementById('pp-inicio');   if(ei) ei.value=pl.inicio||'';
-  var ef=document.getElementById('pp-fin');      if(ef) ef.value=pl.fin||'';
-  var em=document.getElementById('pp-importe');  if(em) em.value=pl.importe||'';
 }
 
 function presAddMes() {
   var pl=presGetPlanning(); pl.meses++; _presMeses=pl.meses;
-  pl.fases.push(''); pl.ops.push(0); pl.fac.push(0);
+  pl.fases.push(''); pl.ops.push(0);
   presRenderPlanningTable(pl);
 }
 
 function presQuitarMes() {
   if (_presMeses<=1) return;
   var pl=presGetPlanning(); pl.meses--; _presMeses=pl.meses;
-  pl.fases.pop(); pl.ops.pop(); pl.fac.pop();
+  pl.fases.pop(); pl.ops.pop();
   presRenderPlanningTable(pl);
 }
 

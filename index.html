@@ -371,6 +371,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <button class="tab" id="otab-personal" onclick="obraSubTab('personal',this)">👷 Personal</button>
       <button class="tab" id="otab-costes" onclick="obraSubTab('costes',this)">💰 Costes</button>
       <button class="tab" id="otab-docs" onclick="obraSubTab('docs',this)">📁 Documentos</button>
+      <button class="tab" id="otab-contrato" onclick="obraSubTab('contrato',this)">📊 Contrato</button>
     </div>
     <div id="osub-partidas"><div id="obra-partidas-content"></div></div>
     <div id="osub-historial" style="display:none"><div id="obra-historial-content"></div></div>
@@ -590,6 +591,58 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
       <!-- Listado -->
       <div id="docs-obra-lista"></div>
     </div>
+
+    <!-- ══ CONTRATO ══ -->
+    <div id="osub-contrato" style="display:none">
+      <!-- Datos del contrato -->
+      <div class="card" style="margin-bottom:12px;border:1.5px solid var(--accent)">
+        <div class="card-title" style="color:var(--accent)">📄 Datos del contrato</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="form-group">
+            <label>📅 Inicio contrato</label>
+            <input type="date" id="ctr-inicio">
+          </div>
+          <div class="form-group">
+            <label>📅 Fin contrato</label>
+            <input type="date" id="ctr-fin">
+          </div>
+          <div class="form-group">
+            <label>💶 Importe contrato (€)</label>
+            <input type="number" id="ctr-importe" min="0" step="0.01" placeholder="0.00" oninput="ctrActualizarResumen()">
+          </div>
+          <div class="form-group">
+            <label>Forma de pago</label>
+            <input type="text" id="ctr-forma-pago" placeholder="Ej: 60 días, transferencia...">
+          </div>
+          <div class="form-group">
+            <label>Plazo de pago (días)</label>
+            <input type="number" id="ctr-plazo" min="0" step="1" placeholder="30">
+          </div>
+          <div class="form-group">
+            <label>Contacto</label>
+            <input type="text" id="ctr-contacto" placeholder="Nombre del responsable...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Previsión de facturación mensual -->
+      <div class="card" style="margin-bottom:12px;border:1.5px solid #27ae60">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="card-title" style="color:#27ae60;margin-bottom:0">💶 Previsión de facturación mensual</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn sm" onclick="ctrAddMes()">+ Mes</button>
+            <button class="btn sm" onclick="ctrQuitarMes()">− Mes</button>
+          </div>
+        </div>
+        <div id="ctr-resumen" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div style="overflow-x:auto"><div id="ctr-tabla-wrap"></div></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn primary" onclick="guardarContrato()">💾 Guardar contrato</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2080,11 +2133,13 @@ function obraSubTab(id,el){
   document.getElementById('osub-personal').style.display=id==='personal'?'block':'none';
   document.getElementById('osub-costes').style.display=id==='costes'?'block':'none';
   document.getElementById('osub-docs').style.display=id==='docs'?'block':'none';
+  document.getElementById('osub-contrato').style.display=id==='contrato'?'block':'none';
   if(id==='partidas')renderPartidas();
   if(id==='historial')renderHistObra();
   if(id==='personal')renderPersonal();
   if(id==='costes')renderCostes();
   if(id==='docs')renderDocsObra();
+  if(id==='contrato')renderContrato();
 }
 
 /* ── RENDERPARTIDAS — control manual de suministrado ── */
@@ -3259,6 +3314,131 @@ function eliminarPrevision(idx){
 
 function guardarPrevision(){
   guardarPartidasSilencioso(function(){toast('✅ Previsión guardada');});
+}
+
+/* ── CONTRATO / PREVISIÓN FACTURACIÓN ── */
+var _ctrMeses=6;
+
+function renderContrato(){
+  var o=obraSeleccionada;
+  if(!o)return;
+  // Rellenar datos del contrato
+  document.getElementById('ctr-inicio').value=o.inicio||'';
+  document.getElementById('ctr-fin').value=o.fin||'';
+  document.getElementById('ctr-importe').value=o.presupuesto||'';
+  document.getElementById('ctr-forma-pago').value=o.formaPago||'';
+  document.getElementById('ctr-plazo').value=o.plazo||'';
+  var ctrC=o.contacto; var ctrStr=typeof ctrC==='string'?ctrC:(ctrC&&typeof ctrC==='object'?(ctrC.nombre||ctrC.name||''):'');
+  document.getElementById('ctr-contacto').value=ctrStr;
+  // Inicializar planFac
+  var pf=o.planFac||[];
+  _ctrMeses=pf.length||6;
+  ctrRenderTabla(pf);
+  ctrActualizarResumen();
+}
+
+function ctrRenderTabla(pf){
+  var n=_ctrMeses;
+  var inpS='width:100%;padding:5px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--bg);text-align:right';
+  // Obtener fases del planning personal si existen
+  var o=obraSeleccionada;
+  var fasesPlanning=[];
+  if(o&&o.previsionPersonal){
+    o.previsionPersonal.forEach(function(p,i){fasesPlanning[i]=p.fase||'';});
+  }
+  var rows='';
+  for(var m=1;m<=n;m++){
+    var pfi=pf[m-1]||{};
+    var fase=pfi.fase!==undefined?pfi.fase:(fasesPlanning[m-1]||'');
+    var imp=pfi.importe!==undefined?pfi.importe:'';
+    rows+='<tr>'+
+      '<td style="font-size:12px;font-weight:700;color:var(--accent);padding:6px 8px;white-space:nowrap">Mes '+m+'</td>'+
+      '<td style="padding:4px 6px"><input type="text" id="ctrf-'+m+'" value="'+fase+'" placeholder="Fase / descripción..." style="'+inpS+';text-align:left"></td>'+
+      '<td style="padding:4px 6px"><input type="number" id="ctri-'+m+'" value="'+imp+'" min="0" step="0.01" placeholder="0.00" oninput="ctrActualizarResumen()" style="'+inpS+';color:#27ae60;font-weight:700"></td>'+
+    '</tr>';
+  }
+  document.getElementById('ctr-tabla-wrap').innerHTML=
+    '<table style="width:100%;border-collapse:collapse">'+
+      '<thead><tr>'+
+        '<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);min-width:60px">Mes</th>'+
+        '<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)">Fase / Descripción</th>'+
+        '<th style="text-align:right;padding:6px 8px;font-size:11px;color:#27ae60;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);min-width:130px">Facturación prevista (€)</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>';
+}
+
+function ctrGetPlanFac(){
+  var pf=[];
+  for(var m=1;m<=_ctrMeses;m++){
+    pf.push({
+      fase:(document.getElementById('ctrf-'+m)||{value:''}).value||'',
+      importe:parseFloat((document.getElementById('ctri-'+m)||{value:0}).value)||0
+    });
+  }
+  return pf;
+}
+
+function ctrActualizarResumen(){
+  var imp=parseFloat((document.getElementById('ctr-importe')||{value:0}).value)||0;
+  var total=0;
+  for(var m=1;m<=_ctrMeses;m++){
+    total+=parseFloat((document.getElementById('ctri-'+m)||{value:0}).value)||0;
+  }
+  var pct=imp>0?Math.round(total/imp*100):0;
+  var color=pct>100?'#e74c3c':pct===100?'#27ae60':'#2980b9';
+  document.getElementById('ctr-resumen').innerHTML=
+    '<div class="stat"><div class="stat-label">Importe contrato</div><div class="stat-val">'+Number(imp).toLocaleString('es')+'€</div></div>'+
+    '<div class="stat" style="border-top:3px solid #27ae60"><div class="stat-label" style="color:#1e8449">Previsto total</div><div class="stat-val" style="color:#27ae60">'+Number(total).toLocaleString('es')+'€</div></div>'+
+    '<div class="stat" style="border-top:3px solid '+color+'"><div class="stat-label" style="color:'+color+'">% planificado</div><div class="stat-val" style="color:'+color+'">'+pct+'%</div></div>'+
+    (imp>0&&total<imp?'<div class="stat" style="border-top:3px solid #e67e22"><div class="stat-label" style="color:#a04000">Sin asignar</div><div class="stat-val" style="color:#e67e22">'+Number(imp-total).toLocaleString('es')+'€</div></div>':'');
+}
+
+function ctrAddMes(){
+  var pf=ctrGetPlanFac();
+  _ctrMeses++;
+  pf.push({fase:'',importe:0});
+  ctrRenderTabla(pf);
+  ctrActualizarResumen();
+}
+
+function ctrQuitarMes(){
+  if(_ctrMeses<=1)return;
+  var pf=ctrGetPlanFac();
+  _ctrMeses--;
+  pf.pop();
+  ctrRenderTabla(pf);
+  ctrActualizarResumen();
+}
+
+function guardarContrato(){
+  var o=obraSeleccionada;
+  if(!o)return;
+  // Leer y actualizar el objeto obra
+  o.inicio=document.getElementById('ctr-inicio').value||'';
+  o.fin=document.getElementById('ctr-fin').value||'';
+  o.presupuesto=parseFloat(document.getElementById('ctr-importe').value)||0;
+  o.formaPago=document.getElementById('ctr-forma-pago').value||'';
+  o.plazo=document.getElementById('ctr-plazo').value||'';
+  o.contacto=document.getElementById('ctr-contacto').value||'';
+  o.planFac=ctrGetPlanFac();
+  postAPI({
+    action:'saveObra',
+    nombreOriginal:o.nombre,nombre:o.nombre,codObra:o.codObra||'',
+    carpetaDriveId:o.carpetaDriveId||'',
+    lugar:o.lugar||'—',presupuesto:o.presupuesto||0,
+    ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',
+    inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',
+    partidas:o.partidas||[],personal:o.personal||[],
+    previsionPersonal:o.previsionPersonal||[],
+    formaPago:o.formaPago||'',plazo:o.plazo||'',contacto:o.contacto||'',
+    planFac:o.planFac||[]
+  },function(err){
+    if(err)return toast('❌ Error al guardar',true);
+    toast('✅ Contrato guardado');
+    // Actualizar KPIs por si cambió presupuesto
+    actualizarKPIsObra(o);
+  });
 }
 
 function renderPrevision(){
