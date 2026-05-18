@@ -3227,14 +3227,22 @@ function renderPrevisionGlobal(reload){
   if(reload){
     cont.innerHTML='<div class="empty"><span class="spinner"></span> Cargando previsiones...</div>';
     callAPI('getObras',function(err,data){
-      if(!err&&Array.isArray(data))obras=data;
+      if(!err&&Array.isArray(data)){
+        OBRAS=data.map(function(o){
+          if(!o.partidas)o.partidas=[];
+          if(!o.personal)o.personal=[];
+          if(!o.previsionPersonal)o.previsionPersonal=[];
+          if(!o.planFac)o.planFac=[];
+          return o;
+        });
+      }
       renderPrevisionGlobal(false);
     });
     return;
   }
   // Obras activas con planFac
-  var obrasConPlan=(obras||[]).filter(function(o){
-    return o.planFac&&o.planFac.length&&o.estado!=='finalizada';
+  var obrasConPlan=(OBRAS||[]).filter(function(o){
+    return o.planFac&&o.planFac.length&&o.estado!=='finalizada'&&o.estado!=='cerrada';
   });
   if(!obrasConPlan.length){
     cont.innerHTML='<div class="empty">No hay obras con previsión de facturación/personal guardada.<br><span style="font-size:11px">Rellena la pestaña 📊 Contrato de cada obra y pulsa Guardar contrato.</span></div>';
@@ -3568,20 +3576,24 @@ function guardarContrato(){
   o.previsionPersonal=ctrPlanFacToPrevision(o.planFac, o.previsionPersonal);
   postAPI({
     action:'saveObra',
-    nombreOriginal:o.nombre,nombre:o.nombre,codObra:o.codObra||'',
-    carpetaDriveId:o.carpetaDriveId||'',
-    lugar:o.lugar||'—',presupuesto:o.presupuesto||0,
-    ml:o.ml||0,meses:o.meses||0,tipo:o.tipo||'fija',
-    inicio:o.inicio||'',fin:o.fin||'',estado:o.estado||'activa',
-    partidas:o.partidas||[],personal:o.personal||[],
+    nombreOriginal:o.nombre, nombre:o.nombre, codObra:o.codObra||'',
+    carpetaDriveId:o.carpetaDriveId||'', constructora:o.constructora||'',
+    lugar:o.lugar||'—', presupuesto:o.presupuesto||0,
+    ml:o.ml||0, meses:o.meses||0, tipo:o.tipo||'fija',
+    inicio:o.inicio||'', fin:o.fin||'', estado:o.estado||'activa',
+    obs:o.obs||'', pctAlquiler:o.pctAlquiler||0, diasAlquiler:o.diasAlquiler||0,
+    partidas:o.partidas||[], personal:o.personal||[],
     previsionPersonal:o.previsionPersonal,
-    formaPago:o.formaPago||'',plazo:o.plazo||'',contacto:o.contacto||'',
+    formaPago:o.formaPago||'', plazo:o.plazo||'', contacto:o.contacto||'',
     planFac:o.planFac||[]
   },function(err){
     if(err)return toast('❌ Error al guardar',true);
     toast('✅ Contrato guardado — previsión de personal actualizada');
+    // Actualizar entrada en OBRAS para que renderPrevisionGlobal vea los nuevos datos
+    for(var i=0;i<OBRAS.length;i++){
+      if(OBRAS[i].nombre===o.nombre){OBRAS[i]=o;break;}
+    }
     actualizarKPIsObra(o);
-    // Refrescar tabla de previsión si está visible
     renderPrevision();
   });
 }
