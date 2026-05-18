@@ -1049,6 +1049,17 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
   </div>
   <div class="stats" id="stats-personal" style="margin-bottom:14px"></div>
 
+  <!-- PREVISIÓN GLOBAL PERSONAL POR OBRA -->
+  <div class="card" style="margin-bottom:14px;border:1.5px solid var(--accent)">
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none" onclick="var c=document.getElementById('prev-global-body');var a=document.getElementById('prev-global-arr');var vis=c.style.display!=='none';c.style.display=vis?'none':'block';a.textContent=vis?'▶':'▼'">
+      <div class="card-title" style="color:var(--accent);margin-bottom:0">📊 Previsión de personal — todas las obras</div>
+      <span id="prev-global-arr" style="font-size:11px;color:var(--text2)">▼</span>
+    </div>
+    <div id="prev-global-body" style="margin-top:10px">
+      <div id="prev-global-content"><div class="empty">Cargando...</div></div>
+    </div>
+  </div>
+
   <!-- FORM OPERARIO -->
   <div id="form-operario-wrap" style="display:none;margin-bottom:14px">
     <div class="card" style="border:1.5px solid var(--accent)">
@@ -1486,7 +1497,7 @@ function showTab(id,el){
   if(id==='historial')cargarHistorial();
   if(id==='obras')buildObrasGrid();
   if(id==='precios')renderPrecios();
-  if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);}
+  if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);renderPrevisionGlobal();}
   if(id==='devolucion'){var df=document.getElementById('dev-fecha');if(df&&!df.value)df.value=today;}
   if(id==='traspaso'){var tf=document.getElementById('trasp-fecha');if(tf&&!tf.value)tf.value=today;}
 }
@@ -3207,6 +3218,77 @@ function darDeBajaOperario(idx){
   saveFichas();
   renderOperarios();
   renderStatsPersonal();
+}
+
+function renderPrevisionGlobal(){
+  var cont=document.getElementById('prev-global-content');
+  if(!cont)return;
+  // Obras activas con planFac
+  var obrasConPlan=(obras||[]).filter(function(o){
+    return o.planFac&&o.planFac.length&&o.estado!=='finalizada';
+  });
+  if(!obrasConPlan.length){
+    cont.innerHTML='<div class="empty">No hay obras con previsión de facturación/personal guardada.<br><span style="font-size:11px">Rellena la pestaña 📊 Contrato de cada obra y pulsa Guardar contrato.</span></div>';
+    return;
+  }
+  // Recoger todos los meses en orden (usando _MESES_ES para ordenar)
+  var mesesSet={};
+  obrasConPlan.forEach(function(o){
+    o.planFac.forEach(function(pfi,idx){
+      var key=pfi.mes||(idx+1+'');
+      mesesSet[key]=true;
+    });
+  });
+  // Ordenar: primero los que coincidan con _MESES_ES, luego el resto
+  var mesOrden=(_MESES_ES||[]);
+  var meses=Object.keys(mesesSet).sort(function(a,b){
+    var ia=mesOrden.indexOf(a), ib=mesOrden.indexOf(b);
+    if(ia===-1&&ib===-1)return 0;
+    if(ia===-1)return 1;
+    if(ib===-1)return -1;
+    return ia-ib;
+  });
+  // Totales por mes
+  var totales={};
+  meses.forEach(function(m){totales[m]=0;});
+  // Tabla — cabecera
+  var thH='<th style="text-align:left;padding:6px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);min-width:140px;position:sticky;left:0;background:var(--bg)">Obra</th>';
+  meses.forEach(function(m){
+    thH+='<th style="text-align:center;padding:5px 6px;font-size:11px;font-weight:700;color:var(--primary);min-width:80px">'+m+'</th>';
+  });
+  // Filas por obra
+  var rows='';
+  obrasConPlan.forEach(function(o){
+    var cells='';
+    meses.forEach(function(mesKey){
+      var ops=0;
+      o.planFac.forEach(function(pfi,idx){
+        var k=pfi.mes||(idx+1+'');
+        if(k===mesKey) ops+=pfi.operarios||0;
+      });
+      totales[mesKey]+=ops;
+      var bg=ops>0?'background:rgba(92,45,14,.06)':'';
+      cells+='<td style="text-align:center;padding:5px 6px;font-size:12px;font-weight:'+(ops>0?'700':'400')+';color:'+(ops>0?'var(--primary)':'var(--text2)')+';'+bg+'">'+
+        (ops>0?ops:'—')+'</td>';
+    });
+    var nombre=o.nombre+(o.constructora?'<div style="font-size:9px;color:var(--text2);font-style:italic">'+o.constructora+'</div>':'');
+    rows+='<tr><td style="padding:5px 8px;font-size:12px;font-weight:600;white-space:nowrap;position:sticky;left:0;background:var(--bg)">'+nombre+'</td>'+cells+'</tr>';
+  });
+  // Fila totales
+  var totRow='<td style="padding:6px 8px;font-size:12px;font-weight:700;color:var(--accent);position:sticky;left:0;background:#f5f0ea">TOTAL OPERARIOS</td>';
+  meses.forEach(function(m){
+    var t=totales[m];
+    totRow+='<td style="text-align:center;padding:6px;font-size:14px;font-weight:700;color:'+(t>0?'var(--accent)':'var(--text2)')+';background:#f5f0ea">'+
+      (t>0?t:'—')+'</td>';
+  });
+  cont.innerHTML=
+    '<div style="overflow-x:auto">'+
+    '<table style="border-collapse:collapse;width:100%">'+
+      '<thead><tr style="border-bottom:2px solid var(--border)">'+thH+'</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+      '<tfoot><tr style="border-top:2px solid var(--accent)">'+totRow+'</tr></tfoot>'+
+    '</table></div>'+
+    '<div style="font-size:10px;color:var(--text2);margin-top:6px">Operarios previstos por mes · Solo obras no finalizadas con contrato guardado</div>';
 }
 
 function renderStatsPersonal(){
