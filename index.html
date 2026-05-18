@@ -3339,32 +3339,35 @@ function renderContrato(){
 
 function ctrRenderTabla(pf){
   var n=_ctrMeses;
-  var inpS='width:100%;padding:5px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--bg);text-align:right';
-  // Obtener fases del planning personal si existen
+  var inpS='width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center';
   var o=obraSeleccionada;
-  var fasesPlanning=[];
+  // Fases: usar planFac si tiene, si no intentar desde previsionPersonal
+  var fasesDefault=[];
   if(o&&o.previsionPersonal){
-    o.previsionPersonal.forEach(function(p,i){fasesPlanning[i]=p.fase||'';});
+    o.previsionPersonal.forEach(function(p,i){fasesDefault[i]=p.fase||'';});
   }
-  var rows='';
+  // Cabecera con columnas de mes
+  var thH='<th style="min-width:120px;text-align:left;padding:6px 8px"></th>';
+  for(var m=1;m<=n;m++) thH+='<th style="text-align:center;min-width:90px;padding:5px 4px;font-size:11px;font-weight:700;color:var(--primary)">MES '+m+'</th>';
+  // Fila de fases
+  var fasH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Fase de obra</td>';
   for(var m=1;m<=n;m++){
     var pfi=pf[m-1]||{};
-    var fase=pfi.fase!==undefined?pfi.fase:(fasesPlanning[m-1]||'');
-    var imp=pfi.importe!==undefined?pfi.importe:'';
-    rows+='<tr>'+
-      '<td style="font-size:12px;font-weight:700;color:var(--accent);padding:6px 8px;white-space:nowrap">Mes '+m+'</td>'+
-      '<td style="padding:4px 6px"><input type="text" id="ctrf-'+m+'" value="'+fase+'" placeholder="Fase / descripción..." style="'+inpS+';text-align:left"></td>'+
-      '<td style="padding:4px 6px"><input type="number" id="ctri-'+m+'" value="'+imp+'" min="0" step="0.01" placeholder="0.00" oninput="ctrActualizarResumen()" style="'+inpS+';color:#27ae60;font-weight:700"></td>'+
-    '</tr>';
+    var fase=pfi.fase!==undefined?pfi.fase:(fasesDefault[m-1]||'');
+    fasH+='<td style="padding:4px 5px"><input type="text" id="ctrf-'+m+'" value="'+fase+'" placeholder="'+(m===1?'ESTRUCTURA':m===4?'CERRAMIENTOS':'')+'" style="'+inpS+';text-align:left"></td>';
   }
+  // Fila de facturación prevista
+  var facH='<td style="font-size:10px;font-weight:600;padding:6px 8px;white-space:nowrap;color:#27ae60;text-transform:uppercase;letter-spacing:.05em">Facturación prevista (€)</td>';
+  for(var m=1;m<=n;m++){
+    var pfi=pf[m-1]||{};
+    var imp=pfi.importe!==undefined&&pfi.importe!==0?pfi.importe:'';
+    facH+='<td style="padding:4px 5px"><input type="number" id="ctri-'+m+'" value="'+imp+'" min="0" step="0.01" placeholder="0" oninput="ctrActualizarResumen()" style="'+inpS+';color:#27ae60;font-weight:700"></td>';
+  }
+  var minW=Math.max(540,(n*90+120));
   document.getElementById('ctr-tabla-wrap').innerHTML=
-    '<table style="width:100%;border-collapse:collapse">'+
-      '<thead><tr>'+
-        '<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);min-width:60px">Mes</th>'+
-        '<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)">Fase / Descripción</th>'+
-        '<th style="text-align:right;padding:6px 8px;font-size:11px;color:#27ae60;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);min-width:130px">Facturación prevista (€)</th>'+
-      '</tr></thead>'+
-      '<tbody>'+rows+'</tbody>'+
+    '<table class="ptbl" style="min-width:'+minW+'px;border-collapse:collapse;width:100%">'+
+      '<thead><tr>'+thH+'</tr></thead>'+
+      '<tbody><tr>'+fasH+'</tr><tr>'+facH+'</tr></tbody>'+
     '</table>';
 }
 
