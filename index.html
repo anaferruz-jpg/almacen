@@ -3254,30 +3254,34 @@ function renderPrevisionGlobal(reload){
     cont.innerHTML='<div class="empty">No hay obras con previsión de facturación/personal guardada.<br><span style="font-size:11px">Rellena la pestaña 📊 Contrato de cada obra y pulsa Guardar contrato.</span></div>';
     return;
   }
-  // Recoger todos los meses en orden (usando _MESES_ES para ordenar)
+  // Recoger todos los meses (clave = "Mes" o "Mes YYYY")
   var mesesSet={};
   obrasConPlan.forEach(function(o){
-    o.planFac.forEach(function(pfi,idx){
-      var key=pfi.mes||(idx+1+'');
-      mesesSet[key]=true;
+    o.planFac.forEach(function(pfi){
+      if(pfi.mes) mesesSet[pfi.mes]=true;
     });
   });
-  // Ordenar: primero los que coincidan con _MESES_ES, luego el resto
-  var mesOrden=(_MESES_ES||[]);
+  // Parsear clave para ordenar por año+mes
+  function _parseMesKey(k){
+    var p=(k||'').split(' ');
+    var mi=_MESES_ES.indexOf(p[0]);
+    var yr=parseInt(p[1])||0;
+    return{mi:mi>=0?mi:99,yr:yr};
+  }
   var meses=Object.keys(mesesSet).sort(function(a,b){
-    var ia=mesOrden.indexOf(a), ib=mesOrden.indexOf(b);
-    if(ia===-1&&ib===-1)return 0;
-    if(ia===-1)return 1;
-    if(ib===-1)return -1;
-    return ia-ib;
+    var pa=_parseMesKey(a),pb=_parseMesKey(b);
+    if(pa.yr!==pb.yr) return pa.yr-pb.yr;
+    return pa.mi-pb.mi;
   });
   // Totales por mes
   var totales={};
   meses.forEach(function(m){totales[m]=0;});
-  // Tabla — cabecera
+  // Tabla — cabecera (año abreviado: "ENE '27" si hay año)
   var thH='<th style="text-align:left;padding:6px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);min-width:140px;position:sticky;left:0;background:var(--bg)">Obra</th>';
   meses.forEach(function(m){
-    thH+='<th style="text-align:center;padding:5px 6px;font-size:11px;font-weight:700;color:var(--primary);min-width:80px">'+m+'</th>';
+    var parts=m.split(' ');
+    var disp=parts[1]?parts[0].toUpperCase()+" '"+String(parts[1]).slice(-2):m.toUpperCase();
+    thH+='<th style="text-align:center;padding:5px 6px;font-size:11px;font-weight:700;color:var(--primary);min-width:80px">'+disp+'</th>';
   });
   // Filas por obra
   var rows='';
@@ -3285,9 +3289,8 @@ function renderPrevisionGlobal(reload){
     var cells='';
     meses.forEach(function(mesKey){
       var ops=0;
-      o.planFac.forEach(function(pfi,idx){
-        var k=pfi.mes||(idx+1+'');
-        if(k===mesKey) ops+=pfi.operarios||0;
+      o.planFac.forEach(function(pfi){
+        if(pfi.mes===mesKey) ops+=pfi.operarios||0;
       });
       totales[mesKey]+=ops;
       var bg=ops>0?'background:rgba(92,45,14,.06)':'';
@@ -3459,25 +3462,44 @@ function renderContrato(){
 
 var _MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-// Rellena automáticamente los meses vacíos por secuencia a partir del primer mes conocido
-function ctrInferirMeses(pf){
+// Obtiene el año de inicio de una obra de forma segura
+function _anoInicio(o){
+  if(!o||!o.inicio)return new Date().getFullYear();
+  var d=new Date(o.inicio);
+  return isNaN(d.getTime())?new Date().getFullYear():d.getFullYear();
+}
+
+// Rellena meses vacíos por secuencia e incluye año cuando cambia (ej: "Enero 2027")
+// startYear: año del MES 1 (usa inicio de obra o año actual)
+function ctrInferirMeses(pf,startYear){
   var first=-1;
-  for(var i=0;i<pf.length;i++){if(_MESES_ES.indexOf(pf[i].mes)!==-1){first=i;break;}}
+  for(var i=0;i<pf.length;i++){
+    var mb=(pf[i].mes||'').split(' ')[0];
+    if(_MESES_ES.indexOf(mb)!==-1){first=i;break;}
+  }
   if(first===-1)return pf;
-  var base=_MESES_ES.indexOf(pf[first].mes);
+  var firstBase=(pf[first].mes||'').split(' ')[0];
+  var base=_MESES_ES.indexOf(firstBase);
+  var sy=parseInt(startYear)||parseInt((pf[first].mes||'').split(' ')[1])||new Date().getFullYear();
   return pf.map(function(entry,idx){
-    if(!entry.mes||_MESES_ES.indexOf(entry.mes)===-1){
-      var pos=((base+(idx-first))%12+12)%12;
-      return{mes:_MESES_ES[pos],fase:entry.fase,operarios:entry.operarios,importe:entry.importe};
-    }
-    return entry;
+    var offset=idx-first;
+    var absPos=base+offset;
+    var monthIdx=((absPos%12)+12)%12;
+    var year=sy+Math.floor(absPos/12);
+    var inferredMes=_MESES_ES[monthIdx]+(year!==sy?' '+year:'');
+    var entryBase=(entry.mes||'').split(' ')[0];
+    var valid=_MESES_ES.indexOf(entryBase)!==-1;
+    if(!valid) return{mes:inferredMes,fase:entry.fase,operarios:entry.operarios,importe:entry.importe};
+    // Tiene mes válido — corregir año si cambió
+    var correctMes=entryBase+(year!==sy?' '+year:'');
+    return{mes:correctMes,fase:entry.fase,operarios:entry.operarios,importe:entry.importe};
   });
 }
 
 function ctrRenderTabla(pf){
   var n=_ctrMeses;
-  // Inferir meses vacíos antes de renderizar
-  var pfS=ctrInferirMeses(pf);
+  // Inferir meses vacíos antes de renderizar (con año de inicio de la obra)
+  var pfS=ctrInferirMeses(pf,_anoInicio(obraSeleccionada));
   var inpS='width:100%;padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--bg);text-align:center';
   var o=obraSeleccionada;
   // Defaults desde previsionPersonal
@@ -3561,16 +3583,22 @@ function ctrActualizarResumen(){
     (imp>0&&total<imp?'<div class="stat" style="border-top:3px solid #e67e22"><div class="stat-label" style="color:#a04000">Sin asignar</div><div class="stat-val" style="color:#e67e22">'+Number(imp-total).toLocaleString('es')+'€</div></div>':'');
 }
 
-// Al escribir un mes en la fila Mes, auto-rellena los siguientes vacíos por secuencia
+// Al escribir un mes en la fila Mes, auto-rellena los siguientes vacíos con año incluido si cambia
 function ctrAutoMeses(desde){
   var mesVal=document.getElementById('ctrm-'+desde);
   if(!mesVal)return;
-  var base=_MESES_ES.indexOf(mesVal.value);
-  if(base===-1)return; // no es un mes reconocido todavía
+  var mesBase=(mesVal.value||'').split(' ')[0];
+  var base=_MESES_ES.indexOf(mesBase);
+  if(base===-1)return;
+  var sy=_anoInicio(obraSeleccionada);
   for(var m=desde+1;m<=_ctrMeses;m++){
     var el=document.getElementById('ctrm-'+m);
     if(el&&!el.value){
-      el.value=_MESES_ES[((base+(m-desde))%12+12)%12];
+      var offset=m-desde;
+      var absPos=base+offset;
+      var monthIdx=((absPos%12)+12)%12;
+      var year=sy+Math.floor(absPos/12);
+      el.value=_MESES_ES[monthIdx]+(year!==sy?' '+year:'');
     }
   }
 }
@@ -3623,7 +3651,7 @@ function guardarContrato(){
   o.formaPago=document.getElementById('ctr-forma-pago').value||'';
   o.plazo=document.getElementById('ctr-plazo').value||'';
   o.contacto=document.getElementById('ctr-contacto').value||'';
-  o.planFac=ctrInferirMeses(ctrGetPlanFac()); // Inferir meses vacíos por secuencia
+  o.planFac=ctrInferirMeses(ctrGetPlanFac(),_anoInicio(o)); // Inferir meses con año correcto
   // Sincronizar → previsionPersonal (preserva costes ya introducidos)
   o.previsionPersonal=ctrPlanFacToPrevision(o.planFac, o.previsionPersonal);
   postAPI({
