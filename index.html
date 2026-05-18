@@ -1497,7 +1497,7 @@ function showTab(id,el){
   if(id==='historial')cargarHistorial();
   if(id==='obras')buildObrasGrid();
   if(id==='precios')renderPrecios();
-  if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);renderPrevisionGlobal();}
+  if(id==='personal'){renderOperarios();loadFichas(renderStatsPersonal);renderPrevisionGlobal(true);}
   if(id==='devolucion'){var df=document.getElementById('dev-fecha');if(df&&!df.value)df.value=today;}
   if(id==='traspaso'){var tf=document.getElementById('trasp-fecha');if(tf&&!tf.value)tf.value=today;}
 }
@@ -3220,9 +3220,18 @@ function darDeBajaOperario(idx){
   renderStatsPersonal();
 }
 
-function renderPrevisionGlobal(){
+function renderPrevisionGlobal(reload){
   var cont=document.getElementById('prev-global-content');
   if(!cont)return;
+  // Recargar obras desde API para tener planFac actualizado
+  if(reload){
+    cont.innerHTML='<div class="empty"><span class="spinner"></span> Cargando previsiones...</div>';
+    callAPI('getObras',function(err,data){
+      if(!err&&Array.isArray(data))obras=data;
+      renderPrevisionGlobal(false);
+    });
+    return;
+  }
   // Obras activas con planFac
   var obrasConPlan=(obras||[]).filter(function(o){
     return o.planFac&&o.planFac.length&&o.estado!=='finalizada';
