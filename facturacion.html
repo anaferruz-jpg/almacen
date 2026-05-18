@@ -660,6 +660,7 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
     <div style="display:flex;gap:4px;background:rgba(92,45,14,.1);border-radius:8px;padding:3px">
       <button class="tab active" id="obras-vw-btn-list" onclick="obrasVista('list',this)">📋 Listado</button>
       <button class="tab" id="obras-vw-btn-rent" onclick="obrasVista('rent',this)">💹 Rentabilidad</button>
+      <button class="tab" id="obras-vw-btn-prev" onclick="obrasVista('prev',this)">📅 Previsión</button>
     </div>
   </div>
   <div id="obras-stats" class="stats-row" style="margin-bottom:14px"></div>
@@ -706,6 +707,11 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   <!-- RENTABILIDAD VIEW -->
   <div id="obras-vw-rent" style="display:none">
     <div id="obras-rent-content"><div class="empty">Haz clic en 💹 Rentabilidad para cargar</div></div>
+  </div>
+
+  <!-- PREVISIÓN FACTURACIÓN VIEW -->
+  <div id="obras-vw-prev" style="display:none">
+    <div id="obras-prev-content"><div class="empty"><span class="spinner"></span> Cargando...</div></div>
   </div>
 </div>
 
@@ -4911,7 +4917,92 @@ function obrasVista(id, btn) {
   btn.classList.add('active');
   document.getElementById('obras-vw-list').style.display = id==='list' ? '' : 'none';
   document.getElementById('obras-vw-rent').style.display = id==='rent' ? '' : 'none';
+  document.getElementById('obras-vw-prev').style.display = id==='prev' ? '' : 'none';
   if (id==='rent') rentabilidadRender();
+  if (id==='prev') renderPrevisionFacturacion();
+}
+
+// ── PREVISIÓN DE FACTURACIÓN POR OBRA (tabla mensual de importes) ──
+function renderPrevisionFacturacion(){
+  var cont=document.getElementById('obras-prev-content');
+  if(!cont)return;
+  var _MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var obrasConPlan=(OBRAS||[]).filter(function(o){
+    return o.planFac&&o.planFac.length&&o.estado!=='finalizada'&&o.estado!=='cerrada';
+  });
+  if(!obrasConPlan.length){
+    cont.innerHTML='<div class="empty" style="padding:24px">No hay obras con previsión de facturación configurada.<br><span style="font-size:11px;color:var(--text2)">Configúrala en Almacén → obra → 📊 Contrato.</span></div>';
+    return;
+  }
+  var fmt=function(n){return Number(n||0).toLocaleString('es',{minimumFractionDigits:0,maximumFractionDigits:0});};
+  // Recoger claves de meses (igual que en almacén)
+  var mesesSet={};
+  obrasConPlan.forEach(function(o){
+    o.planFac.forEach(function(pfi){if(pfi.mes)mesesSet[pfi.mes]=true;});
+  });
+  function _parseMesKey(k){
+    var p=(k||'').split(' ');
+    var mi=_MESES_ES.indexOf(p[0]);
+    var yr=parseInt(p[1])||0;
+    return{mi:mi>=0?mi:99,yr:yr};
+  }
+  var meses=Object.keys(mesesSet).sort(function(a,b){
+    var pa=_parseMesKey(a),pb=_parseMesKey(b);
+    if(pa.yr!==pb.yr)return pa.yr-pb.yr;
+    return pa.mi-pb.mi;
+  });
+  // Totales
+  var totales={};
+  meses.forEach(function(m){totales[m]=0;});
+  // Cabecera
+  var thH='<th style="text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);min-width:150px;position:sticky;left:0;background:var(--bg2)">Obra</th>';
+  meses.forEach(function(m){
+    var parts=m.split(' ');
+    var disp=parts[1]?parts[0].toUpperCase()+" '"+String(parts[1]).slice(-2):m.toUpperCase();
+    thH+='<th style="text-align:right;padding:6px 10px;font-size:11px;font-weight:700;color:var(--primary);min-width:90px;white-space:nowrap">'+disp+'</th>';
+  });
+  thH+='<th style="text-align:right;padding:6px 10px;font-size:11px;font-weight:700;color:var(--brand2);min-width:90px;white-space:nowrap">TOTAL</th>';
+  // Filas
+  var rows='';
+  obrasConPlan.forEach(function(o){
+    var totalObra=0;
+    var cells='';
+    meses.forEach(function(mesKey){
+      var imp=0;
+      o.planFac.forEach(function(pfi){
+        if(pfi.mes===mesKey)imp+=pfi.importe||0;
+      });
+      totales[mesKey]+=imp;
+      totalObra+=imp;
+      var style='text-align:right;padding:5px 10px;font-size:12px;';
+      if(imp>0){style+='font-weight:700;color:var(--brand2)';}else{style+='color:var(--text2)';}
+      cells+='<td style="'+style+'">'+(imp>0?fmt(imp)+'€':'—')+'</td>';
+    });
+    var nombre=o.nombre+(o.constructora?'<div style="font-size:9px;color:var(--text2);font-style:italic">'+o.constructora+'</div>':'');
+    rows+='<tr style="border-bottom:1px solid var(--border)">'+
+      '<td style="padding:6px 12px;font-size:12px;font-weight:600;position:sticky;left:0;background:var(--bg)">'+nombre+'</td>'+
+      cells+
+      '<td style="text-align:right;padding:5px 10px;font-size:12px;font-weight:700;color:var(--brand2);background:rgba(92,45,14,.04)">'+fmt(totalObra)+'€</td>'+
+    '</tr>';
+  });
+  // Fila totales
+  var totalGeneral=0;
+  var totRow='<td style="padding:8px 12px;font-size:12px;font-weight:700;color:var(--primary);position:sticky;left:0;background:#f5f0ea;text-transform:uppercase;letter-spacing:.03em">TOTAL PREVISTO</td>';
+  meses.forEach(function(m){
+    var t=totales[m];
+    totalGeneral+=t;
+    totRow+='<td style="text-align:right;padding:6px 10px;font-size:13px;font-weight:700;color:'+(t>0?'var(--primary)':'var(--text2)')+';background:#f5f0ea">'+
+      (t>0?fmt(t)+'€':'—')+'</td>';
+  });
+  totRow+='<td style="text-align:right;padding:6px 10px;font-size:13px;font-weight:700;color:var(--brand2);background:#f5f0ea">'+fmt(totalGeneral)+'€</td>';
+  cont.innerHTML=
+    '<div style="overflow-x:auto">'+
+    '<table style="border-collapse:collapse;width:100%">'+
+      '<thead><tr style="border-bottom:2px solid var(--border);background:var(--bg2)">'+thH+'</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+      '<tfoot><tr style="border-top:2px solid var(--primary)">'+totRow+'</tr></tfoot>'+
+    '</table></div>'+
+    '<div style="font-size:10px;color:var(--text2);margin-top:8px;padding:0 4px">Importes previstos por mes · Solo obras activas con contrato guardado · <button class="btn" style="font-size:10px;padding:2px 8px" onclick="renderPrevisionFacturacion()">🔄 Actualizar</button></div>';
 }
 
 function rentabilidadRender() {
