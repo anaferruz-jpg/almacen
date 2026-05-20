@@ -29,6 +29,7 @@ function doGet(e) {
   if (action === 'getDocsGestoria')  return json(getDocsGestoria());
   if (action === 'getDocsObra')      return json(getDocsObra(e.parameter.obra));
   if (action === 'getOperarios')     return json(getOperarios());
+  if (action === 'getPrevisiones')   return json(getPrevisiones());
   return json({error: 'accion no valida'});
 }
 
@@ -75,6 +76,7 @@ function doPost(e) {
   if (data.action === 'savePresupuesto')         return json(savePresupuesto(data));
   if (data.action === 'deletePresupuesto')       return json(deletePresupuesto(data));
   if (data.action === 'saveFileToFolder')        return json(saveFileToFolder(data));
+  if (data.action === 'savePrevisiones')         return json(savePrevisiones(data));
   return json({error: 'accion no valida'});
 }
 
@@ -1394,3 +1396,53 @@ function saveHtmlAsPdf(data) {
   }
 }
 
+
+
+// (funciones de recuperación previsionPersonal eliminadas — no recuperable)
+
+// ══════════════════════════════════════════════════════
+// PREVISIONES MENSUALES (facturación + gastos internos)
+// Hoja: Previsiones — columnas: Año | Mes | PrevFac | PrevGI
+// ══════════════════════════════════════════════════════
+function getPrevisiones() {
+  var ss    = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Previsiones');
+  if (!sheet) return {};
+  var rows   = sheet.getDataRange().getValues();
+  var result = {};
+  for (var i = 1; i < rows.length; i++) {
+    var anyo   = rows[i][0];
+    var mes    = rows[i][1];
+    var prevFac= parseFloat(rows[i][2]) || 0;
+    var prevGI = parseFloat(rows[i][3]) || 0;
+    if (!anyo && anyo !== 0) continue;
+    if (!result[anyo]) result[anyo] = {};
+    result[anyo][mes] = { prevFac: prevFac, prevGI: prevGI };
+  }
+  return result;
+}
+
+function savePrevisiones(data) {
+  var ss    = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('Previsiones');
+  if (!sheet) {
+    sheet = ss.insertSheet('Previsiones');
+    sheet.getRange(1, 1, 1, 4).setValues([['Año', 'Mes', 'PrevFac', 'PrevGI']]);
+  }
+  var anyo   = data.anyo;
+  var mes    = data.mes;
+  var rows   = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == anyo && rows[i][1] == mes) {
+      var prevFac = (data.prevFac !== undefined && data.prevFac !== null) ? data.prevFac : rows[i][2];
+      var prevGI  = (data.prevGI  !== undefined && data.prevGI  !== null) ? data.prevGI  : rows[i][3];
+      sheet.getRange(i + 1, 1, 1, 4).setValues([[anyo, mes, prevFac, prevGI]]);
+      return { ok: true };
+    }
+  }
+  // Fila nueva
+  var prevFac = data.prevFac !== undefined ? data.prevFac : 0;
+  var prevGI  = data.prevGI  !== undefined ? data.prevGI  : 0;
+  sheet.appendRow([anyo, mes, prevFac, prevGI]);
+  return { ok: true };
+}

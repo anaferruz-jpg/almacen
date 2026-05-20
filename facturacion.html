@@ -1553,6 +1553,7 @@ var mesActual = new Date().getMonth() + 1;
 
 // Estado local
 var OBRAS = [];
+var _previsiones = {};  // { año: { mes: { prevFac, prevGI } } } — desde Google Sheets
 var COSTES_MAT = {}; // { obraKey: { coste, unidades } } — desde almacén
 var facturas = [];   // guardadas en localStorage
 var gastos = [];     // guardadas en localStorage
@@ -1798,6 +1799,10 @@ function recargarTodo() {
   callAPI('getObras', function(err, data) {
     OBRAS = (!err && Array.isArray(data)) ? data : [];
     check();
+  });
+  callAPI('getPrevisiones', function(err, data) {
+    if (!err && data && typeof data === 'object') _previsiones = data;
+    // No bloquea el check — es dato auxiliar
   });
   callAPI('getFacturas', function(err, data) {
     var localFacs = [];
@@ -8746,17 +8751,21 @@ function renderResumenMensual(){
   function fmtR(v){return(v<0?'-':'')+Math.abs(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
   function colorRes(v){return v>=0?'color:#1a7c3e':'color:#c0392b';}
 
-  // Cargar previsiones guardadas — facturación
-  var prevKey='sf_prevision_'+ano;
-  var prevision=[];
-  try{prevision=JSON.parse(localStorage.getItem(prevKey)||'[]');}catch(e){}
-  if(!prevision.length)prevision=Array(12).fill(0);
-
-  // Cargar previsiones guardadas — gastos internos
-  var prevGIKey='sf_prevision_gi_'+ano;
-  var prevGI=[];
-  try{prevGI=JSON.parse(localStorage.getItem(prevGIKey)||'[]');}catch(e){}
-  if(!prevGI.length)prevGI=Array(12).fill(0);
+  // Cargar previsiones — primero desde Sheets (_previsiones), fallback a localStorage
+  var prevision = Array(12).fill(0);
+  var prevGI    = Array(12).fill(0);
+  var anoData   = (_previsiones && _previsiones[ano]) || {};
+  for (var _m = 0; _m < 12; _m++) {
+    if (anoData[_m]) {
+      prevision[_m] = parseFloat(anoData[_m].prevFac) || 0;
+      prevGI[_m]    = parseFloat(anoData[_m].prevGI)  || 0;
+    }
+  }
+  // Fallback localStorage (por compatibilidad o si Sheets aún no cargó)
+  if (!Object.keys(anoData).length) {
+    try { var _ls=JSON.parse(localStorage.getItem('sf_prevision_'+ano)||'[]'); if(_ls.length)prevision=_ls; } catch(e){}
+    try { var _lsgi=JSON.parse(localStorage.getItem('sf_prevision_gi_'+ano)||'[]'); if(_lsgi.length)prevGI=_lsgi; } catch(e){}
+  }
 
   var totPrev=prevision.reduce(function(a,v){return a+(parseFloat(v)||0);},0);
   var totPrevGI=prevGI.reduce(function(a,v){return a+(parseFloat(v)||0);},0);
@@ -8855,23 +8864,28 @@ function renderResumenMensual(){
 }
 
 function guardarPrevisionGI(ano,mes,valor){
-  var prevGIKey='sf_prevision_gi_'+ano;
-  var prevGI=[];
-  try{prevGI=JSON.parse(localStorage.getItem(prevGIKey)||'[]');}catch(e){}
-  if(!prevGI.length)prevGI=Array(12).fill(0);
-  prevGI[mes]=parseFloat(valor)||0;
-  try{localStorage.setItem(prevGIKey,JSON.stringify(prevGI));}catch(e){}
+  var v = parseFloat(valor)||0;
+  // Actualizar caché local inmediatamente
+  if (!_previsiones[ano]) _previsiones[ano] = {};
+  if (!_previsiones[ano][mes]) _previsiones[ano][mes] = {prevFac:0, prevGI:0};
+  _previsiones[ano][mes].prevGI = v;
+  // Compatibilidad localStorage por si hay error de red
+  try { var pk='sf_prevision_gi_'+ano; var a=JSON.parse(localStorage.getItem(pk)||'[]'); if(!a.length)a=Array(12).fill(0); a[mes]=v; localStorage.setItem(pk,JSON.stringify(a)); } catch(e){}
+  // Guardar en Sheets (compartido)
+  postAPI({action:'savePrevisiones', anyo:ano, mes:mes, prevGI:v}, function(){});
   renderResumenMensual();
 }
 
 function guardarPrevision(ano,mes,valor){
-  var prevKey='sf_prevision_'+ano;
-  var prevision=[];
-  try{prevision=JSON.parse(localStorage.getItem(prevKey)||'[]');}catch(e){}
-  if(!prevision.length)prevision=Array(12).fill(0);
-  prevision[mes]=parseFloat(valor)||0;
-  try{localStorage.setItem(prevKey,JSON.stringify(prevision));}catch(e){}
-  // Actualizar cards sin re-renderizar toda la tabla
+  var v = parseFloat(valor)||0;
+  // Actualizar caché local inmediatamente
+  if (!_previsiones[ano]) _previsiones[ano] = {};
+  if (!_previsiones[ano][mes]) _previsiones[ano][mes] = {prevFac:0, prevGI:0};
+  _previsiones[ano][mes].prevFac = v;
+  // Compatibilidad localStorage por si hay error de red
+  try { var pk='sf_prevision_'+ano; var a=JSON.parse(localStorage.getItem(pk)||'[]'); if(!a.length)a=Array(12).fill(0); a[mes]=v; localStorage.setItem(pk,JSON.stringify(a)); } catch(e){}
+  // Guardar en Sheets (compartido)
+  postAPI({action:'savePrevisiones', anyo:ano, mes:mes, prevFac:v}, function(){});
   renderResumenMensual();
 }
 
