@@ -5309,7 +5309,10 @@ function renderTablaObrasEj() {
         (pct>0?'<span style="font-size:10px;color:var(--text2);margin-left:4px">('+pct+'%)</span>':'')+
       '</td>'+
       '<td style="padding:9px 12px;white-space:nowrap">'+
+        '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
         '<button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="abrirProformasModal(\''+pKey+'\')">📋 Proforma'+(nPrf?' ('+nPrf+')':'')+'</button>'+
+        '<button class="btn" style="font-size:11px;padding:4px 10px;background:var(--brand-light);color:var(--brand2);border:1px solid var(--brand2)" onclick="abrirModalPlanObra('+JSON.stringify(p.proyecto)+')">📅 Plan</button>'+
+        '</div>'+
       '</td>'+
     '</tr>';
   });
@@ -9029,5 +9032,318 @@ recargarTodo();
   </div>
 </div>
 <datalist id="clientes-datalist"></datalist>
+
+<!-- ══════ MODAL PLAN DE OBRA (facturación + personal) ══════ -->
+<div class="modal-overlay" id="modal-plan-obra">
+  <div class="modal-content" style="max-width:980px;width:97vw">
+    <div class="modal-title" id="modal-plan-titulo">📅 Plan de Obra</div>
+
+    <!-- Sub-tabs -->
+    <div style="display:flex;gap:4px;background:rgba(92,45,14,.1);border-radius:8px;padding:3px;margin-bottom:14px;width:fit-content">
+      <button class="tab active" id="plan-tab-btn-fac" onclick="planObraTab('fac',this)">💰 Facturación</button>
+      <button class="tab" id="plan-tab-btn-per" onclick="planObraTab('per',this)">👷 Personal</button>
+    </div>
+
+    <!-- TABLA FACTURACIÓN (planFac) -->
+    <div id="plan-tab-fac">
+      <p style="font-size:12px;color:var(--text2);margin:0 0 8px">Plan mensual de facturación — se sincroniza con la obra del Almacén</p>
+      <div class="tbl-wrap" style="max-height:55vh;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead style="position:sticky;top:0;background:var(--bg);z-index:1"><tr style="background:var(--brand-light)">
+            <th style="padding:7px 10px;text-align:left;min-width:105px">Mes</th>
+            <th style="padding:7px 10px;text-align:left;min-width:150px">Fase / Descripción</th>
+            <th style="padding:7px 10px;text-align:center;min-width:70px">Operarios</th>
+            <th style="padding:7px 10px;text-align:right;min-width:120px">Importe (€)</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="plan-fac-tbody"></tbody>
+          <tfoot><tr style="background:var(--brand-light)">
+            <td colspan="3" style="padding:6px 10px;font-weight:700;font-size:12px">TOTAL</td>
+            <td id="plan-fac-total" style="padding:6px 10px;text-align:right;font-weight:700;font-size:13px"></td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <button onclick="planFacAddRow()" class="btn" style="margin-top:8px;font-size:12px;padding:5px 12px">+ Añadir mes</button>
+    </div>
+
+    <!-- TABLA PERSONAL (previsionPersonal) -->
+    <div id="plan-tab-per" style="display:none">
+      <p style="font-size:12px;color:var(--text2);margin:0 0 8px">Previsión mensual de personal — mismo formato que en Almacén</p>
+      <div class="tbl-wrap" style="max-height:55vh;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead style="position:sticky;top:0;background:var(--bg);z-index:1"><tr style="background:var(--brand-light)">
+            <th style="padding:7px 8px;text-align:left;min-width:130px">Mes / Fase</th>
+            <th style="padding:7px 8px;text-align:left;min-width:110px">Categoría</th>
+            <th style="padding:7px 8px;text-align:center;min-width:58px">Oper.</th>
+            <th style="padding:7px 8px;text-align:center;min-width:68px">Jornadas</th>
+            <th style="padding:7px 8px;text-align:center;min-width:68px">Semanas</th>
+            <th style="padding:7px 8px;text-align:center;min-width:58px">H/día</th>
+            <th style="padding:7px 8px;text-align:right;min-width:80px">€/hora</th>
+            <th style="padding:7px 8px;text-align:right;min-width:95px">Total €</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="plan-per-tbody"></tbody>
+          <tfoot><tr style="background:var(--brand-light)">
+            <td colspan="7" style="padding:6px 8px;font-weight:700;font-size:12px">TOTAL PERSONAL</td>
+            <td id="plan-per-total" style="padding:6px 8px;text-align:right;font-weight:700;font-size:13px"></td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <button onclick="planPerAddRow()" class="btn" style="margin-top:8px;font-size:12px;padding:5px 12px">+ Añadir mes</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:12px">
+      <button class="btn" onclick="cerrarModalPlanObra()" style="background:var(--bg);border:1px solid var(--border);min-width:100px">Cancelar</button>
+      <button class="btn primary" onclick="guardarPlanObra()" style="min-width:140px">💾 Guardar plan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// MODAL PLAN DE OBRA — planFac + previsionPersonal
+// ══════════════════════════════════════════════════════
+var _planObraNombre = '';
+var _planObraObj    = null;
+
+function abrirModalPlanObra(obraNombre) {
+  _planObraNombre = obraNombre;
+  _planObraObj = (OBRAS||[]).find(function(o){ return o.nombre === obraNombre; }) || null;
+  if (!_planObraObj) {
+    // Puede que OBRAS no esté cargado aún — recargar
+    toast('Cargando datos de la obra…');
+    callAPI('getObras', function(err, data) {
+      if (!err && Array.isArray(data)) OBRAS = data;
+      _planObraObj = (OBRAS||[]).find(function(o){ return o.nombre === obraNombre; }) || null;
+      _abrirModalPlanObraInterno(obraNombre);
+    });
+    return;
+  }
+  _abrirModalPlanObraInterno(obraNombre);
+}
+
+function _abrirModalPlanObraInterno(obraNombre) {
+  document.getElementById('modal-plan-titulo').textContent = '📅 Plan — ' + obraNombre;
+  planFacRender((_planObraObj && _planObraObj.planFac) || []);
+  planPerRender((_planObraObj && _planObraObj.previsionPersonal) || []);
+  planObraTab('fac', document.getElementById('plan-tab-btn-fac'));
+  document.getElementById('modal-plan-obra').classList.add('open');
+}
+
+function cerrarModalPlanObra() {
+  document.getElementById('modal-plan-obra').classList.remove('open');
+}
+
+function planObraTab(id, btn) {
+  document.querySelectorAll('#modal-plan-obra .tab').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  document.getElementById('plan-tab-fac').style.display = id === 'fac' ? '' : 'none';
+  document.getElementById('plan-tab-per').style.display = id === 'per' ? '' : 'none';
+}
+
+// ─── FACTURACIÓN ────────────────────────────────────
+function planFacRender(planFac) {
+  var tb = document.getElementById('plan-fac-tbody');
+  var rows = planFac.length ? planFac : [{}];
+  tb.innerHTML = rows.map(function(pf, i){
+    return '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:4px 6px"><input type="text" value="' + _esc(pf.mes||'') + '" placeholder="Abril" style="width:100px" data-pf="mes" data-idx="'+i+'"></td>' +
+      '<td style="padding:4px 6px"><input type="text" value="' + _esc(pf.fase||'') + '" placeholder="Estructura" style="width:140px" data-pf="fase" data-idx="'+i+'"></td>' +
+      '<td style="padding:4px 6px;text-align:center"><input type="number" value="' + (pf.operarios||0) + '" min="0" style="width:60px;text-align:center" data-pf="operarios" data-idx="'+i+'"></td>' +
+      '<td style="padding:4px 6px;text-align:right"><input type="number" value="' + (pf.importe||0) + '" min="0" step="0.01" style="width:115px;text-align:right" data-pf="importe" data-idx="'+i+'" oninput="planFacActualizarTotal()"></td>' +
+      '<td style="padding:4px 6px"><button onclick="planFacDelRow('+i+')" style="background:none;border:none;cursor:pointer;color:#e74c3c;font-size:15px" title="Eliminar">🗑</button></td>' +
+    '</tr>';
+  }).join('');
+  planFacActualizarTotal();
+}
+
+function planFacActualizarTotal() {
+  var inputs = document.querySelectorAll('#plan-fac-tbody [data-pf="importe"]');
+  var total = 0;
+  inputs.forEach(function(el){ total += parseFloat(el.value)||0; });
+  var el = document.getElementById('plan-fac-total');
+  if (el) el.textContent = total.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+}
+
+function planFacAddRow() {
+  var data = planFacRecoger(true);
+  data.push({mes:'', fase:'', operarios:0, importe:0});
+  planFacRender(data);
+  var tb = document.getElementById('plan-fac-tbody');
+  var last = tb.querySelector('tr:last-child [data-pf="mes"]');
+  if (last) last.focus();
+}
+
+function planFacDelRow(idx) {
+  var data = planFacRecoger(true);
+  data.splice(idx, 1);
+  planFacRender(data.length ? data : [{}]);
+}
+
+function planFacRecoger(incluirVacios) {
+  var rows = document.querySelectorAll('#plan-fac-tbody tr');
+  var result = [];
+  rows.forEach(function(tr) {
+    var mes      = tr.querySelector('[data-pf="mes"]').value.trim();
+    var fase     = tr.querySelector('[data-pf="fase"]').value.trim();
+    var operarios= parseInt(tr.querySelector('[data-pf="operarios"]').value)||0;
+    var importe  = parseFloat(tr.querySelector('[data-pf="importe"]').value)||0;
+    if (incluirVacios || mes || fase || importe) {
+      result.push({mes:mes, fase:fase, operarios:operarios, importe:importe});
+    }
+  });
+  return result;
+}
+
+// ─── PERSONAL ───────────────────────────────────────
+var _CAT_PERSONAL = ['Oficial 1ª','Oficial 2ª','Ayudante','Peón','Encargado','Jefe de obra','Otro'];
+
+function planPerRender(prev) {
+  var tb = document.getElementById('plan-per-tbody');
+  var rows = prev.length ? prev : [{}];
+  tb.innerHTML = rows.map(function(p, i){
+    var catOpts = _CAT_PERSONAL.map(function(c){
+      return '<option'+(c===(p.categoria||'')?' selected':'')+'>'+c+'</option>';
+    }).join('');
+    var total = _planPerCalcTotal(p);
+    return '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:4px 5px"><input type="text" value="' + _esc(p.fase||'') + '" placeholder="Abril · Fase" style="width:125px" data-pp="fase" data-idx="'+i+'"></td>' +
+      '<td style="padding:4px 5px"><select data-pp="categoria" data-idx="'+i+'" style="width:105px"><option value="">—</option>' + catOpts + '</select></td>' +
+      '<td style="padding:4px 5px"><input type="number" value="' + (p.operarios||0) + '" min="0" style="width:52px;text-align:center" data-pp="operarios" data-idx="'+i+'" oninput="planPerRecalcRow(this)"></td>' +
+      '<td style="padding:4px 5px"><input type="number" value="' + (p.jornadas||22) + '" min="0" style="width:60px;text-align:center" data-pp="jornadas" data-idx="'+i+'" oninput="planPerRecalcRow(this)"></td>' +
+      '<td style="padding:4px 5px"><input type="number" value="' + (p.semanas||0) + '" min="0" style="width:60px;text-align:center" data-pp="semanas" data-idx="'+i+'" oninput="planPerRecalcRow(this)"></td>' +
+      '<td style="padding:4px 5px"><input type="number" value="' + (p.horasDia||8) + '" min="0" step="0.5" style="width:52px;text-align:center" data-pp="horasDia" data-idx="'+i+'" oninput="planPerRecalcRow(this)"></td>' +
+      '<td style="padding:4px 5px"><input type="number" value="' + (p.costeHora||0) + '" min="0" step="0.01" style="width:72px;text-align:right" data-pp="costeHora" data-idx="'+i+'" oninput="planPerRecalcRow(this)"></td>' +
+      '<td style="padding:4px 5px;text-align:right"><span data-pp-total="'+i+'" style="font-weight:600;font-size:12px;white-space:nowrap">' + (total ? total.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})+' €' : '—') + '</span></td>' +
+      '<td style="padding:4px 5px"><button onclick="planPerDelRow('+i+')" style="background:none;border:none;cursor:pointer;color:#e74c3c;font-size:15px" title="Eliminar">🗑</button></td>' +
+    '</tr>';
+  }).join('');
+  planPerActualizarTotal();
+}
+
+function _planPerCalcTotal(p) {
+  var op = parseFloat(p.operarios)||0;
+  var jo = parseFloat(p.jornadas)||0;
+  var se = parseFloat(p.semanas)||0;
+  var hd = parseFloat(p.horasDia)||0;
+  var ch = parseFloat(p.costeHora)||0;
+  if (!ch) return 0;
+  return se > 0 ? op * se * 5 * hd * ch : op * jo * hd * ch;
+}
+
+function planPerRecalcRow(el) {
+  var tr   = el.closest('tr');
+  var idx  = el.getAttribute('data-idx');
+  var p    = {
+    operarios: parseFloat(tr.querySelector('[data-pp="operarios"]').value)||0,
+    jornadas:  parseFloat(tr.querySelector('[data-pp="jornadas"]').value)||0,
+    semanas:   parseFloat(tr.querySelector('[data-pp="semanas"]').value)||0,
+    horasDia:  parseFloat(tr.querySelector('[data-pp="horasDia"]').value)||0,
+    costeHora: parseFloat(tr.querySelector('[data-pp="costeHora"]').value)||0,
+  };
+  var total = _planPerCalcTotal(p);
+  var span  = document.querySelector('[data-pp-total="'+idx+'"]');
+  if (span) span.textContent = total ? total.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})+' €' : '—';
+  planPerActualizarTotal();
+}
+
+function planPerActualizarTotal() {
+  var spans = document.querySelectorAll('#plan-per-tbody [data-pp-total]');
+  var total = 0;
+  spans.forEach(function(s){
+    var v = parseFloat((s.textContent||'').replace(/[^\d.,-]/g,'').replace(',','.'));
+    if (!isNaN(v)) total += v;
+  });
+  var el = document.getElementById('plan-per-total');
+  if (el) el.textContent = total ? total.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})+' €' : '—';
+}
+
+function planPerAddRow() {
+  var data = planPerRecoger(true);
+  data.push({fase:'', categoria:'', operarios:0, jornadas:22, semanas:0, horasDia:8, costeHora:0, costeTotal:0});
+  planPerRender(data);
+  var tb   = document.getElementById('plan-per-tbody');
+  var last = tb.querySelector('tr:last-child [data-pp="fase"]');
+  if (last) last.focus();
+}
+
+function planPerDelRow(idx) {
+  var data = planPerRecoger(true);
+  data.splice(idx, 1);
+  planPerRender(data.length ? data : [{}]);
+}
+
+function planPerRecoger(incluirVacios) {
+  var rows = document.querySelectorAll('#plan-per-tbody tr');
+  var result = [];
+  rows.forEach(function(tr) {
+    var fase      = tr.querySelector('[data-pp="fase"]').value.trim();
+    var categoria = tr.querySelector('[data-pp="categoria"]').value;
+    var operarios = parseFloat(tr.querySelector('[data-pp="operarios"]').value)||0;
+    var jornadas  = parseFloat(tr.querySelector('[data-pp="jornadas"]').value)||0;
+    var semanas   = parseFloat(tr.querySelector('[data-pp="semanas"]').value)||0;
+    var horasDia  = parseFloat(tr.querySelector('[data-pp="horasDia"]').value)||0;
+    var costeHora = parseFloat(tr.querySelector('[data-pp="costeHora"]').value)||0;
+    var costeTotal= _planPerCalcTotal({operarios:operarios,jornadas:jornadas,semanas:semanas,horasDia:horasDia,costeHora:costeHora});
+    if (incluirVacios || fase || categoria || costeHora) {
+      result.push({fase:fase, categoria:categoria, operarios:operarios, jornadas:jornadas, semanas:semanas, horasDia:horasDia, costeHora:costeHora, costeTotal:costeTotal});
+    }
+  });
+  return result;
+}
+
+// ─── GUARDAR ────────────────────────────────────────
+function guardarPlanObra() {
+  if (!_planObraObj) { toast('No se encontró la obra en el API', true); return; }
+  var planFac          = planFacRecoger(false);
+  var previsionPersonal= planPerRecoger(false);
+
+  // Construir payload completo (saveObra sobreescribe todos los campos)
+  var payload = {
+    action:            'saveObra',
+    nombreOriginal:    _planObraObj.nombre,
+    nombre:            _planObraObj.nombre,
+    lugar:             _planObraObj.lugar            || '',
+    presupuesto:       _planObraObj.presupuesto      || '',
+    inicio:            _planObraObj.inicio           || '',
+    fin:               _planObraObj.fin              || '',
+    estado:            _planObraObj.estado           || 'activa',
+    obs:               _planObraObj.obs              || '',
+    partidas:          _planObraObj.partidas         || [],
+    personal:          _planObraObj.personal         || [],
+    pctAlquiler:       _planObraObj.pctAlquiler      || 0,
+    diasAlquiler:      _planObraObj.diasAlquiler     || 0,
+    tipo:              _planObraObj.tipo             || 'fija',
+    ml:                _planObraObj.ml               || 0,
+    meses:             _planObraObj.meses            || 0,
+    formaPago:         _planObraObj.formaPago        || '',
+    plazo:             _planObraObj.plazo            || '',
+    contacto:          _planObraObj.contacto         || {},
+    codObra:           _planObraObj.codObra          || '',
+    constructora:      _planObraObj.constructora     || '',
+    carpetaDriveId:    _planObraObj.carpetaDriveId   || '',
+    planFac:           planFac,
+    previsionPersonal: previsionPersonal
+  };
+
+  postAPI(payload, function(err, res) {
+    if (err || !res || !res.ok) { toast('Error al guardar plan de obra', true); return; }
+    // Actualizar caché local OBRAS
+    var idx = (OBRAS||[]).findIndex(function(o){ return o.nombre === _planObraNombre; });
+    if (idx >= 0) {
+      OBRAS[idx].planFac          = planFac;
+      OBRAS[idx].previsionPersonal= previsionPersonal;
+      _planObraObj = OBRAS[idx];
+    }
+    toast('✅ Plan de obra guardado');
+    cerrarModalPlanObra();
+  });
+}
+
+function _esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+</script>
+
 </body>
 </html>
