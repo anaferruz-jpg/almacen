@@ -6246,11 +6246,13 @@ function prfAbrirEditor(pi) {
     }
     var _prfDescsAnteriores = {};
     proformas.forEach(function(prev){
-      // Solo acumular proformas aprobadas o facturadas — los borradores no cuentan como origen
-      if (prev.estado !== 'aprobada' && prev.estado !== 'facturada') return;
+      // Acumular todas las proformas con medición real (aprobadas, facturadas o borradores con valores)
+      // Solo excluir borradores sin ninguna línea con mes > 0
+      var tieneMes = (prev.lineas||[]).some(function(pl){ return (pl.mes||0) !== 0; });
+      if (!tieneMes) return;
       (prev.lineas||[]).forEach(function(pl){
         if (pl.tipo==='dto_venta'||pl.tipo==='dto_alquiler') return;
-        if ((pl.mes||0) > 0) _prfDescsAnteriores[pl.desc] = true; // líneas con importe real
+        if ((pl.mes||0) !== 0) _prfDescsAnteriores[pl.desc] = true; // líneas con importe real
         _prfLineas.forEach(function(l){
           if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
         });
