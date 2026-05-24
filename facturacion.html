@@ -6244,13 +6244,13 @@ function prfAbrirEditor(pi) {
         _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
       });
     }
-    // Construir mapa desc → origen acumulado de la última proforma con valores
-    // Se usa el ORIGEN (anterior+mes) de cada línea, no solo el mes, para propagar
-    // correctamente aunque el usuario haya llenado la columna "Anterior" en vez de "Mes"
-    var _prfAntMap = {};          // desc → mayor origen visto hasta ahora
-    var _prfDescsAnteriores = {}; // desc → true si tiene importe real
+    // Construir mapa desc → origen de la última proforma con valores
+    // Clave primaria: desc exacto. Clave secundaria: desc normalizado (trim+minúsculas) como fallback
+    var norm = function(s){ return (s||'').trim().toLowerCase().replace(/\s+/g,' '); };
+    var _prfAntMap     = {};  // desc exacto → origen
+    var _prfAntMapNorm = {};  // desc normalizado → {origen, descOrig}
+    var _prfDescsAnteriores = {};
     proformas.forEach(function(prev){
-      // Incluir cualquier proforma con al menos una línea con origen > 0
       var tieneOrigen = (prev.lineas||[]).some(function(pl){
         return ((pl.anterior||0) + (pl.mes||0)) !== 0;
       });
@@ -6258,24 +6258,36 @@ function prfAbrirEditor(pi) {
       (prev.lineas||[]).forEach(function(pl){
         if (pl.tipo==='dto_venta'||pl.tipo==='dto_alquiler') return;
         var origen = (pl.anterior||0) + (pl.mes||0);
-        // Sobreescribir con la última proforma (las proformas están en orden cronológico)
         if (origen !== 0) {
           _prfAntMap[pl.desc] = origen;
+          _prfAntMapNorm[norm(pl.desc)] = { origen: origen, descOrig: pl.desc };
           _prfDescsAnteriores[pl.desc] = true;
         }
       });
     });
-    // Aplicar el mapa a las líneas de la nueva proforma
+    // Aplicar el mapa a las líneas nuevas (exacto primero, normalizado como fallback)
+    console.log('[PRF-ANT] mapa anterior:', JSON.parse(JSON.stringify(_prfAntMap)));
     _prfLineas.forEach(function(l){
       if (l.tipo==='dto_venta'||l.tipo==='dto_alquiler') return;
-      if (_prfAntMap[l.desc] !== undefined) l.anterior = _prfAntMap[l.desc];
+      if (_prfAntMap[l.desc] !== undefined) {
+        l.anterior = _prfAntMap[l.desc];
+        console.log('[PRF-ANT] match exacto "'+l.desc+'" → '+l.anterior);
+      } else {
+        var fallback = _prfAntMapNorm[norm(l.desc)];
+        if (fallback) {
+          l.anterior = fallback.origen;
+          console.log('[PRF-ANT] match normalizado "'+l.desc+'" ≈ "'+fallback.descOrig+'" → '+l.anterior);
+        } else {
+          console.warn('[PRF-ANT] SIN MATCH "'+l.desc+'"');
+        }
+      }
     });
-    // Avisar si hay descripciones con importe en proformas previas que no cuadran con las actuales
+    // Avisar si hay líneas de proformas previas sin equivalente en la nueva
     var _sinMatch = Object.keys(_prfDescsAnteriores).filter(function(d){
-      return !_prfLineas.some(function(l){ return l.desc===d; });
+      return !_prfLineas.some(function(l){ return l.desc===d || norm(l.desc)===norm(d); });
     });
     if (_sinMatch.length) {
-      console.warn('[PROFORMA] Líneas anteriores sin coincidencia en la nueva proforma:', _sinMatch);
+      console.warn('[PROFORMA] Líneas anteriores sin coincidencia:', _sinMatch);
       toast('⚠️ '+_sinMatch.length+' línea(s) de proformas anteriores no coinciden con el presupuesto actual. Revisa los orígenes.', true);
     }
   } else {
