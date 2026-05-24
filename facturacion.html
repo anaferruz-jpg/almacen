@@ -6244,19 +6244,31 @@ function prfAbrirEditor(pi) {
         _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
       });
     }
-    var _prfDescsAnteriores = {};
+    // Construir mapa desc → origen acumulado de la última proforma con valores
+    // Se usa el ORIGEN (anterior+mes) de cada línea, no solo el mes, para propagar
+    // correctamente aunque el usuario haya llenado la columna "Anterior" en vez de "Mes"
+    var _prfAntMap = {};          // desc → mayor origen visto hasta ahora
+    var _prfDescsAnteriores = {}; // desc → true si tiene importe real
     proformas.forEach(function(prev){
-      // Acumular todas las proformas con medición real (aprobadas, facturadas o borradores con valores)
-      // Solo excluir borradores sin ninguna línea con mes > 0
-      var tieneMes = (prev.lineas||[]).some(function(pl){ return (pl.mes||0) !== 0; });
-      if (!tieneMes) return;
+      // Incluir cualquier proforma con al menos una línea con origen > 0
+      var tieneOrigen = (prev.lineas||[]).some(function(pl){
+        return ((pl.anterior||0) + (pl.mes||0)) !== 0;
+      });
+      if (!tieneOrigen) return;
       (prev.lineas||[]).forEach(function(pl){
         if (pl.tipo==='dto_venta'||pl.tipo==='dto_alquiler') return;
-        if ((pl.mes||0) !== 0) _prfDescsAnteriores[pl.desc] = true; // líneas con importe real
-        _prfLineas.forEach(function(l){
-          if(l.desc===pl.desc && l.tipo!=='dto_venta' && l.tipo!=='dto_alquiler') l.anterior+=(pl.mes||0);
-        });
+        var origen = (pl.anterior||0) + (pl.mes||0);
+        // Sobreescribir con la última proforma (las proformas están en orden cronológico)
+        if (origen !== 0) {
+          _prfAntMap[pl.desc] = origen;
+          _prfDescsAnteriores[pl.desc] = true;
+        }
       });
+    });
+    // Aplicar el mapa a las líneas de la nueva proforma
+    _prfLineas.forEach(function(l){
+      if (l.tipo==='dto_venta'||l.tipo==='dto_alquiler') return;
+      if (_prfAntMap[l.desc] !== undefined) l.anterior = _prfAntMap[l.desc];
     });
     // Avisar si hay descripciones con importe en proformas previas que no cuadran con las actuales
     var _sinMatch = Object.keys(_prfDescsAnteriores).filter(function(d){
