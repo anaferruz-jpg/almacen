@@ -434,7 +434,7 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
           <span style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Registros</span>
           <div style="display:flex;gap:4px">
             <button id="per-vista-diaria" class="btn primary" style="font-size:11px;padding:4px 10px" onclick="setVistaPersonal('diaria',this)">📅 Diaria</button>
-            <button id="per-vista-mensual" class="btn" style="font-size:11px;padding:4px 10px" onclick="setVistaPersonal('mensual',this)">📊 Mensual 25→24</button>
+            <button id="per-vista-mensual" class="btn" style="font-size:11px;padding:4px 10px" onclick="setVistaPersonal('mensual',this)">📊 Mensual 26→25</button>
           </div>
         </div>
         <div id="personal-lista"><div class="empty">Sin registros de personal</div></div>
@@ -3867,13 +3867,13 @@ function setVistaPersonal(vista,btn){
 }
 
 function getPeriodo(fecha){
-  // Devuelve la clave del periodo 25→24 al que pertenece la fecha
-  // Si día >= 25 → periodo del MES SIGUIENTE
-  // Si día < 25  → periodo del MES ACTUAL
+  // Devuelve la clave del periodo 26→25 al que pertenece la fecha
+  // Si día >= 26 → periodo del MES SIGUIENTE
+  // Si día <= 25 → periodo del MES ACTUAL
   var d=new Date(fecha);
   if(isNaN(d))return'';
   var y=d.getFullYear(),m=d.getMonth(); // 0-based
-  if(d.getDate()>=25){m++;if(m>11){m=0;y++;}}
+  if(d.getDate()>=26){m++;if(m>11){m=0;y++;}}
   return y+'-'+String(m+1).padStart(2,'0'); // YYYY-MM del periodo
 }
 
@@ -3884,7 +3884,7 @@ function labelPeriodo(key){
   // Inicio: 25 del mes anterior
   var mesAnt=m===0?11:m-1;
   var yAnt=m===0?y-1:y;
-  return '25 '+meses[mesAnt]+' '+yAnt+' — 24 '+meses[m]+' '+y;
+  return '26 '+meses[mesAnt]+' '+yAnt+' — 25 '+meses[m]+' '+y;
 }
 
 function renderPersonalMensual(){
@@ -4057,8 +4057,8 @@ function imprimirParteCalendario(key){
   var mesAnt=m===0?11:m-1, yAnt=m===0?y-1:y;
   var diasMesAnt=new Date(yAnt,mesAnt+1,0).getDate();
   var fechas=[];
-  for(var d=25;d<=diasMesAnt;d++) fechas.push(new Date(yAnt,mesAnt,d));
-  for(var d=1;d<=24;d++)          fechas.push(new Date(y,m,d));
+  for(var d=26;d<=diasMesAnt;d++) fechas.push(new Date(yAnt,mesAnt,d));
+  for(var d=1;d<=25;d++)          fechas.push(new Date(y,m,d));
 
   var mesesNombre=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var diasSemana=['D','L','M','X','J','V','S'];
