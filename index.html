@@ -3917,7 +3917,10 @@ function renderPersonalMensual(){
           '<div style="font-size:13px;font-weight:700;color:var(--accent)">📅 '+labelPeriodo(key)+'</div>'+
           '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+per.registros.length+' registros · '+totalH+'h · <b style="color:var(--danger)">'+totalC.toFixed(2)+' €</b></div>'+
         '</div>'+
-        '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="imprimirPeriodoPersonal(\''+key+'\')">🖨️ Imprimir</button>'+
+        '<div style="display:flex;gap:6px">'+
+        '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="imprimirParteCalendario(\''+key+'\')">🗓️ Parte mensual</button>'+
+        '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="imprimirPeriodoPersonal(\''+key+'\')">🖨️ Resumen</button>'+
+        '</div>'+
       '</div>'+
       '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
         '<thead><tr style="border-bottom:1px solid var(--border);color:var(--text2)">'+
@@ -4041,6 +4044,146 @@ function imprimirPeriodoPersonal(key){
   w.document.close();
   w.focus();
   setTimeout(function(){w.print();},600);
+}
+
+function imprimirParteCalendario(key){
+  var p=obraSeleccionada.personal||[];
+  var registros=p.filter(function(r){return getPeriodo(r.fecha)===key;});
+  if(!registros.length){toast('Sin registros en este periodo',true);return;}
+
+  // ── Rango de fechas del periodo (25 mes anterior → 24 mes actual) ──
+  var parts=key.split('-');
+  var y=parseInt(parts[0]),m=parseInt(parts[1])-1; // 0-based
+  var mesAnt=m===0?11:m-1, yAnt=m===0?y-1:y;
+  var diasMesAnt=new Date(yAnt,mesAnt+1,0).getDate();
+  var fechas=[];
+  for(var d=25;d<=diasMesAnt;d++) fechas.push(new Date(yAnt,mesAnt,d));
+  for(var d=1;d<=24;d++)          fechas.push(new Date(y,m,d));
+
+  var mesesNombre=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var diasSemana=['D','L','M','X','J','V','S'];
+  var esFinde=function(dt){var dw=dt.getDay();return dw===0||dw===6;};
+  var fmtKey=function(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');};
+
+  // ── Mapa fecha→trabajador→{horas,obs} ──
+  var mapaFecha={};
+  registros.forEach(function(r){
+    if(!mapaFecha[r.fecha])mapaFecha[r.fecha]={};
+    mapaFecha[r.fecha][r.nombre]={horas:r.horas||0,obs:(r.obs||'').trim()};
+  });
+
+  // ── Agrupar trabajadores por categoría ──
+  var CATS={encargado:'ENCARGADOS',oficial:'OFICIALES',oficial1:'OFICIALES',oficial2:'OFICIALES',peon_esp:'PEONES ESPECIALISTAS',peon:'PEONES',otro:'OTROS'};
+  var grupos={};
+  var ordenGrupos=[];
+  registros.forEach(function(r){
+    var g=CATS[r.categoria]||'OTROS';
+    if(!grupos[g]){grupos[g]={};ordenGrupos.push(g);}
+    grupos[g][r.nombre]=r.categoria;
+  });
+  // Quitar duplicados de orden
+  ordenGrupos=ordenGrupos.filter(function(v,i,a){return a.indexOf(v)===i;});
+
+  // ── Celdas de cabecera de días ──
+  var diasHabiles=fechas.filter(function(dt){return !esFinde(dt);}).length;
+  var totalOperariosDias=0;
+
+  var thDias=fechas.map(function(dt){
+    var bg=esFinde(dt)?'background:#f4a261':'background:#f5e6c8';
+    return '<th style="width:22px;min-width:18px;padding:2px 1px;text-align:center;font-size:9px;'+bg+'">'+dt.getDate()+'</th>';
+  }).join('');
+  var thSemana=fechas.map(function(dt){
+    var bg=esFinde(dt)?'background:#f4a261':'background:#f5e6c8';
+    return '<th style="padding:1px;text-align:center;font-size:8px;color:#888;'+bg+'">'+diasSemana[dt.getDay()]+'</th>';
+  }).join('');
+
+  // ── Filas por grupo y trabajador ──
+  var filasHTML='';
+  var totalesDia={}; // fmtKey → count
+  fechas.forEach(function(dt){totalesDia[fmtKey(dt)]=0;});
+
+  ordenGrupos.forEach(function(grupo){
+    filasHTML+='<tr><td colspan="'+(fechas.length+2)+'" style="background:#e07b39;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;letter-spacing:.05em">'+grupo+'</td></tr>';
+    Object.keys(grupos[grupo]).forEach(function(nombre){
+      var celdas=fechas.map(function(dt){
+        var fk=fmtKey(dt);
+        var reg=mapaFecha[fk]&&mapaFecha[fk][nombre];
+        var bg=esFinde(dt)?'background:#fde8d8':'';
+        if(!reg)return '<td style="text-align:center;font-size:9px;border:0.5px solid #ddd;'+bg+'"></td>';
+        var obs=(reg.obs||'').toUpperCase();
+        var esEBD=/^[EBD]/.test(obs);
+        if(esEBD){
+          return '<td style="text-align:center;font-size:9px;font-weight:700;color:#c0392b;border:0.5px solid #ddd;'+bg+'">'+obs.charAt(0)+'</td>';
+        }
+        totalesDia[fk]++;
+        totalOperariosDias++;
+        return '<td style="text-align:center;font-size:9px;font-weight:600;border:0.5px solid #ddd;'+bg+'">1</td>';
+      }).join('');
+      filasHTML+='<tr><td style="padding:2px 6px;font-size:10px;white-space:nowrap;border:0.5px solid #ddd;min-width:120px">'+nombre+'</td>'+celdas+'<td style="text-align:center;font-size:9px;border:0.5px solid #ddd"></td></tr>';
+    });
+    // Fila vacía decorativa
+    filasHTML+='<tr><td style="height:10px;border:0.5px solid #ddd" colspan="'+(fechas.length+2)+'"></td></tr>';
+  });
+
+  // ── Fila TOTAL ──
+  var celdaTotales=fechas.map(function(dt){
+    var bg=esFinde(dt)?'background:#fde8d8':'background:#f9f9f9';
+    var v=totalesDia[fmtKey(dt)]||0;
+    return '<td style="text-align:center;font-size:9px;font-weight:700;border:0.5px solid #bbb;'+bg+'">'+v+'</td>';
+  }).join('');
+  filasHTML+='<tr style="background:#f5e6c8;font-weight:700"><td style="padding:3px 6px;font-size:10px;border:0.5px solid #bbb">TOTAL</td>'+celdaTotales+'<td style="border:0.5px solid #bbb"></td></tr>';
+
+  var mediaOficiales=diasHabiles>0?(totalOperariosDias/diasHabiles).toFixed(2):'0,00';
+
+  // ── Cabecera de meses en la tabla ──
+  // Contar días de cada mes para hacer colspan
+  var nPrevMes=fechas.filter(function(dt){return dt.getMonth()===mesAnt;}).length;
+  var nActMes=fechas.filter(function(dt){return dt.getMonth()===m;}).length;
+  var thMeses='';
+  if(nPrevMes>0) thMeses+='<th colspan="'+nPrevMes+'" style="text-align:center;background:#f5e6c8;font-size:10px;padding:3px;border:0.5px solid #c8a96e">'+mesesNombre[mesAnt].toLowerCase()+'</th>';
+  if(nActMes>0)  thMeses+='<th colspan="'+nActMes+'" style="text-align:center;background:#e07b39;color:#fff;font-size:10px;padding:3px;border:0.5px solid #c8a96e">'+mesesNombre[m].toLowerCase()+'</th>';
+
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8">'+
+    '<title>Parte Mensual — '+obraSeleccionada.nombre+' — '+mesesNombre[m]+' '+y+'</title>'+
+    '<style>'+
+      'body{font-family:Arial,sans-serif;margin:10px;color:#1a1a1a;font-size:11px}'+
+      'table{border-collapse:collapse}'+
+      '.hdr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;font-size:11px}'+
+      '.hdr-field{display:flex;align-items:center;gap:6px}'+
+      '.hdr-label{font-weight:700;white-space:nowrap}'+
+      '.hdr-val{border-bottom:1px solid #333;flex:1;min-width:80px;padding:1px 4px}'+
+      '.stats{display:flex;gap:30px;justify-content:flex-end;margin-top:10px;font-size:10px;border-top:1px solid #ccc;padding-top:6px}'+
+      '.stat-item{text-align:right}'+
+      '.stat-val{font-size:14px;font-weight:700;color:#e07b39}'+
+      '.leyenda{margin-top:10px;font-size:9px;color:#555}'+
+      '@media print{@page{size:A3 landscape;margin:8mm}body{margin:0}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div class="hdr-field"><span class="hdr-label">MES:</span><span class="hdr-val">'+mesesNombre[m].toUpperCase()+' '+y+'</span></div>'+
+      '<div class="hdr-field"><span class="hdr-label">OBRA:</span><span class="hdr-val">'+obraSeleccionada.nombre+'</span></div>'+
+    '</div>'+
+    '<table style="width:100%">'+
+      '<thead>'+
+        '<tr><th style="border:0.5px solid #c8a96e"></th>'+thMeses+'<th style="border:0.5px solid #c8a96e"></th></tr>'+
+        '<tr style="background:#f5e6c8"><th style="text-align:left;padding:2px 6px;font-size:10px;border:0.5px solid #c8a96e;min-width:120px">NOMBRE</th>'+thDias+'<th style="font-size:9px;padding:2px;border:0.5px solid #c8a96e">TOT</th></tr>'+
+        '<tr style="background:#fff8ee"><th style="border:0.5px solid #eee"></th>'+thSemana+'<th style="border:0.5px solid #eee"></th></tr>'+
+      '</thead>'+
+      '<tbody>'+filasHTML+'</tbody>'+
+    '</table>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px">'+
+      '<div class="leyenda"><strong>NOTAS:</strong>&nbsp;&nbsp;E: Enfermo &nbsp;&nbsp; B: Baja &nbsp;&nbsp; D: Despedido</div>'+
+      '<div class="stats">'+
+        '<div class="stat-item"><div class="stat-val">'+diasHabiles+'</div><div>DÍAS HÁBILES MES</div></div>'+
+        '<div class="stat-item"><div class="stat-val">'+mediaOficiales.replace('.',',')+'</div><div>MEDIA DE OFICIALES EN OBRA</div></div>'+
+      '</div>'+
+    '</div>'+
+    '</body></html>';
+
+  var w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},700);
 }
 
 function eliminarRegistroPersonal(idx){
