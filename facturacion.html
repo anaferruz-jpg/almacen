@@ -6211,98 +6211,52 @@ function prfAbrirEditor(pi) {
   // ── Construir líneas ─────────────────────────────────────────────────────
   if (isNew) {
     _prfLineas = [];
-    var tieneItems = (pres.ventaItems||[]).some(function(it){return it.precio>0;}) ||
-                     (pres.alquilerItems||[]).some(function(it){return it.precio>0;}) ||
-                     (pres.moItems||[]).some(function(it){return it.precio>0;});
-    // Buscar la última proforma con líneas reales para usarla como plantilla si procede
+    // Buscar la última proforma con líneas (para usar como plantilla)
     var _ultimaPrfConLineas = null;
     for (var _pi = proformas.length - 1; _pi >= 0; _pi--) {
       if ((proformas[_pi].lineas||[]).length > 0) { _ultimaPrfConLineas = proformas[_pi]; break; }
     }
 
-    if (tipo === 'cerrado' && !tieneItems) {
-      // Sin partidas detalladas en el presupuesto:
-      // Si hay una proforma anterior con líneas → copiarlas como plantilla (mes=0, anterior=origen)
-      if (_ultimaPrfConLineas && _ultimaPrfConLineas.lineas.length > 0) {
-        _prfLineas = _ultimaPrfConLineas.lineas.map(function(pl){
-          return Object.assign({}, pl, {
-            anterior: (pl.anterior||0) + (pl.mes||0),  // origen de la anterior = anterior de la nueva
-            mes: 0
-          });
+    if (_ultimaPrfConLineas) {
+      // ── Hay proforma anterior: copiar sus líneas como plantilla ──────────
+      // anterior = origen de la anterior (ant+mes), mes = 0 (a rellenar este periodo)
+      _prfLineas = _ultimaPrfConLineas.lineas.map(function(pl){
+        return Object.assign({}, pl, {
+          anterior: (pl.anterior||0) + (pl.mes||0),
+          mes: 0
         });
-      } else {
-        // Primera proforma: línea global por defecto
+      });
+    } else {
+      // ── Primera proforma: construir desde el presupuesto ─────────────────
+      var tieneItems = (pres.ventaItems||[]).some(function(it){return it.precio>0;}) ||
+                       (pres.alquilerItems||[]).some(function(it){return it.precio>0;}) ||
+                       (pres.moItems||[]).some(function(it){return it.precio>0;});
+      if (tipo === 'cerrado' && !tieneItems) {
         _prfLineas.push({tipo:'cerrado', desc:'PRECIO CERRADO — '+(pres.proyecto||''),
           ud:'€', origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
+      } else {
+        var dtoV = pres.descuentoVenta || 0;
+        var dtoA = pres.descuentoAlquiler || 0;
+        (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
+          _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
+        });
+        if (dtoV > 0) _prfLineas.push({tipo:'dto_venta', desc:'DESCUENTO '+dtoV+'%\n(Contrato)', ud:'PA', dtoRate:dtoV/100, origen:0, anterior:0, mes:-(dtoV/100), precioUnit:0});
+        (pres.alquilerItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
+          _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
+        });
+        if (dtoA > 0) _prfLineas.push({tipo:'dto_alquiler', desc:'DESCUENTO '+dtoA+'%\n(Contrato)', ud:'PA', dtoRate:dtoA/100, origen:0, anterior:0, mes:-(dtoA/100), precioUnit:0});
+        (pres.moItems||[]).filter(function(it){return it.precio>0||(it.operarios||0)>0||(it.meses||0)>0;}).forEach(function(it){
+          var _moMes = (it.meses||0) > 0;
+          var _prcUnit = _moMes
+            ? (it.planSync ? it.precio*(it.operarios||1)/(it.meses||1) : it.precio*(it.operarios||1))
+            : it.precio;
+          _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
+        });
       }
-    } else {
-      // Con partidas detalladas (incluso si es cerrado)
-      var dtoV = pres.descuentoVenta || 0;
-      var dtoA = pres.descuentoAlquiler || 0;
-      (pres.ventaItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'venta', desc:it.desc, ud:it.ud||'ud', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
-      });
-      if (dtoV > 0) _prfLineas.push({tipo:'dto_venta', desc:'DESCUENTO '+dtoV+'%\n(Contrato)', ud:'PA', dtoRate:dtoV/100, origen:0, anterior:0, mes:-(dtoV/100), precioUnit:0});
-      (pres.alquilerItems||[]).filter(function(it){return it.precio>0;}).forEach(function(it){
-        _prfLineas.push({tipo:'alquiler', desc:it.desc, ud:it.ud||'ml', origen:it.medicion||0, anterior:0, mes:0, precioUnit:it.precio});
-      });
-      if (dtoA > 0) _prfLineas.push({tipo:'dto_alquiler', desc:'DESCUENTO '+dtoA+'%\n(Contrato)', ud:'PA', dtoRate:dtoA/100, origen:0, anterior:0, mes:-(dtoA/100), precioUnit:0});
-      (pres.moItems||[]).filter(function(it){return it.precio>0||(it.operarios||0)>0||(it.meses||0)>0;}).forEach(function(it){
-        var _moMes = (it.meses||0) > 0;
-        var _prcUnit;
-        if (_moMes) {
-          // Precio mes equipo = precio × jornadas / meses (planSync) ó precio × ops (normal)
-          _prcUnit = it.planSync
-            ? it.precio * (it.operarios||1) / (it.meses||1)
-            : it.precio * (it.operarios||1);
-        } else {
-          _prcUnit = it.precio; // precio por unidad/jornada
-        }
-        _prfLineas.push({tipo:'mo', desc:it.desc, ud:_moMes?'mes':'ud', origen:_moMes?(it.meses||0):(it.operarios||0), anterior:0, mes:0, precioUnit:_prcUnit});
-      });
     }
     // Construir mapa desc → {origen, precioUnit} de la última proforma con valores
-    // Clave primaria: desc exacto. Clave secundaria: desc normalizado como fallback
-    var norm = function(s){ return (s||'').trim().toLowerCase().replace(/\s+/g,' '); };
-    var _prfAntMap     = {};  // desc exacto → {origen, precioUnit}
-    var _prfAntMapNorm = {};  // desc normalizado → {origen, precioUnit, descOrig}
-    var _prfDescsAnteriores = {};
-    proformas.forEach(function(prev){
-      var tieneOrigen = (prev.lineas||[]).some(function(pl){
-        return ((pl.anterior||0) + (pl.mes||0)) !== 0;
-      });
-      if (!tieneOrigen) return;
-      (prev.lineas||[]).forEach(function(pl){
-        if (pl.tipo==='dto_venta'||pl.tipo==='dto_alquiler') return;
-        var origen = (pl.anterior||0) + (pl.mes||0);
-        if (origen !== 0) {
-          var entry = { origen: origen, precioUnit: pl.precioUnit };
-          _prfAntMap[pl.desc] = entry;
-          _prfAntMapNorm[norm(pl.desc)] = Object.assign({ descOrig: pl.desc }, entry);
-          _prfDescsAnteriores[pl.desc] = true;
-        }
-      });
-    });
-    // Aplicar el mapa: anterior Y precioUnit heredados de la última proforma
-    _prfLineas.forEach(function(l){
-      if (l.tipo==='dto_venta'||l.tipo==='dto_alquiler') return;
-      var entry = _prfAntMap[l.desc] || _prfAntMapNorm[norm(l.desc)];
-      if (entry) {
-        l.anterior   = entry.origen;
-        // Heredar precioUnit de la proforma anterior para mantener consistencia en la serie
-        if (entry.precioUnit !== undefined && entry.precioUnit !== null) {
-          l.precioUnit = entry.precioUnit;
-        }
-      }
-    });
-    // Avisar si hay líneas de proformas previas sin equivalente en la nueva
-    var _sinMatch = Object.keys(_prfDescsAnteriores).filter(function(d){
-      return !_prfLineas.some(function(l){ return l.desc===d || norm(l.desc)===norm(d); });
-    });
-    if (_sinMatch.length) {
-      console.warn('[PROFORMA] Líneas anteriores sin coincidencia:', _sinMatch);
-      toast('⚠️ '+_sinMatch.length+' línea(s) de proformas anteriores no coinciden con el presupuesto actual. Revisa los orígenes.', true);
-    }
+    // Si se construyó desde presupuesto (primera proforma), no hay nada más que hacer.
+    // Si se copió de la proforma anterior, anterior y precioUnit ya están correctos.
   } else {
     // Proforma existente: usar el anterior guardado tal cual (el usuario puede haberlo ajustado manualmente)
     _prfLineas = (prf.lineas||[]).map(function(l){ return Object.assign({}, l); });
