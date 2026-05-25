@@ -6061,7 +6061,47 @@ function prfPrevGuardar(presKey) {
   prev.inicio = (document.getElementById('prev-inicio')||{}).value || prev.inicio;
   prev.fin    = (document.getElementById('prev-fin')||{}).value   || prev.fin;
   savePrfPrev(presKey, prev);
+  // Sincronizar previsions por obra → resumen anual (_previsiones)
+  _prfPrevSyncToGlobal();
   toast('✅ Previsión guardada');
+}
+
+// Agrega todas las previsiones por obra (PRF_PREV_KEY) en _previsiones (resumen anual)
+// y las persiste en Sheets para que sean visibles en la hoja de previsión de facturación.
+function _prfPrevSyncToGlobal() {
+  var allPrev = JSON.parse(localStorage.getItem(PRF_PREV_KEY)||'{}');
+  // Sumar previsions de todas las obras por año+mes
+  var sumByAnoMes = {}; // { 'YYYY': { mesIndex0based: total } }
+  Object.keys(allPrev).forEach(function(pk) {
+    var p = allPrev[pk];
+    if (!p || !p.meses) return;
+    Object.keys(p.meses).forEach(function(mk) {  // mk = 'YYYY-MM' (mes 1-based)
+      var val = parseFloat(p.meses[mk])||0;
+      if (!val) return;
+      var parts = mk.split('-');
+      var ano = parseInt(parts[0]);
+      var mes = parseInt(parts[1])-1;  // 0-based para _previsiones
+      if (!sumByAnoMes[ano]) sumByAnoMes[ano]={};
+      sumByAnoMes[ano][mes] = (sumByAnoMes[ano][mes]||0) + val;
+    });
+  });
+  // Actualizar _previsiones en memoria y guardar en Sheets
+  Object.keys(sumByAnoMes).forEach(function(anoStr) {
+    var ano = parseInt(anoStr);
+    if (!_previsiones[ano]) _previsiones[ano] = {};
+    Object.keys(sumByAnoMes[anoStr]).forEach(function(mesStr) {
+      var mes = parseInt(mesStr);
+      if (!_previsiones[ano][mes]) _previsiones[ano][mes] = {prevFac:0, prevGI:0};
+      var nuevoVal = sumByAnoMes[anoStr][mesStr];
+      _previsiones[ano][mes].prevFac = nuevoVal;
+      // Guardar en Sheets (compartido con todos)
+      postAPI({action:'savePrevisiones', anyo:ano, mes:mes, prevFac:nuevoVal}, function(){});
+    });
+  });
+  // Refrescar la vista del resumen si está visible
+  if (typeof renderResumenMensual === 'function') {
+    try { renderResumenMensual(); } catch(e){}
+  }
 }
 
 // ── Abrir editor (nueva o existente) ─────────
