@@ -4156,8 +4156,27 @@ function imprimirParteCalendario(key){
       '.stat-item{text-align:right}'+
       '.stat-val{font-size:14px;font-weight:700;color:#e07b39}'+
       '.leyenda{margin-top:10px;font-size:9px;color:#555}'+
-      '@media print{@page{size:A3 landscape;margin:8mm}body{margin:0}}'+
+      '.toolbar-print{display:flex;align-items:center;gap:10px;background:#fff3e0;border:1px solid #e07b39;border-radius:6px;padding:6px 12px;margin-bottom:10px;font-size:12px}'+
+      '.toolbar-print label{font-weight:700;color:#c05a00}'+
+      '.toolbar-print input{width:60px;text-align:center;border:1px solid #e07b39;border-radius:4px;padding:3px 6px;font-size:13px;font-weight:700;color:#c05a00}'+
+      '.toolbar-print button{background:#e07b39;color:#fff;border:none;border-radius:4px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:700}'+
+      '@media print{.toolbar-print{display:none}@page{size:A3 landscape;margin:8mm}body{margin:0}}'+
     '</style></head><body>'+
+    '<div class="toolbar-print">'+
+      '<label>📅 Días hábiles:</label>'+
+      '<input type="number" id="inp-dias-hab" min="1" max="31" value="'+diasHabiles+'" oninput="recalcMedia(this.value)">'+
+      '<span style="color:#888;font-size:11px">(edita si hay festivos)</span>'+
+      '<button onclick="window.print()">🖨️ Imprimir</button>'+
+    '</div>'+
+    '<script>'+
+      'var _totalOpDias='+totalOperariosDias+';'+
+      'function recalcMedia(v){'+
+        'var dh=parseInt(v)||1;'+
+        'var media=dh>0?(_totalOpDias/dh).toFixed(2).replace(\'.\',\',\'):\'0,00\';'+
+        'document.getElementById(\'stat-dias-hab\').textContent=dh;'+
+        'document.getElementById(\'stat-media-of\').textContent=media;'+
+      '}'+
+    '<\/script>'+
     '<div class="hdr">'+
       '<div class="hdr-field"><span class="hdr-label">MES:</span><span class="hdr-val">'+mesesNombre[m].toUpperCase()+' '+y+'</span></div>'+
       '<div class="hdr-field"><span class="hdr-label">OBRA:</span><span class="hdr-val">'+obraSeleccionada.nombre+'</span></div>'+
@@ -4173,8 +4192,8 @@ function imprimirParteCalendario(key){
     '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px">'+
       '<div class="leyenda"><strong>NOTAS:</strong>&nbsp;&nbsp;E: Enfermo &nbsp;&nbsp; B: Baja &nbsp;&nbsp; D: Despedido</div>'+
       '<div class="stats">'+
-        '<div class="stat-item"><div class="stat-val">'+diasHabiles+'</div><div>DÍAS HÁBILES MES</div></div>'+
-        '<div class="stat-item"><div class="stat-val">'+mediaOficiales.replace('.',',')+'</div><div>MEDIA DE OFICIALES EN OBRA</div></div>'+
+        '<div class="stat-item"><div class="stat-val" id="stat-dias-hab">'+diasHabiles+'</div><div>DÍAS HÁBILES MES</div></div>'+
+        '<div class="stat-item"><div class="stat-val" id="stat-media-of">'+mediaOficiales.replace('.',',')+'</div><div>MEDIA DE OFICIALES EN OBRA</div></div>'+
       '</div>'+
     '</div>'+
     '</body></html>';
