@@ -2479,10 +2479,10 @@ function facturaGuardarEnDrive() {
   var f = facturas[_facVerIdx];
   var obraObj = OBRAS.find(function(o){ return o.nombre===(f.obra||''); });
   if (!obraObj || !obraObj.carpetaDriveId) { toast('Esta factura no tiene obra con carpeta Drive vinculada', true); return; }
-  var fileName = 'Factura_' + (f.numero||'').replace(/\//g,'-') + '_' + (f.fecha||new Date().toISOString().split('T')[0]) + '.html';
+  var fileName = 'Factura_' + (f.numero||'').replace(/\//g,'-') + '_' + (f.fecha||new Date().toISOString().split('T')[0]) + '.pdf';
   var html = generarHTMLFactura(f);
   var encoded = btoa(unescape(encodeURIComponent(html)));
-  postAPI({ action:'saveFileToFolder', folderId: obraObj.carpetaDriveId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
+  postAPI({ action:'saveHtmlAsPdf', folderId: obraObj.carpetaDriveId, fileName: fileName, content: encoded }, function(err, resp) {
     if (!err && resp && resp.ok) {
       toast('✓ Guardado en Drive: ' + fileName);
       if (resp.fileUrl) window.open(resp.fileUrl, '_blank');
@@ -6604,7 +6604,7 @@ function prfGuardarEnDrive() {
 
   var numPrf = (document.getElementById('prf-num')||{value:'PRF-001'}).value;
   var periodo = (document.getElementById('prf-periodo')||{value:''}).value;
-  var fileName = 'Certificacion_' + numPrf + '_' + (periodo||new Date().toISOString().substr(0,7)) + '.html';
+  var fileName = 'Certificacion_' + numPrf + '_' + (periodo||new Date().toISOString().substr(0,7)) + '.pdf';
 
   // Generar HTML idéntico al de prfImprimirCertificacion
   var fmtN = function(n){ return (n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
@@ -6677,7 +6677,7 @@ function prfGuardarEnDrive() {
     '</body></html>';
 
   var encoded = btoa(unescape(encodeURIComponent(html)));
-  postAPI({ action:'saveFileToFolder', folderId: folderId, fileName: fileName, content: encoded, mimeType: 'text/html' }, function(err, resp) {
+  postAPI({ action:'saveHtmlAsPdf', folderId: folderId, fileName: fileName, content: encoded }, function(err, resp) {
     if (!err && resp && resp.ok) {
       toast('\u2713 Guardado en Drive: ' + fileName);
       if (resp.fileUrl) window.open(resp.fileUrl, '_blank');
