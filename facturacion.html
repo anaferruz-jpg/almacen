@@ -6214,10 +6214,27 @@ function prfAbrirEditor(pi) {
     var tieneItems = (pres.ventaItems||[]).some(function(it){return it.precio>0;}) ||
                      (pres.alquilerItems||[]).some(function(it){return it.precio>0;}) ||
                      (pres.moItems||[]).some(function(it){return it.precio>0;});
+    // Buscar la última proforma con líneas reales para usarla como plantilla si procede
+    var _ultimaPrfConLineas = null;
+    for (var _pi = proformas.length - 1; _pi >= 0; _pi--) {
+      if ((proformas[_pi].lineas||[]).length > 0) { _ultimaPrfConLineas = proformas[_pi]; break; }
+    }
+
     if (tipo === 'cerrado' && !tieneItems) {
-      // Sin partidas detalladas: una línea global
-      _prfLineas.push({tipo:'cerrado', desc:'PRECIO CERRADO — '+(pres.proyecto||''),
-        ud:'€', origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
+      // Sin partidas detalladas en el presupuesto:
+      // Si hay una proforma anterior con líneas → copiarlas como plantilla (mes=0, anterior=origen)
+      if (_ultimaPrfConLineas && _ultimaPrfConLineas.lineas.length > 0) {
+        _prfLineas = _ultimaPrfConLineas.lineas.map(function(pl){
+          return Object.assign({}, pl, {
+            anterior: (pl.anterior||0) + (pl.mes||0),  // origen de la anterior = anterior de la nueva
+            mes: 0
+          });
+        });
+      } else {
+        // Primera proforma: línea global por defecto
+        _prfLineas.push({tipo:'cerrado', desc:'PRECIO CERRADO — '+(pres.proyecto||''),
+          ud:'€', origen: pres.totalObra||0, anterior:0, mes:0, precioUnit:1});
+      }
     } else {
       // Con partidas detalladas (incluso si es cerrado)
       var dtoV = pres.descuentoVenta || 0;
