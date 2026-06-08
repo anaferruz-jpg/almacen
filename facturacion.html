@@ -3197,7 +3197,7 @@ function exportMargenCSV() {
   function initO(n) { if (!obras[n]) obras[n] = { i: 0, gp: 0, gi: 0 }; }
   facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) { initO(f.obra); obras[f.obra].i += f.base; });
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gp += g.base; });
-  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gi += (g.base || g.total || g.importe || 0); });
+  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gi += (parseFloat(g.base)||0); });
   Object.keys(obras).sort().forEach(function(n) {
     var o = obras[n]; var tg = o.gp + o.gi; var m = o.i - tg;
     rows.push([n, o.i.toFixed(2), o.gp.toFixed(2), o.gi.toFixed(2), tg.toFixed(2), m.toFixed(2), (o.i > 0 ? Math.round(m / o.i * 100) : 0) + '%']);
@@ -8941,7 +8941,7 @@ function renderResumenMensual(){
     if(!fechaP)return;
     var d=new Date(fechaP);
     if(d.getFullYear()!==ano)return;
-    meses[d.getMonth()].gastoProv+=(parseFloat(g.base||g.total)||0);
+    meses[d.getMonth()].gastoProv+=(parseFloat(g.base)||0);
   });
 
   // GASTOS INTERNOS → por vencimiento si existe, si no por fecha
@@ -8950,7 +8950,7 @@ function renderResumenMensual(){
     if(!fechaGI)return;
     var d=new Date(fechaGI);
     if(d.getFullYear()!==ano)return;
-    meses[d.getMonth()].gastoInt+=(parseFloat(g.base||g.total||g.importe)||0);
+    meses[d.getMonth()].gastoInt+=(parseFloat(g.base)||0);
   });
 
   // Totales año
