@@ -94,26 +94,29 @@ function getInventario() {
   var result = [];
   for (var i = 1; i < rows.length; i++) {
     if (!rows[i][0]) continue;
+    var alq = rows[i][6];
     result.push({
       nombre:   rows[i][0],
       stock:    rows[i][1] || 0,
       nec:      rows[i][2] || 0,
       pvp:      rows[i][3] || 0,
       pcompra:  rows[i][4] || 0,
-      stockMin: rows[i][5] || 0
+      stockMin: rows[i][5] || 0,
+      alquiler: alq === true || String(alq).toLowerCase() === 'true'
     });
   }
   return result;
 }
 
 function asegurarColumnas(sheet) {
-  var h = sheet.getRange(1,1,1,6).getValues()[0];
+  var h = sheet.getRange(1,1,1,7).getValues()[0];
   if (!h[0]) sheet.getRange(1,1).setValue('Nombre');
   if (!h[1]) sheet.getRange(1,2).setValue('Stock');
   if (!h[2]) sheet.getRange(1,3).setValue('Necesario');
   if (!h[3]) sheet.getRange(1,4).setValue('PVP');
   if (!h[4]) sheet.getRange(1,5).setValue('PrecioCompra');
   if (!h[5]) sheet.getRange(1,6).setValue('StockMinimo');
+  if (!h[6]) sheet.getRange(1,7).setValue('Alquiler');
 }
 
 // ══════════════════════════════════════════════════════
@@ -122,14 +125,23 @@ function asegurarColumnas(sheet) {
 function getCostesMateriales() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
 
-  // 1. Mapa nombre→precioCompra desde Inventario
-  var precios = {};
+  // 1. Mapa nombre→precioCompra y set de artículos de alquiler desde Inventario
+  var precios = {};       // nombre exacto → precio
+  var preciosLower = {};  // nombre en minús → precio (fallback case-insensitive)
+  var alquilerSet = {};   // nombre en minús → true si es alquiler
   var invSheet = ss.getSheetByName('Inventario');
   if (invSheet) {
     var invRows = invSheet.getDataRange().getValues();
     for (var i = 1; i < invRows.length; i++) {
       var nom = String(invRows[i][0] || '').trim();
-      if (nom) precios[nom] = parseFloat(invRows[i][4]) || 0; // col 5 = PrecioCompra
+      if (!nom) continue;
+      var pc = parseFloat(invRows[i][4]) || 0; // col 5 = PrecioCompra
+      precios[nom] = pc;
+      preciosLower[nom.toLowerCase()] = pc;
+      var alq = invRows[i][6];
+      if (alq === true || String(alq).toLowerCase() === 'true') {
+        alquilerSet[nom.toLowerCase()] = true;
+      }
     }
   }
 
@@ -154,10 +166,13 @@ function getCostesMateriales() {
     if (!result[obra]) result[obra] = { coste: 0, unidades: 0 };
     items.forEach(function(it) {
       var nombre = String(it.nombre || it.name || '').trim();
+      var nombreL = nombre.toLowerCase();
+      // Saltar artículos marcados como alquiler
+      if (alquilerSet[nombreL]) return;
       // Cantidad: puede venir como 'entregados', 'cantidad', 'qty' o 'n'
       var qty = parseFloat(it.entregados !== undefined ? it.entregados : (it.cantidad || it.qty || it.n || 0)) || 0;
-      // Precio: primero el guardado en el item, luego el del inventario actual
-      var precio = parseFloat(it.precioCompra || it.pcompra || precios[nombre] || 0);
+      // Precio: guardado en item → inventario exacto → inventario case-insensitive
+      var precio = parseFloat(it.precioCompra || it.pcompra || precios[nombre] || preciosLower[nombreL] || 0);
       result[obra].coste    += qty * precio;
       result[obra].unidades += qty;
     });
@@ -440,7 +455,7 @@ function addArticulo(data) {
     sheet.appendRow(['Nombre','Stock','Necesario','PVP','PrecioCompra','StockMinimo']);
   }
   asegurarColumnas(sheet);
-  sheet.appendRow([data.nombre,data.stock||0,data.nec||0,data.pvp||0,data.pcompra||0,data.stockMin||0]);
+  sheet.appendRow([data.nombre,data.stock||0,data.nec||0,data.pvp||0,data.pcompra||0,data.stockMin||0,data.alquiler===true||data.alquiler==='true']);
   return {ok:true};
 }
 
@@ -457,6 +472,7 @@ function editArticulo(data) {
       sheet.getRange(i+1,4).setValue(data.pvp||0);
       sheet.getRange(i+1,5).setValue(data.pcompra||0);
       sheet.getRange(i+1,6).setValue(data.stockMin||0);
+      sheet.getRange(i+1,7).setValue(data.alquiler===true||data.alquiler==='true');
       return {ok:true};
     }
   }
@@ -851,7 +867,8 @@ function getGastosInternos() {
       iva:         iva,
       total:       total,
       vencimiento: rows[i][16] || '',
-      estado:      rows[i][17] || 'pendiente'
+      estado:      rows[i][17] || 'pendiente',
+      fechaPago:   rows[i][18] || ''
     });
   }
   return result;
@@ -863,7 +880,7 @@ function saveGastoInterno(data) {
   var sheet = ss.getSheetByName('GastosInternos');
   if (!sheet) {
     sheet = ss.insertSheet('GastosInternos');
-    sheet.appendRow(['ID','Categoria','Concepto','Proveedor','Fecha','Importe','Recurrente','FormaPago','Obs','Obra','Creado','DriveUrl','Base','PctIva','Iva','Total','Vencimiento','Estado']);
+    sheet.appendRow(['ID','Categoria','Concepto','Proveedor','Fecha','Importe','Recurrente','FormaPago','Obs','Obra','Creado','DriveUrl','Base','PctIva','Iva','Total','Vencimiento','Estado','FechaPago']);
   }
   var base   = g.base   !== undefined ? g.base   : (g.importe || 0);
   var pctIva = g.pctIva !== undefined ? g.pctIva : 0;
@@ -873,12 +890,12 @@ function saveGastoInterno(data) {
     g.id, g.categoria||'', g.concepto||'', g.proveedor||'',
     g.fecha||'', total,
     g.recurrente||'', g.formaPago||'', g.obs||'', g.obra||'', g.creado||'', g.driveUrl||'',
-    base, pctIva, iva, total, g.vencimiento||'', g.estado||'pendiente'
+    base, pctIva, iva, total, g.vencimiento||'', g.estado||'pendiente', g.fechaPago||''
   ];
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === g.id) {
-      sheet.getRange(i+1,1,1,18).setValues([rowData]);
+      sheet.getRange(i+1,1,1,19).setValues([rowData]);
       return {ok:true};
     }
   }

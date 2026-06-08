@@ -1878,11 +1878,41 @@ function recargarTodo() {
     check();
   });
   callAPI('getGastosInt', function(err, data) {
+    // Cargamos local PRIMERO como respaldo
+    var localGI = [];
+    try { localGI = JSON.parse(localStorage.getItem('sf_gastos_internos') || '[]'); } catch(e) {}
+    var localById = {};
+    localGI.forEach(function(g) { if (g.id) localById[g.id] = g; });
+
     if (!err && Array.isArray(data)) {
-      gastosInternos = data;
+      var resync = []; // registros que necesitan re-sincronizarse al servidor
+      gastosInternos = data.map(function(api) {
+        var loc = localById[api.id];
+        if (!loc) return api;
+        // Fusión: preferir el valor local cuando la API devuelve vacío/0/default
+        // Estado: si local tiene 'pagado' y API tiene 'pendiente' → usar local
+        if (api.estado === 'pendiente' && loc.estado === 'pagado') {
+          api.estado    = 'pagado';
+          api.fechaPago = loc.fechaPago || api.fechaPago || '';
+          resync.push(api); // re-enviar al servidor para persistir
+        }
+        // Vencimiento: si API vacío y local tiene valor
+        if (!api.vencimiento && loc.vencimiento) api.vencimiento = loc.vencimiento;
+        // IVA/Base: si API tiene ceros y local tiene valores reales
+        if ((!api.pctIva || api.pctIva === 0) && loc.pctIva) api.pctIva = loc.pctIva;
+        if ((!api.iva    || api.iva    === 0) && loc.iva)    api.iva    = loc.iva;
+        if ((!api.base   || api.base   === 0) && loc.base)   api.base   = loc.base;
+        if ((!api.total  || api.total  === 0) && loc.total)  api.total  = loc.total;
+        return api;
+      });
       try { localStorage.setItem('sf_gastos_internos', JSON.stringify(gastosInternos)); } catch(e) {}
+      // Re-sincronizar al servidor los registros que tenían datos en local mejor que en Sheets
+      if (resync.length) {
+        resync.forEach(function(g) { saveGastoInternoSheets(g); });
+        console.log('GastosInternos: re-sincronizados ' + resync.length + ' registros al servidor');
+      }
     } else {
-      try { gastosInternos = JSON.parse(localStorage.getItem('sf_gastos_internos') || '[]'); } catch(e) { gastosInternos = []; }
+      gastosInternos = localGI;
     }
     check();
   });
