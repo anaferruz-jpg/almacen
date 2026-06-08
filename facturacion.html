@@ -516,7 +516,13 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
     <select id="filtro-gi-mes" onchange="renderGastosInternos()">
       <option value="">Todos los meses</option>
     </select>
+    <select id="gi-orden" onchange="renderGastosInternos()" title="Ordenar por">
+      <option value="fecha">📅 Orden: fecha</option>
+      <option value="vencimiento">⏰ Orden: vencimiento</option>
+    </select>
   </div>
+  <!-- Resumen totales -->
+  <div id="gi-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <!-- Stats por categoría -->
   <div id="gi-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px"></div>
   <div id="gastos-internos-content"></div>
@@ -3520,6 +3526,7 @@ function renderGastosInternos() {
   var filtCat = document.getElementById('filtro-gi-cat').value;
   var filtEst = document.getElementById('filtro-gi-estado').value;
   var filtMes = document.getElementById('filtro-gi-mes').value;
+  var orden = document.getElementById('gi-orden') ? document.getElementById('gi-orden').value : 'fecha';
 
   // Rellenar selector de meses disponibles
   var meses = [...new Set(gastosInternos.map(function(g) { return g.fecha ? g.fecha.substring(0,7) : ''; }).filter(Boolean))].sort().reverse();
@@ -3527,19 +3534,22 @@ function renderGastosInternos() {
   var valMes = selMes.value;
   selMes.innerHTML = '<option value="">Todos los meses</option>' + meses.map(function(m) { return '<option value="' + m + '"' + (m === valMes ? ' selected' : '') + '>' + m + '</option>'; }).join('');
 
-  var data = gastosInternos.filter(function(g) {
-    if (q && (g.concepto + (g.proveedor||'') + (g.obs||'')).toLowerCase().indexOf(q) === -1) return false;
-    if (filtCat && g.categoria !== filtCat) return false;
-    if (filtEst && (g.estado || 'pendiente') !== filtEst) return false;
-    if (filtMes && (!g.fecha || g.fecha.substring(0,7) !== filtMes)) return false;
-    return true;
-  });
+  // ── CARDS RESUMEN (base sin IVA, sobre todos los gastos internos sin filtrar) ──
+  var todosBase      = gastosInternos.reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var pagadoBase     = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var pendienteBase  = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var vencidoBase    = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente' && g.vencimiento && g.vencimiento < today;}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  document.getElementById('gi-resumen').innerHTML =
+    '<div class="stat-card"><div class="stat-label">Total gastos internos</div><div class="stat-val danger">' + fmt(todosBase) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Pagado</div><div class="stat-val success">' + fmt(pagadoBase) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Pendiente pago</div><div class="stat-val warn">' + fmt(pendienteBase) + '</div></div>' +
+    (vencidoBase > 0 ? '<div class="stat-card" style="border-color:var(--danger)"><div class="stat-label" style="color:var(--danger)">⚠️ Vencido sin pagar</div><div class="stat-val danger">' + fmt(vencidoBase) + '</div></div>' : '');
 
-  // Stats por categoría
+  // ── STATS POR CATEGORÍA (base sin IVA) ──
   var statsCat = {};
   gastosInternos.forEach(function(g) {
     if (!statsCat[g.categoria]) statsCat[g.categoria] = 0;
-    statsCat[g.categoria] += g.total || g.importe || 0;
+    statsCat[g.categoria] += parseFloat(g.base) || 0;
   });
   filtrarGiCat = function(cat) { document.getElementById('filtro-gi-cat').value = cat; renderGastosInternos(); };
   document.getElementById('gi-stats').innerHTML = Object.keys(CAT_LABELS).filter(function(c) { return statsCat[c]; }).map(function(c) {
@@ -3549,21 +3559,26 @@ function renderGastosInternos() {
     '</div>';
   }).join('');
 
+  // ── FILTRADO ──
+  var data = gastosInternos.filter(function(g) {
+    if (q && (g.concepto + (g.proveedor||'') + (g.obs||'')).toLowerCase().indexOf(q) === -1) return false;
+    if (filtCat && g.categoria !== filtCat) return false;
+    if (filtEst && (g.estado || 'pendiente') !== filtEst) return false;
+    if (filtMes && (!g.fecha || g.fecha.substring(0,7) !== filtMes)) return false;
+    return true;
+  });
+
   var cont = document.getElementById('gastos-internos-content');
   if (!data.length) { cont.innerHTML = '<div class="empty">Sin gastos registrados en esta categoría</div>'; return; }
 
-  // Total filtrado
-  var totalFiltrado = data.reduce(function(a, g) { return a + (g.total || g.importe || 0); }, 0);
-  cont.innerHTML = '<div style="text-align:right;font-size:13px;font-weight:600;color:var(--brand2);margin-bottom:8px">Total: ' + fmt(totalFiltrado) + '</div>' +
-  '<div class="tbl-wrap"><table><thead><tr>' +
-    '<th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Proveedor</th><th>Obra</th>' +
-    '<th style="text-align:right">Base</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Vencimiento</th><th>Estado</th><th>Recurrencia</th><th>Pago</th><th></th>' +
-  '</tr></thead><tbody>' +
-  data.slice().reverse().map(function(g) {
+  // Total filtrado (base)
+  var totalFiltrado = data.reduce(function(a, g) { return a + (parseFloat(g.base)||0); }, 0);
+
+  function filaGI(g) {
     var idx = gastosInternos.indexOf(g);
-    var base = g.base || g.importe || 0;
+    var base = parseFloat(g.base) || 0;
     var pctIva = g.pctIva !== undefined ? g.pctIva : (g.iva && g.base ? Math.round(g.iva / g.base * 100) : '—');
-    var iva = g.iva !== undefined ? g.iva : (g.importe && g.base ? g.importe - g.base : 0);
+    var iva = g.iva !== undefined ? g.iva : 0;
     var total = g.total || g.importe || 0;
     var vencGI = g.vencimiento && g.vencimiento < today;
     return '<tr>' +
@@ -3586,8 +3601,46 @@ function renderGastosInternos() {
         '<button class="btn danger" style="font-size:10px;padding:3px 6px" onclick="eliminarGastoInterno(' + idx + ')">🗑️</button>' +
       '</div></td>' +
     '</tr>';
-  }).join('') +
-  '</tbody></table></div>';
+  }
+
+  var thead = '<div class="tbl-wrap"><table><thead><tr>' +
+    '<th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Proveedor</th><th>Obra</th>' +
+    '<th style="text-align:right">Base</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Vencimiento</th><th>Estado</th><th>Recurrencia</th><th>Pago</th><th></th>' +
+  '</tr></thead><tbody>';
+
+  var tbodyHtml = '';
+
+  if (orden === 'vencimiento') {
+    // Ordenar por vencimiento (o fecha si no hay vencimiento) y agrupar por mes de vencimiento
+    var sorted = data.slice().sort(function(a, b) {
+      var va = a.vencimiento || a.fecha || '';
+      var vb = b.vencimiento || b.fecha || '';
+      return va.localeCompare(vb);
+    });
+    var grupos = {};
+    var grupoKeys = [];
+    sorted.forEach(function(g) {
+      var key = g.vencimiento ? g.vencimiento.substring(0,7) : (g.fecha ? g.fecha.substring(0,7) : 'sin-fecha');
+      if (!grupos[key]) { grupos[key] = []; grupoKeys.push(key); }
+      grupos[key].push(g);
+    });
+    var MESES_ES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    grupoKeys.forEach(function(key) {
+      var label = key === 'sin-fecha' ? 'Sin vencimiento' : (function(){
+        var parts = key.split('-'); return MESES_ES[parseInt(parts[1])] + ' ' + parts[0];
+      })();
+      var subtotal = grupos[key].reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+      tbodyHtml += '<tr><td colspan="13" style="background:var(--bg2);padding:6px 10px;font-weight:700;font-size:12px;color:var(--brand2);border-top:2px solid var(--border)">📅 ' + label + ' — <span style="font-weight:400">subtotal: ' + fmt(subtotal) + '</span></td></tr>';
+      grupos[key].forEach(function(g){ tbodyHtml += filaGI(g); });
+    });
+  } else {
+    // Orden por fecha (más reciente primero) — comportamiento original
+    data.slice().reverse().forEach(function(g){ tbodyHtml += filaGI(g); });
+  }
+
+  cont.innerHTML =
+    '<div style="text-align:right;font-size:13px;font-weight:600;color:var(--brand2);margin-bottom:8px">Total filtrado (base): ' + fmt(totalFiltrado) + '</div>' +
+    thead + tbodyHtml + '</tbody></table></div>';
 }
 
 function exportGastosInternosCSV() {
