@@ -709,6 +709,10 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
           <label>Precio compra (€/ud)</label>
           <input type="number" id="ninv-pcompra" placeholder="0.00" min="0" step="0.01">
         </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:18px">
+          <input type="checkbox" id="ninv-alquiler" style="width:16px;height:16px;cursor:pointer">
+          <label for="ninv-alquiler" style="cursor:pointer;margin:0">🔄 Material de alquiler <span style="font-weight:400;color:var(--text2);font-size:11px">(no computa en coste por obra)</span></label>
+        </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
         <button class="btn" onclick="toggleFormNuevoArt()">Cancelar</button>
@@ -4685,7 +4689,7 @@ function renderInv(){
     var codBadge=i.cod?'<span style="display:inline-block;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.03em">'+i.cod+'</span>':'<span style="color:var(--text2);font-size:11px">—</span>';
     return '<tr id="inv-row-'+idx+'">'+
       '<td style="text-align:center">'+codBadge+'</td>'+
-      '<td style="max-width:200px;font-size:12px">'+i.nombre+'</td>'+
+      '<td style="max-width:200px;font-size:12px">'+i.nombre+(i.alquiler?'<br><span style="display:inline-block;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:1px 5px;border-radius:4px;font-size:10px;margin-top:2px">🔄 alquiler</span>':'')+'</td>'+
       '<td style="text-align:right">'+(i.stock||0).toLocaleString('es')+'</td>'+
       '<td style="text-align:right;color:'+(i.stockMin>0?'var(--text2)':'inherit')+'">'+(i.stockMin>0?i.stockMin:'-')+'</td>'+
       '<td><span class="badge '+e.cls+'"'+(e.reponer?' title="Stock por debajo del mínimo — necesita reposición"':'')+'>'+e.label+'</span></td>'+
@@ -4708,7 +4712,7 @@ function renderInv(){
           '🔒 El nombre del artículo está bloqueado para garantizar la sincronización. Solo se puede editar el código, cantidades y precios.</div>'+
         '<div style="font-size:12px;font-weight:600;color:var(--text);background:#f8f9fa;border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:8px">'+
           '📦 '+i.nombre+'</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:8px">'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Código ref.</div>'+
             '<input id="edit-cod-'+idx+'" type="text" value="'+(i.cod||'')+'" placeholder="Ej: GC130" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;text-transform:uppercase"></div>'+
           '<div><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Stock</div>'+
@@ -4726,6 +4730,10 @@ function renderInv(){
             '<button class="btn" style="font-size:11px;padding:5px 6px" onclick="cancelarEdicion('+idx+')">✕</button>'+
           '</div>'+
         '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--accent-light);border-radius:6px;border:1px solid var(--border)">'+
+          '<input id="edit-alq-'+idx+'" type="checkbox" '+(i.alquiler?'checked':'')+' style="width:16px;height:16px;cursor:pointer">'+
+          '<label for="edit-alq-'+idx+'" style="cursor:pointer;margin:0;font-size:12px">🔄 Material de alquiler <span style="font-weight:400;color:var(--text2);font-size:11px">(no computa en coste por obra)</span></label>'+
+        '</div>'+
       '</td>'+
     '</tr>';
   }).join('');
@@ -4736,6 +4744,7 @@ function toggleFormNuevoArt(){
   f.style.display=f.style.display==='none'?'block':'none';
   if(f.style.display==='block'){
     ['ninv-nombre','ninv-cod','ninv-stock','ninv-nec','ninv-pvp','ninv-pcompra','ninv-stockmin'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('ninv-alquiler').checked=false;
     document.getElementById('ninv-nombre').focus();
   }
 }
@@ -4752,9 +4761,10 @@ function guardarNuevoArt(){
   btn.disabled=true;btn.textContent='Guardando...';
   var stockMin=parseInt(document.getElementById('ninv-stockmin').value)||0;
   var cod=(document.getElementById('ninv-cod').value||'').trim().toUpperCase();
-  postAPI({action:'addArticulo',nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
+  var alquiler=document.getElementById('ninv-alquiler').checked;
+  postAPI({action:'addArticulo',nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin,alquiler:alquiler},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar. Comprueba la conexión.',true);btn.disabled=false;btn.textContent='✅ Añadir';return;}
-    inventario.push({nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin});
+    inventario.push({nombre:nombre,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin,alquiler:alquiler});
     btn.disabled=false;btn.textContent='✅ Añadir';
     toggleFormNuevoArt();renderInv();
     toast('✅ '+nombre+' añadido al inventario');
@@ -4775,9 +4785,10 @@ function guardarEdicionFila(idx){
   var pvp=parseFloat(document.getElementById('edit-pvp-'+idx).value)||0;
   var pcompra=parseFloat(document.getElementById('edit-pc-'+idx).value)||0;
   var stockMin=parseInt(document.getElementById('edit-sm-'+idx).value)||0;
-  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombreOriginal,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin},function(err,d){
+  var alquiler=document.getElementById('edit-alq-'+idx).checked;
+  postAPI({action:'editArticulo',nombreOriginal:nombreOriginal,nombre:nombreOriginal,cod:cod,stock:stock,nec:nec,pvp:pvp,pcompra:pcompra,stockMin:stockMin,alquiler:alquiler},function(err,d){
     if(err||!d||!d.ok){toast('Error al guardar',true);return;}
-    inventario[idx].cod=cod;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;inventario[idx].stockMin=stockMin;
+    inventario[idx].cod=cod;inventario[idx].stock=stock;inventario[idx].nec=nec;inventario[idx].pvp=pvp;inventario[idx].pcompra=pcompra;inventario[idx].stockMin=stockMin;inventario[idx].alquiler=alquiler;
     renderInv();toast('✅ Artículo actualizado');
   });
 }
