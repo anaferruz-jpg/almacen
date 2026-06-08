@@ -2931,7 +2931,8 @@ function renderMargen() {
   });
   _obraKeys.forEach(function(k) { if (_fusionadas[k]) delete obras[k]; });
 
-  var obrasList = Object.keys(obras).sort();
+  // Solo mostrar obras que tienen facturación — las que solo tienen costes sin factura son ruido
+  var obrasList = Object.keys(obras).filter(function(k){ return obras[k].ingresos > 0; }).sort();
   if (!obrasList.length) {
     cont.innerHTML = '<div class="empty">Sin datos suficientes — registra facturas y gastos vinculados a obras para ver el margen.</div>';
     return;
