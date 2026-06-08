@@ -2836,11 +2836,12 @@ function renderMargen() {
   // Gastos de proveedor → clasificar por nombre y guardar detalle
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) {
     initObra(g.obra);
-    var prov = (g.proveedor || '').toLowerCase();
+    // Buscar en proveedor + concepto + categoria para mayor cobertura
+    var textoClasif = ((g.proveedor || '') + ' ' + (g.concepto || '') + ' ' + (g.categoria || '')).toLowerCase();
     var base = parseFloat(g.base)||0;
-    if (prov.indexOf('indek') >= 0) {
+    if (textoClasif.indexOf('indek') >= 0) {
       obras[g.obra].gastosINDEK += base;
-    } else if (prov.indexOf('unetra') >= 0) {
+    } else if (textoClasif.indexOf('unetra') >= 0) {
       obras[g.obra].gastosUnetra += base;
     } else {
       obras[g.obra].gastosOtros += base;
