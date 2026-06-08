@@ -2081,20 +2081,30 @@ function gnavShowTab(id, gnavId) {
 // DASHBOARD
 // ══════════════════════════════════════════════
 function renderDashboard() {
-  var totalFacturado = facturas.filter(function(f) { return f.estado !== 'borrador'; }).reduce(function(a, f) { return a + (f.total || 0); }, 0);
-  var totalCobrado = facturas.filter(function(f) { return f.estado === 'cobrada'; }).reduce(function(a, f) { return a + (f.total || 0); }, 0);
-  var totalPendienteCobro = facturas.filter(function(f) { return f.estado === 'emitida' || f.estado === 'vencida'; }).reduce(function(a, f) { return a + (f.total || 0); }, 0);
-  var totalGastos = gastos.reduce(function(a, g) { return a + (g.total || 0); }, 0);
-  var totalPendientePago = gastos.filter(function(g) { return g.estado === 'pendiente'; }).reduce(function(a, g) { return a + (g.total || 0); }, 0);
-  var margenBruto = totalCobrado - gastos.filter(function(g) { return g.estado === 'pagado'; }).reduce(function(a, g) { return a + (g.total || 0); }, 0);
+  // ── Sin IVA (base imponible) ──
+  var facturadoBase       = facturas.filter(function(f){return f.estado!=='borrador';}).reduce(function(a,f){return a+(parseFloat(f.base)||0);},0);
+  var cobradoBase         = facturas.filter(function(f){return f.estado==='cobrada';}).reduce(function(a,f){return a+(parseFloat(f.base)||0);},0);
+  var pendienteCobroBase  = facturas.filter(function(f){return f.estado==='emitida'||f.estado==='vencida';}).reduce(function(a,f){return a+(parseFloat(f.base)||0);},0);
+  var gastosBase          = gastos.reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var pendientePagoBase   = gastos.filter(function(g){return g.estado==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var margenBase          = cobradoBase - gastos.filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  // ── Con IVA (total) ──
+  var facturadoTotal      = facturas.filter(function(f){return f.estado!=='borrador';}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+  var cobradoTotal        = facturas.filter(function(f){return f.estado==='cobrada';}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+  var pendienteCobroTotal = facturas.filter(function(f){return f.estado==='emitida'||f.estado==='vencida';}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+  var gastosTotal         = gastos.reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
+  var pendientePagoTotal  = gastos.filter(function(g){return g.estado==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
+  var margenTotal         = cobradoTotal - gastos.filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
+
+  function ivaLine(v){ return '<div style="font-size:11px;color:var(--text2);margin-top:3px;padding-top:3px;border-top:1px dashed var(--border)">'+fmt(v)+' <span style="font-size:10px">c/IVA</span></div>'; }
 
   document.getElementById('stats-dashboard').innerHTML =
-    '<div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-val">' + fmt(totalFacturado) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Cobrado</div><div class="stat-val success">' + fmt(totalCobrado) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Pendiente cobro</div><div class="stat-val warn">' + fmt(totalPendienteCobro) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Total gastos</div><div class="stat-val danger">' + fmt(totalGastos) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Pendiente pago</div><div class="stat-val danger">' + fmt(totalPendientePago) + '</div></div>' +
-    '<div class="stat-card"><div class="stat-label">Margen bruto</div><div class="stat-val ' + (margenBruto >= 0 ? 'success' : 'danger') + '">' + fmt(margenBruto) + '</div></div>';
+    '<div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-val">' + fmt(facturadoBase) + '</div>' + ivaLine(facturadoTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Cobrado</div><div class="stat-val success">' + fmt(cobradoBase) + '</div>' + ivaLine(cobradoTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Pendiente cobro</div><div class="stat-val warn">' + fmt(pendienteCobroBase) + '</div>' + ivaLine(pendienteCobroTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Total gastos</div><div class="stat-val danger">' + fmt(gastosBase) + '</div>' + ivaLine(gastosTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Pendiente pago</div><div class="stat-val danger">' + fmt(pendientePagoBase) + '</div>' + ivaLine(pendientePagoTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Margen bruto</div><div class="stat-val ' + (margenBase >= 0 ? 'success' : 'danger') + '">' + fmt(margenBase) + '</div>' + ivaLine(margenTotal) + '</div>';
 
   // Últimas facturas
   var recientes = facturas.slice(-5).reverse();
