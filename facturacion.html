@@ -2094,8 +2094,14 @@ function renderDashboard() {
   var gastosBase          = gastos.reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
   var pendientePagoBase   = gastos.filter(function(g){return g.estado==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
   var gastosPagadosBase   = gastos.filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
-  var margenDevengo       = facturadoBase - gastosBase;           // facturado − total gastos
-  var margenCaja          = cobradoBase   - gastosPagadosBase;    // cobrado − gastos pagados
+  // ── Gastos internos ──
+  var gastosIntBase       = (gastosInternos||[]).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var gastosIntTotal      = (gastosInternos||[]).reduce(function(a,g){return a+(parseFloat(g.total||g.importe)||0);},0);
+  var gastosIntPendBase   = (gastosInternos||[]).filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var gastosIntPagBase    = (gastosInternos||[]).filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  // ── Márgenes (incluyen gastos internos) ──
+  var margenDevengo       = facturadoBase - gastosBase - gastosIntBase;
+  var margenCaja          = cobradoBase   - gastosPagadosBase - gastosIntPagBase;
   // ── Con IVA (total) ──
   var facturadoTotal      = facturas.filter(function(f){return f.estado!=='borrador';}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
   var cobradoTotal        = facturas.filter(function(f){return f.estado==='cobrada';}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -2103,8 +2109,8 @@ function renderDashboard() {
   var gastosTotal         = gastos.reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
   var pendientePagoTotal  = gastos.filter(function(g){return g.estado==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
   var gastosPagadosTotal  = gastos.filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.total)||0);},0);
-  var margenDevengoTotal  = facturadoTotal - gastosTotal;
-  var margenCajaTotal     = cobradoTotal   - gastosPagadosTotal;
+  var margenDevengoTotal  = facturadoTotal - gastosTotal - gastosIntTotal;
+  var margenCajaTotal     = cobradoTotal   - gastosPagadosTotal - (gastosInternos||[]).filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.total||g.importe)||0);},0);
 
   function ivaLine(v){ return '<div style="font-size:11px;color:var(--text2);margin-top:3px;padding-top:3px;border-top:1px dashed var(--border)">'+fmt(v)+' <span style="font-size:10px">c/IVA</span></div>'; }
 
@@ -2112,10 +2118,11 @@ function renderDashboard() {
     '<div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-val">' + fmt(facturadoBase) + '</div>' + ivaLine(facturadoTotal) + '</div>' +
     '<div class="stat-card"><div class="stat-label">Cobrado</div><div class="stat-val success">' + fmt(cobradoBase) + '</div>' + ivaLine(cobradoTotal) + '</div>' +
     '<div class="stat-card"><div class="stat-label">Pendiente cobro</div><div class="stat-val warn">' + fmt(pendienteCobroBase) + '</div>' + ivaLine(pendienteCobroTotal) + '</div>' +
-    '<div class="stat-card"><div class="stat-label">Total gastos</div><div class="stat-val danger">' + fmt(gastosBase) + '</div>' + ivaLine(gastosTotal) + '</div>' +
-    '<div class="stat-card"><div class="stat-label">Pendiente pago</div><div class="stat-val danger">' + fmt(pendientePagoBase) + '</div>' + ivaLine(pendientePagoTotal) + '</div>' +
-    '<div class="stat-card" title="Facturado − Total gastos (independiente de cobros/pagos)"><div class="stat-label">Margen devengo</div><div class="stat-val ' + (margenDevengo >= 0 ? 'success' : 'danger') + '">' + fmt(margenDevengo) + '</div>' + ivaLine(margenDevengoTotal) + '</div>' +
-    '<div class="stat-card" title="Cobrado − Gastos pagados (dinero real movido)"><div class="stat-label">Margen caja</div><div class="stat-val ' + (margenCaja >= 0 ? 'success' : 'danger') + '">' + fmt(margenCaja) + '</div>' + ivaLine(margenCajaTotal) + '</div>';
+    '<div class="stat-card"><div class="stat-label">Gastos proveedores</div><div class="stat-val danger">' + fmt(gastosBase) + '</div>' + ivaLine(gastosTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Gastos internos</div><div class="stat-val danger">' + fmt(gastosIntBase) + '</div>' + ivaLine(gastosIntTotal) + '</div>' +
+    '<div class="stat-card"><div class="stat-label">Pendiente pago</div><div class="stat-val danger">' + fmt(pendientePagoBase + gastosIntPendBase) + '</div>' + ivaLine(pendientePagoTotal + (gastosInternos||[]).filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.total||g.importe)||0);},0)) + '</div>' +
+    '<div class="stat-card" title="Facturado − Gastos proveedores − Gastos internos"><div class="stat-label">Margen devengo</div><div class="stat-val ' + (margenDevengo >= 0 ? 'success' : 'danger') + '">' + fmt(margenDevengo) + '</div>' + ivaLine(margenDevengoTotal) + '</div>' +
+    '<div class="stat-card" title="Cobrado − Gastos pagados (proveedores + internos)"><div class="stat-label">Margen caja</div><div class="stat-val ' + (margenCaja >= 0 ? 'success' : 'danger') + '">' + fmt(margenCaja) + '</div>' + ivaLine(margenCajaTotal) + '</div>';
 
   // Últimas facturas
   var recientes = facturas.slice(-5).reverse();
