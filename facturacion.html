@@ -2947,7 +2947,8 @@ function renderMargen() {
 
   cont.innerHTML = obrasList.map(function(nombre) {
     var o = obras[nombre];
-    var totalGastos = o.gastosINDEK + o.gastosUnetra + o.gastosOtros + o.personal + o.materialAlmacen;
+    // Unetra NO computa en el margen (inversión a largo plazo, compartida entre obras)
+    var totalGastos = o.gastosINDEK + o.gastosOtros + o.personal + o.materialAlmacen;
     var margen = o.ingresos - totalGastos;
     var pct = o.ingresos > 0 ? Math.round(margen / o.ingresos * 100) : 0;
     var color = pct >= 20 ? 'var(--success)' : pct >= 0 ? 'var(--warn)' : 'var(--danger)';
@@ -2962,17 +2963,26 @@ function renderMargen() {
           '<div style="font-weight:700;color:' + color + ';font-size:14px">' + pct + '%</div></div>' +
       '</div>';
 
-    // Fila inferior: desglose de gastos
+    // Fila gastos que computan en el margen
     var filaGastos =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px">' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:6px">' +
         '<div style="min-width:0"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Desglose gastos</div></div>' +
         statCol('INDEK', o.gastosINDEK, o.gastosINDEK > 0 ? 'var(--danger)' : 'var(--text2)') +
-        statCol('Unetra', o.gastosUnetra, o.gastosUnetra > 0 ? 'var(--danger)' : 'var(--text2)') +
-        statCol('Otros gastos', o.gastosOtros, o.gastosOtros > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Material almacén', o.materialAlmacen, o.materialAlmacen > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Personal', o.personal, o.personal > 0 ? '#7c3aed' : 'var(--text2)') +
         statCol('Total gastos', totalGastos, totalGastos > 0 ? 'var(--danger)' : 'var(--text2)') +
-      '</div>';
+      '</div>' +
+      // Unetra: mostrado aparte como inversión compartida (no computa en margen)
+      (o.gastosUnetra > 0 ?
+        '<div style="display:flex;align-items:center;gap:10px;background:#fff8e1;border:1px dashed #f59e0b;border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:12px">' +
+          '<span style="font-size:16px">🔧</span>' +
+          '<div>' +
+            '<span style="font-weight:600;color:#92400e">Unetra (inversión material metálico): </span>' +
+            '<span style="font-weight:700;color:#b45309">' + fmt(o.gastosUnetra) + '</span>' +
+            '<span style="color:#92400e;font-size:11px;margin-left:6px">— no computa en margen (uso en múltiples obras)</span>' +
+          '</div>' +
+        '</div>'
+      : '');
 
     // Sección expandible: facturas de proveedor asignadas a esta obra
     var fps = o.facturasProv.slice().sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
