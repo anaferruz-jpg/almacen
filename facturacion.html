@@ -2820,24 +2820,41 @@ function renderMargen() {
   var cont = document.getElementById('margen-content');
   var obras = {};
   function initObra(nombre) {
-    if (!obras[nombre]) obras[nombre] = { ingresos: 0, gastosProv: 0, gastosInt: 0, cobrado: 0, pagado: 0 };
+    if (!obras[nombre]) obras[nombre] = {
+      ingresos: 0, cobrado: 0,
+      gastosINDEK: 0, gastosUnetra: 0, gastosOtros: 0,
+      personal: 0, pagado: 0
+    };
   }
   // Ingresos (facturas emitidas/cobradas por obra)
   facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) {
     initObra(f.obra);
-    obras[f.obra].ingresos += f.base;
-    if (f.estado === 'cobrada') obras[f.obra].cobrado += f.base;
+    obras[f.obra].ingresos += parseFloat(f.base)||0;
+    if (f.estado === 'cobrada') obras[f.obra].cobrado += parseFloat(f.base)||0;
   });
-  // Gastos de proveedor por obra
+  // Gastos de proveedor → clasificar por proveedor
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) {
     initObra(g.obra);
-    obras[g.obra].gastosProv += g.base;
-    if (g.estado === 'pagado') obras[g.obra].pagado += g.base;
+    var prov = (g.proveedor || '').toLowerCase();
+    var base = parseFloat(g.base)||0;
+    if (prov.indexOf('indek') >= 0) {
+      obras[g.obra].gastosINDEK += base;
+    } else if (prov.indexOf('unetra') >= 0) {
+      obras[g.obra].gastosUnetra += base;
+    } else {
+      obras[g.obra].gastosOtros += base;
+    }
+    if (g.estado === 'pagado') obras[g.obra].pagado += base;
   });
-  // Gastos internos asignados a obra (categoría "obra" o "nominas" con obra)
+  // Gastos internos: nóminas → personal; resto → otros gastos
   gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) {
     initObra(g.obra);
-    obras[g.obra].gastosInt += (g.base || g.total || g.importe || 0);
+    var importe = parseFloat(g.base || g.total || g.importe) || 0;
+    if (g.categoria === 'nominas') {
+      obras[g.obra].personal += importe;
+    } else {
+      obras[g.obra].gastosOtros += importe;
+    }
   });
 
   var obrasList = Object.keys(obras).sort();
@@ -2846,26 +2863,49 @@ function renderMargen() {
     return;
   }
 
+  function statCol(label, val, color) {
+    return '<div style="min-width:0">' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">' + label + '</div>' +
+      '<div style="font-weight:700;color:' + color + ';font-size:14px">' + fmt(val) + '</div>' +
+    '</div>';
+  }
+
   cont.innerHTML = obrasList.map(function(nombre) {
     var o = obras[nombre];
-    var totalGastos = o.gastosProv + o.gastosInt;
+    var totalGastos = o.gastosINDEK + o.gastosUnetra + o.gastosOtros + o.personal;
     var margen = o.ingresos - totalGastos;
     var pct = o.ingresos > 0 ? Math.round(margen / o.ingresos * 100) : 0;
     var color = pct >= 20 ? 'var(--success)' : pct >= 0 ? 'var(--warn)' : 'var(--danger)';
+
+    // Fila superior: ingresos, cobrado, margen, %
+    var filaResumen =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">' +
+        statCol('Ingresos (base)', o.ingresos, 'var(--success)') +
+        statCol('Cobrado', o.cobrado, o.cobrado >= o.ingresos ? 'var(--success)' : 'var(--warn)') +
+        statCol('Margen bruto', margen, color) +
+        '<div style="min-width:0"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">% Margen</div>' +
+          '<div style="font-weight:700;color:' + color + ';font-size:14px">' + pct + '%</div></div>' +
+      '</div>';
+
+    // Fila inferior: desglose de gastos
+    var filaGastos =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px">' +
+        '<div style="min-width:0"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Desglose gastos</div></div>' +
+        statCol('INDEK', o.gastosINDEK, o.gastosINDEK > 0 ? 'var(--danger)' : 'var(--text2)') +
+        statCol('Unetra', o.gastosUnetra, o.gastosUnetra > 0 ? 'var(--danger)' : 'var(--text2)') +
+        statCol('Otros gastos', o.gastosOtros, o.gastosOtros > 0 ? 'var(--danger)' : 'var(--text2)') +
+        statCol('Personal', o.personal, o.personal > 0 ? '#7c3aed' : 'var(--text2)') +
+        statCol('Total gastos', totalGastos, totalGastos > 0 ? 'var(--danger)' : 'var(--text2)') +
+      '</div>';
+
     return '<div class="margen-card">' +
       '<div class="margen-obra-nombre">' + nombre + '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px">' +
-        '<div><div style="font-size:11px;color:var(--text2)">Ingresos (base)</div><div style="font-weight:700;color:var(--success)">' + fmt(o.ingresos) + '</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">Gastos proveedores</div><div style="font-weight:700;color:var(--danger)">' + fmt(o.gastosProv) + '</div></div>' +
-        (o.gastosInt > 0 ? '<div><div style="font-size:11px;color:var(--text2)">Gastos internos</div><div style="font-weight:700;color:var(--danger)">' + fmt(o.gastosInt) + '</div></div>' : '') +
-        '<div><div style="font-size:11px;color:var(--text2)">Total gastos</div><div style="font-weight:700;color:var(--danger)">' + fmt(totalGastos) + '</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">Margen bruto</div><div style="font-weight:700;color:' + color + '">' + fmt(margen) + '</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">% Margen</div><div style="font-weight:700;color:' + color + '">' + pct + '%</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">Cobrado</div><div style="font-weight:600;color:var(--text2)">' + fmt(o.cobrado) + '</div></div>' +
-        '<div><div style="font-size:11px;color:var(--text2)">Pagado</div><div style="font-weight:600;color:var(--text2)">' + fmt(o.pagado) + '</div></div>' +
+      filaResumen +
+      filaGastos +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">' +
+        '<span>Margen sobre ingresos</span><span style="color:' + color + ';font-weight:600">' + pct + '%</span>' +
       '</div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>Margen sobre ingresos</span><span style="color:' + color + ';font-weight:600">' + pct + '%</span></div>' +
-      '<div class="margen-bar-wrap"><div class="margen-bar" style="width:' + Math.min(Math.max(pct, 0), 100) + '%;background:' + color + '"></div></div>' +
+      '<div class="margen-bar-wrap"><div class="margen-bar" style="width:' + Math.min(Math.max(pct,0),100) + '%;background:' + color + '"></div></div>' +
     '</div>';
   }).join('');
 
