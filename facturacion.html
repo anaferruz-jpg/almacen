@@ -2822,7 +2822,7 @@ function renderMargen() {
   function initObra(nombre) {
     if (!obras[nombre]) obras[nombre] = {
       ingresos: 0, cobrado: 0,
-      gastosINDEK: 0, gastosUnetra: 0, gastosOtros: 0,
+      gastosINDEK: 0, gastosINDEKPortes: 0, gastosUnetra: 0, gastosOtros: 0,
       personal: 0, materialAlmacen: 0, pagado: 0,
       facturasProv: []   // lista detalle facturas proveedor asignadas a esta obra
     };
@@ -2841,7 +2841,13 @@ function renderMargen() {
     var textoClasif = ((g.proveedor || '') + ' ' + (g.concepto || '') + ' ' + (g.categoria || '')).toLowerCase().replace(/-/g,'');
     var base = parseFloat(g.base)||0;
     if (textoClasif.indexOf('indek') >= 0) {
-      obras[g.obra].gastosINDEK += base;
+      // Separar portes/transporte del material INDEK
+      var concepto = (g.concepto || '').toLowerCase();
+      if (concepto.indexOf('porte') >= 0 || concepto.indexOf('transport') >= 0 || concepto.indexOf('envio') >= 0 || concepto.indexOf('envío') >= 0) {
+        obras[g.obra].gastosINDEKPortes += base;
+      } else {
+        obras[g.obra].gastosINDEK += base;
+      }
     } else if (textoClasif.indexOf('unetra') >= 0) {
       obras[g.obra].gastosUnetra += base;
     } else {
@@ -2948,7 +2954,7 @@ function renderMargen() {
   cont.innerHTML = obrasList.map(function(nombre) {
     var o = obras[nombre];
     // Unetra NO computa en el margen (inversión a largo plazo, compartida entre obras)
-    var totalGastos = o.gastosINDEK + o.gastosOtros + o.personal + o.materialAlmacen;
+    var totalGastos = o.gastosINDEK + o.gastosINDEKPortes + o.gastosOtros + o.personal + o.materialAlmacen;
     var margen = o.ingresos - totalGastos;
     var pct = o.ingresos > 0 ? Math.round(margen / o.ingresos * 100) : 0;
     var color = pct >= 20 ? 'var(--success)' : pct >= 0 ? 'var(--warn)' : 'var(--danger)';
@@ -2967,7 +2973,8 @@ function renderMargen() {
     var filaGastos =
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:6px">' +
         '<div style="min-width:0"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Desglose gastos</div></div>' +
-        statCol('INDEK', o.gastosINDEK, o.gastosINDEK > 0 ? 'var(--danger)' : 'var(--text2)') +
+        statCol('INDEK material', o.gastosINDEK, o.gastosINDEK > 0 ? 'var(--danger)' : 'var(--text2)') +
+        (o.gastosINDEKPortes > 0 ? statCol('INDEK portes', o.gastosINDEKPortes, 'var(--danger)') : '') +
         statCol('Material almacén', o.materialAlmacen, o.materialAlmacen > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Personal', o.personal, o.personal > 0 ? '#7c3aed' : 'var(--text2)') +
         statCol('Total gastos', totalGastos, totalGastos > 0 ? 'var(--danger)' : 'var(--text2)') +
