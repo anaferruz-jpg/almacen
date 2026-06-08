@@ -2788,8 +2788,8 @@ function renderCobros() {
   var pendCobro = facturas.filter(function(f) { return f.estado === 'emitida' || f.estado === 'vencida'; });
   var pendPago = gastos.filter(function(g) { return g.estado === 'pendiente'; });
 
-  var totCobro = pendCobro.reduce(function(a, f) { return a + f.total; }, 0);
-  var totPago = pendPago.reduce(function(a, g) { return a + g.total; }, 0);
+  var totCobro = pendCobro.reduce(function(a, f) { return a + (parseFloat(f.base)||0); }, 0);
+  var totPago = pendPago.reduce(function(a, g) { return a + (parseFloat(g.base)||0); }, 0);
 
   document.getElementById('cobros-clientes').innerHTML =
     '<div style="font-size:18px;font-weight:700;color:var(--warn);font-family:\'Playfair Display\',serif;margin-bottom:10px">' + fmt(totCobro) + '</div>' +
@@ -4001,8 +4001,8 @@ function renderClientes() {
   cont.innerHTML = data.map(function(c) {
     var idx = clientes.indexOf(c);
     var facsCli = facturas.filter(function(f) { return f.cliente && f.cliente.toLowerCase().indexOf(c.nombre.toLowerCase()) >= 0 && f.estado !== 'borrador'; });
-    var totalFac = facsCli.reduce(function(a, f) { return a + f.total; }, 0);
-    var totalCob = facsCli.filter(function(f) { return f.estado === 'cobrada'; }).reduce(function(a, f) { return a + f.total; }, 0);
+    var totalFac = facsCli.reduce(function(a, f) { return a + (parseFloat(f.base)||0); }, 0);
+    var totalCob = facsCli.filter(function(f) { return f.estado === 'cobrada'; }).reduce(function(a, f) { return a + (parseFloat(f.base)||0); }, 0);
     var pendiente = totalFac - totalCob;
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
