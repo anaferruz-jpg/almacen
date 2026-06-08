@@ -2823,7 +2823,7 @@ function renderMargen() {
     if (!obras[nombre]) obras[nombre] = {
       ingresos: 0, cobrado: 0,
       gastosINDEK: 0, gastosUnetra: 0, gastosOtros: 0,
-      personal: 0, pagado: 0,
+      personal: 0, materialAlmacen: 0, pagado: 0,
       facturasProv: []   // lista detalle facturas proveedor asignadas a esta obra
     };
   }
@@ -2888,6 +2888,22 @@ function renderMargen() {
     }
   });
 
+  // Material suministrado desde almacén (salidas de inventario × precioCompra)
+  Object.keys(COSTES_MAT || {}).forEach(function(obraKey) {
+    var coste = parseFloat((COSTES_MAT[obraKey] || {}).coste) || 0;
+    if (!coste) return;
+    var matchKey = Object.keys(obras).find(function(k) {
+      var kl = k.toLowerCase().trim(), ol = obraKey.toLowerCase().trim();
+      return kl === ol || kl.indexOf(ol) === 0 || ol.indexOf(kl) === 0;
+    });
+    if (matchKey) {
+      obras[matchKey].materialAlmacen += coste;
+    } else {
+      initObra(obraKey);
+      obras[obraKey].materialAlmacen += coste;
+    }
+  });
+
   // ── Fusionar entradas duplicadas (mismo nombre o uno es prefijo del otro) ──
   // Ej: "CORP ABRERA" + "CORP ABRERA - 504-322 ABRERA OESTE 1" → se consolidan en la entrada más larga
   var _obraKeys = Object.keys(obras);
@@ -2930,7 +2946,7 @@ function renderMargen() {
 
   cont.innerHTML = obrasList.map(function(nombre) {
     var o = obras[nombre];
-    var totalGastos = o.gastosINDEK + o.gastosUnetra + o.gastosOtros + o.personal;
+    var totalGastos = o.gastosINDEK + o.gastosUnetra + o.gastosOtros + o.personal + o.materialAlmacen;
     var margen = o.ingresos - totalGastos;
     var pct = o.ingresos > 0 ? Math.round(margen / o.ingresos * 100) : 0;
     var color = pct >= 20 ? 'var(--success)' : pct >= 0 ? 'var(--warn)' : 'var(--danger)';
@@ -2952,6 +2968,7 @@ function renderMargen() {
         statCol('INDEK', o.gastosINDEK, o.gastosINDEK > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Unetra', o.gastosUnetra, o.gastosUnetra > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Otros gastos', o.gastosOtros, o.gastosOtros > 0 ? 'var(--danger)' : 'var(--text2)') +
+        statCol('Material almacén', o.materialAlmacen, o.materialAlmacen > 0 ? 'var(--danger)' : 'var(--text2)') +
         statCol('Personal', o.personal, o.personal > 0 ? '#7c3aed' : 'var(--text2)') +
         statCol('Total gastos', totalGastos, totalGastos > 0 ? 'var(--danger)' : 'var(--text2)') +
       '</div>';

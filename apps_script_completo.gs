@@ -29,7 +29,8 @@ function doGet(e) {
   if (action === 'getDocsGestoria')  return json(getDocsGestoria());
   if (action === 'getDocsObra')      return json(getDocsObra(e.parameter.obra));
   if (action === 'getOperarios')     return json(getOperarios());
-  if (action === 'getPrevisiones')   return json(getPrevisiones());
+  if (action === 'getPrevisiones')      return json(getPrevisiones());
+  if (action === 'getCostesMateriales') return json(getCostesMateriales());
   return json({error: 'accion no valida'});
 }
 
@@ -113,6 +114,55 @@ function asegurarColumnas(sheet) {
   if (!h[3]) sheet.getRange(1,4).setValue('PVP');
   if (!h[4]) sheet.getRange(1,5).setValue('PrecioCompra');
   if (!h[5]) sheet.getRange(1,6).setValue('StockMinimo');
+}
+
+// ══════════════════════════════════════════════════════
+// COSTES MATERIALES POR OBRA (salidas almacén × precio compra)
+// ══════════════════════════════════════════════════════
+function getCostesMateriales() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+
+  // 1. Mapa nombre→precioCompra desde Inventario
+  var precios = {};
+  var invSheet = ss.getSheetByName('Inventario');
+  if (invSheet) {
+    var invRows = invSheet.getDataRange().getValues();
+    for (var i = 1; i < invRows.length; i++) {
+      var nom = String(invRows[i][0] || '').trim();
+      if (nom) precios[nom] = parseFloat(invRows[i][4]) || 0; // col 5 = PrecioCompra
+    }
+  }
+
+  // 2. Recorrer Historial: solo tipo 'salida' no anulada con obra
+  var histSheet = ss.getSheetByName('Historial');
+  if (!histSheet) return {};
+  var rows = histSheet.getDataRange().getValues();
+  var result = {}; // { obraName: { coste, unidades } }
+
+  for (var i = 1; i < rows.length; i++) {
+    var tipo  = String(rows[i][0] || '').toLowerCase().trim();
+    var obra  = String(rows[i][2] || '').trim();
+    var col9  = String(rows[i][8] || '');
+    if (tipo !== 'salida') continue;
+    if (!obra) continue;
+    // Saltar anuladas
+    if (col9 === 'true' || col9.toLowerCase().indexOf('anulad') >= 0) continue;
+
+    var items = [];
+    try { items = JSON.parse(rows[i][7] || '[]'); } catch(e) {}
+
+    if (!result[obra]) result[obra] = { coste: 0, unidades: 0 };
+    items.forEach(function(it) {
+      var nombre = String(it.nombre || it.name || '').trim();
+      // Cantidad: puede venir como 'entregados', 'cantidad', 'qty' o 'n'
+      var qty = parseFloat(it.entregados !== undefined ? it.entregados : (it.cantidad || it.qty || it.n || 0)) || 0;
+      // Precio: primero el guardado en el item, luego el del inventario actual
+      var precio = parseFloat(it.precioCompra || it.pcompra || precios[nombre] || 0);
+      result[obra].coste    += qty * precio;
+      result[obra].unidades += qty;
+    });
+  }
+  return result;
 }
 
 // ══════════════════════════════════════════════════════
