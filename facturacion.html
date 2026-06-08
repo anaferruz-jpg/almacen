@@ -2263,12 +2263,12 @@ function renderFacturas() {
   var filtObra = document.getElementById('filtro-fac-obra').value;
   var filtMes = document.getElementById('filtro-fac-mes') ? document.getElementById('filtro-fac-mes').value : '';
 
-  // Rellenar selector de meses
+  // Rellenar selector de meses (por vencimiento — incluye meses futuros)
   var selMes = document.getElementById('filtro-fac-mes');
   if (selMes) {
-    var mesesDisp = [...new Set(facturas.map(function(f){ return f.fecha ? f.fecha.substring(0,7) : ''; }).filter(Boolean))].sort().reverse();
+    var mesesDisp = [...new Set(facturas.map(function(f){ return (f.vencimiento||f.fecha||'').substring(0,7); }).filter(Boolean))].sort();
     var valMes = selMes.value;
-    selMes.innerHTML = '<option value="">Todos los meses</option>' + mesesDisp.map(function(m){ return '<option value="'+m+'"'+(m===valMes?' selected':'')+'>'+m+'</option>'; }).join('');
+    selMes.innerHTML = '<option value="">Todos los vencimientos</option>' + mesesDisp.map(function(m){ return '<option value="'+m+'"'+(m===valMes?' selected':'')+'>'+m+'</option>'; }).join('');
     filtMes = selMes.value;
   }
 
@@ -2289,7 +2289,7 @@ function renderFacturas() {
     if (q && (f.cliente + f.numero + (f.obra || '')).toLowerCase().indexOf(q) === -1) return false;
     if (filtEst && f.estado !== filtEst) return false;
     if (filtObra && f.obra !== filtObra) return false;
-    if (filtMes && (!f.fecha || f.fecha.substring(0,7) !== filtMes)) return false;
+    if (filtMes && ((f.vencimiento||f.fecha||'').substring(0,7) !== filtMes)) return false;
     return true;
   });
   var tb = document.getElementById('tbody-facturas');
@@ -2761,12 +2761,12 @@ function renderGastos() {
   var filtEst = document.getElementById('filtro-gas-estado').value;
   var filtMes = document.getElementById('filtro-gas-mes') ? document.getElementById('filtro-gas-mes').value : '';
 
-  // Rellenar selector de meses
+  // Rellenar selector de meses (por vencimiento — incluye meses futuros)
   var selMes = document.getElementById('filtro-gas-mes');
   if (selMes) {
-    var mesesDisp = [...new Set(gastos.map(function(g){ return g.fecha ? g.fecha.substring(0,7) : ''; }).filter(Boolean))].sort().reverse();
+    var mesesDisp = [...new Set(gastos.map(function(g){ return (g.vencimiento||g.fecha||'').substring(0,7); }).filter(Boolean))].sort();
     var valMes = selMes.value;
-    selMes.innerHTML = '<option value="">Todos los meses</option>' + mesesDisp.map(function(m){ return '<option value="'+m+'"'+(m===valMes?' selected':'')+'>'+m+'</option>'; }).join('');
+    selMes.innerHTML = '<option value="">Todos los vencimientos</option>' + mesesDisp.map(function(m){ return '<option value="'+m+'"'+(m===valMes?' selected':'')+'>'+m+'</option>'; }).join('');
     filtMes = selMes.value;
   }
 
@@ -2774,7 +2774,7 @@ function renderGastos() {
     if (q && (g.proveedor + g.concepto + (g.obra || '')).toLowerCase().indexOf(q) === -1) return false;
     if (filtObra && g.obra !== filtObra) return false;
     if (filtEst && g.estado !== filtEst) return false;
-    if (filtMes && (!g.fecha || g.fecha.substring(0,7) !== filtMes)) return false;
+    if (filtMes && ((g.vencimiento||g.fecha||'').substring(0,7) !== filtMes)) return false;
     return true;
   });
 
