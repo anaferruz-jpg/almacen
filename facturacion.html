@@ -2887,6 +2887,33 @@ function renderMargen() {
     }
   });
 
+  // ── Fusionar entradas duplicadas (mismo nombre o uno es prefijo del otro) ──
+  // Ej: "CORP ABRERA" + "CORP ABRERA - 504-322 ABRERA OESTE 1" → se consolidan en la entrada más larga
+  var _obraKeys = Object.keys(obras);
+  var _fusionadas = {};  // keys que se absorben en otra
+  _obraKeys.forEach(function(short) {
+    if (_fusionadas[short]) return;
+    _obraKeys.forEach(function(long) {
+      if (short === long || _fusionadas[long] || _fusionadas[short]) return;
+      if (short.length >= long.length) return; // solo fusionar el más corto en el más largo
+      var sl = short.toLowerCase().trim(), ll = long.toLowerCase().trim();
+      // Fusionar si el nombre corto es prefijo del largo
+      if (ll.indexOf(sl) === 0) {
+        var os = obras[short], ol = obras[long];
+        ol.ingresos     += os.ingresos;
+        ol.cobrado      += os.cobrado;
+        ol.gastosINDEK  += os.gastosINDEK;
+        ol.gastosUnetra += os.gastosUnetra;
+        ol.gastosOtros  += os.gastosOtros;
+        ol.personal     += os.personal;
+        ol.pagado       += os.pagado;
+        ol.facturasProv  = ol.facturasProv.concat(os.facturasProv);
+        _fusionadas[short] = true;
+      }
+    });
+  });
+  _obraKeys.forEach(function(k) { if (_fusionadas[k]) delete obras[k]; });
+
   var obrasList = Object.keys(obras).sort();
   if (!obrasList.length) {
     cont.innerHTML = '<div class="empty">Sin datos suficientes — registra facturas y gastos vinculados a obras para ver el margen.</div>';
