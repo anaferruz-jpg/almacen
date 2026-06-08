@@ -3643,7 +3643,7 @@ function renderGastosInternos() {
     var idx = gastosInternos.indexOf(g);
     var base = parseFloat(g.base) || 0;
     var pctIva = g.pctIva !== undefined ? g.pctIva : (g.iva && g.base ? Math.round(g.iva / g.base * 100) : '—');
-    var iva = g.iva !== undefined ? g.iva : 0;
+    var iva = g.iva !== undefined ? g.iva : (g.importe && g.base ? g.importe - g.base : 0);
     var total = g.total || g.importe || 0;
     var vencGI = g.vencimiento && g.vencimiento < today;
     return '<tr>' +
@@ -3655,7 +3655,7 @@ function renderGastosInternos() {
       '<td style="text-align:right;font-size:12px;color:var(--text2)">' + fmt(base) + '</td>' +
       '<td style="text-align:right;font-size:12px;color:var(--text2)">' + fmt(iva) + '<br><span style="font-size:10px;color:var(--text3)">' + (pctIva !== '—' ? '(' + pctIva + '%)' : '(0%)') + '</span></td>' +
       '<td style="text-align:right;font-weight:700;color:var(--danger)">' + fmt(total) + '</td>' +
-      '<td style="font-size:11px;color:' + (vencGI ? 'var(--danger)' : 'inherit') + '">' + (g.vencimiento ? (vencGI ? '⚠️ ' : '') + fmtDate(g.vencimiento) : '—') + '</td>' +
+      '<td style="font-size:11px;color:' + (vencGI ? 'var(--danger)' : 'inherit') + '">' + (g.vencimiento ? (vencGI ? '⚠️ ' : '') + fmtDate(g.vencimiento) : (g.fecha ? '<span style="color:var(--text3);font-size:10px">sin venc.</span>' : '—')) + '</td>' +
       '<td><span class="badge ' + badgeClass(g.estado || 'pendiente') + '">' + (g.estado || 'pendiente') + '</span></td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.recurrente !== 'no' ? '🔄 ' + g.recurrente : '—') + '</td>' +
       '<td style="font-size:11px;color:var(--text2)">' + (g.formaPago || '—') + '</td>' +
