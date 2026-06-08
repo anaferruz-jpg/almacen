@@ -2837,7 +2837,8 @@ function renderMargen() {
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) {
     initObra(g.obra);
     // Buscar en proveedor + concepto + categoria para mayor cobertura
-    var textoClasif = ((g.proveedor || '') + ' ' + (g.concepto || '') + ' ' + (g.categoria || '')).toLowerCase();
+    // "inde-k" y "indek" son el mismo proveedor (ENCOFRADOS INDE-K, S.A.)
+    var textoClasif = ((g.proveedor || '') + ' ' + (g.concepto || '') + ' ' + (g.categoria || '')).toLowerCase().replace(/-/g,'');
     var base = parseFloat(g.base)||0;
     if (textoClasif.indexOf('indek') >= 0) {
       obras[g.obra].gastosINDEK += base;
