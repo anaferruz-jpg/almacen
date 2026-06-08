@@ -341,6 +341,9 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
       <option value="pendiente">Pendiente pago</option>
       <option value="pagado">Pagado</option>
     </select>
+    <select id="filtro-gas-mes" onchange="renderGastos()">
+      <option value="">Todos los meses</option>
+    </select>
   </div>
   <div id="gastos-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px"></div>
   <div class="tbl-wrap">
@@ -2727,10 +2730,22 @@ function renderGastos() {
   var q = (document.getElementById('buscar-gas').value || '').toLowerCase();
   var filtObra = document.getElementById('filtro-gas-obra').value;
   var filtEst = document.getElementById('filtro-gas-estado').value;
+  var filtMes = document.getElementById('filtro-gas-mes') ? document.getElementById('filtro-gas-mes').value : '';
+
+  // Rellenar selector de meses
+  var selMes = document.getElementById('filtro-gas-mes');
+  if (selMes) {
+    var mesesDisp = [...new Set(gastos.map(function(g){ return g.fecha ? g.fecha.substring(0,7) : ''; }).filter(Boolean))].sort().reverse();
+    var valMes = selMes.value;
+    selMes.innerHTML = '<option value="">Todos los meses</option>' + mesesDisp.map(function(m){ return '<option value="'+m+'"'+(m===valMes?' selected':'')+'>'+m+'</option>'; }).join('');
+    filtMes = selMes.value;
+  }
+
   var data = gastos.filter(function(g) {
     if (q && (g.proveedor + g.concepto + (g.obra || '')).toLowerCase().indexOf(q) === -1) return false;
     if (filtObra && g.obra !== filtObra) return false;
     if (filtEst && g.estado !== filtEst) return false;
+    if (filtMes && (!g.fecha || g.fecha.substring(0,7) !== filtMes)) return false;
     return true;
   });
 
