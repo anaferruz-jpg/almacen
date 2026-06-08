@@ -2864,6 +2864,28 @@ function renderMargen() {
     }
   });
 
+  // Personal de la app Almacén (horas × coste/hora por cada registro de asistencia)
+  (OBRAS || []).forEach(function(oa) {
+    var obraNombre = (oa.nombre || '').trim();
+    if (!obraNombre || !(oa.personal || []).length) return;
+    var costePersonalAlmacen = (oa.personal || []).reduce(function(a, r) {
+      return a + (parseFloat(r.horas) || 0) * (parseFloat(r.coste) || 0);
+    }, 0);
+    if (!costePersonalAlmacen) return;
+    // Buscar la obra en el mapa por coincidencia de nombre (exacta o parcial)
+    var obraKey = Object.keys(obras).find(function(k) {
+      var kl = k.toLowerCase(), nl = obraNombre.toLowerCase();
+      return kl === nl || kl.indexOf(nl) >= 0 || nl.indexOf(kl) >= 0;
+    });
+    if (obraKey) {
+      obras[obraKey].personal += costePersonalAlmacen;
+    } else {
+      // Obra solo con personal (sin facturas ni gastos registrados en facturación)
+      initObra(obraNombre);
+      obras[obraNombre].personal += costePersonalAlmacen;
+    }
+  });
+
   var obrasList = Object.keys(obras).sort();
   if (!obrasList.length) {
     cont.innerHTML = '<div class="empty">Sin datos suficientes — registra facturas y gastos vinculados a obras para ver el margen.</div>';
