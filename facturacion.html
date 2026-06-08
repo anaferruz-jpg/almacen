@@ -2103,10 +2103,10 @@ function renderDashboard() {
   var pendientePagoBase   = gastos.filter(function(g){return g.estado==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
   var gastosPagadosBase   = gastos.filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
   // ── Gastos internos ──
-  var gastosIntBase       = (gastosInternos||[]).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var gastosIntBase       = (gastosInternos||[]).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
   var gastosIntTotal      = (gastosInternos||[]).reduce(function(a,g){return a+(parseFloat(g.total||g.importe)||0);},0);
-  var gastosIntPendBase   = (gastosInternos||[]).filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
-  var gastosIntPagBase    = (gastosInternos||[]).filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var gastosIntPendBase   = (gastosInternos||[]).filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
+  var gastosIntPagBase    = (gastosInternos||[]).filter(function(g){return g.estado==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
   // ── Márgenes (incluyen gastos internos) ──
   var margenDevengo       = facturadoBase - gastosBase - gastosIntBase;
   var margenCaja          = cobradoBase   - gastosPagadosBase - gastosIntPagBase;
@@ -3283,7 +3283,7 @@ function exportMargenCSV() {
   function initO(n) { if (!obras[n]) obras[n] = { i: 0, gp: 0, gi: 0 }; }
   facturas.filter(function(f) { return f.estado !== 'borrador' && f.obra; }).forEach(function(f) { initO(f.obra); obras[f.obra].i += f.base; });
   gastos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gp += g.base; });
-  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gi += (parseFloat(g.base)||0); });
+  gastosInternos.filter(function(g) { return g.obra; }).forEach(function(g) { initO(g.obra); obras[g.obra].gi += (parseFloat(g.base||g.importe)||0); });
   Object.keys(obras).sort().forEach(function(n) {
     var o = obras[n]; var tg = o.gp + o.gi; var m = o.i - tg;
     rows.push([n, o.i.toFixed(2), o.gp.toFixed(2), o.gi.toFixed(2), tg.toFixed(2), m.toFixed(2), (o.i > 0 ? Math.round(m / o.i * 100) : 0) + '%']);
@@ -3600,10 +3600,10 @@ function renderGastosInternos() {
   selMes.innerHTML = '<option value="">Todos los meses</option>' + meses.map(function(m) { return '<option value="' + m + '"' + (m === valMes ? ' selected' : '') + '>' + m + '</option>'; }).join('');
 
   // ── CARDS RESUMEN (base sin IVA, sobre todos los gastos internos sin filtrar) ──
-  var todosBase      = gastosInternos.reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
-  var pagadoBase     = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
-  var pendienteBase  = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
-  var vencidoBase    = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente' && g.vencimiento && g.vencimiento < today;}).reduce(function(a,g){return a+(parseFloat(g.base)||0);},0);
+  var todosBase      = gastosInternos.reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
+  var pagadoBase     = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pagado';}).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
+  var pendienteBase  = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente';}).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
+  var vencidoBase    = gastosInternos.filter(function(g){return (g.estado||'pendiente')==='pendiente' && g.vencimiento && g.vencimiento < today;}).reduce(function(a,g){return a+(parseFloat(g.base||g.importe)||0);},0);
   document.getElementById('gi-resumen').innerHTML =
     '<div class="stat-card"><div class="stat-label">Total gastos internos</div><div class="stat-val danger">' + fmt(todosBase) + '</div></div>' +
     '<div class="stat-card"><div class="stat-label">Pagado</div><div class="stat-val success">' + fmt(pagadoBase) + '</div></div>' +
@@ -3614,7 +3614,7 @@ function renderGastosInternos() {
   var statsCat = {};
   gastosInternos.forEach(function(g) {
     if (!statsCat[g.categoria]) statsCat[g.categoria] = 0;
-    statsCat[g.categoria] += parseFloat(g.base) || 0;
+    statsCat[g.categoria] += parseFloat(g.base || g.importe) || 0;
   });
   filtrarGiCat = function(cat) { document.getElementById('filtro-gi-cat').value = cat; renderGastosInternos(); };
   document.getElementById('gi-stats').innerHTML = Object.keys(CAT_LABELS).filter(function(c) { return statsCat[c]; }).map(function(c) {
@@ -3637,12 +3637,12 @@ function renderGastosInternos() {
   if (!data.length) { cont.innerHTML = '<div class="empty">Sin gastos registrados en esta categoría</div>'; return; }
 
   // Total filtrado (base)
-  var totalFiltrado = data.reduce(function(a, g) { return a + (parseFloat(g.base)||0); }, 0);
+  var totalFiltrado = data.reduce(function(a, g) { return a + (parseFloat(g.base || g.importe)||0); }, 0);
 
   function filaGI(g) {
     var idx = gastosInternos.indexOf(g);
-    var base = parseFloat(g.base) || 0;
-    var pctIva = g.pctIva !== undefined ? g.pctIva : (g.iva && g.base ? Math.round(g.iva / g.base * 100) : '—');
+    var base = parseFloat(g.base || g.importe) || 0;
+    var pctIva = g.pctIva !== undefined ? g.pctIva : (g.iva && g.base ? Math.round(g.iva / parseFloat(g.base) * 100) : '—');
     var iva = g.iva !== undefined ? g.iva : (g.importe && g.base ? g.importe - g.base : 0);
     var total = g.total || g.importe || 0;
     var vencGI = g.vencimiento && g.vencimiento < today;
