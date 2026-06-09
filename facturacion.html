@@ -1829,7 +1829,7 @@ function recargarTodo() {
   setSyncBadge('loading', 'Cargando...');
   flushPendingFacturas(); // reintentar subida de facturas pendientes
   // Cargar todo desde Sheets en paralelo
-  var pendientes = 10;
+  var pendientes = 11;
   function check() { pendientes--; if (pendientes <= 0) { renderTodo(); setSyncBadge('ok', 'Conectado ✓'); } }
   function renderTodo() {
     actualizarSelectsObras();
@@ -1846,6 +1846,8 @@ function recargarTodo() {
     renderGastosInternos();
     presRenderLista();
     mostrarBannerAlertas();
+    // Resumen mensual: siempre re-pintar para que los datos de Sheets lleguen
+    try { renderResumenMensual(); } catch(e) {}
     // Si el modal de proformas está abierto, refresca la lista
     var prfModal = document.getElementById('crm-proforma-modal');
     if (prfModal && prfModal.style.display !== 'none') prfRenderLista();
@@ -1883,7 +1885,7 @@ function recargarTodo() {
   });
   callAPI('getPrevisiones', function(err, data) {
     if (!err && data && typeof data === 'object') _previsiones = data;
-    // No bloquea el check — es dato auxiliar
+    check(); // incluir en el renderizado general para que el Resumen vea los datos del servidor
   });
   callAPI('getFacturas', function(err, data) {
     var localFacs = [];
