@@ -1853,6 +1853,32 @@ function recargarTodo() {
 
   callAPI('getObras', function(err, data) {
     OBRAS = (!err && Array.isArray(data)) ? data : [];
+    // Migración única: si _planFacManual está vacío y hay planFac en OBRAS, importar
+    if (_planFacManual.length === 0) {
+      var migrated = [];
+      OBRAS.forEach(function(o) {
+        if (o.planFac && Array.isArray(o.planFac)) {
+          o.planFac.forEach(function(pf) {
+            if (pf.importe || pf.mes) {
+              migrated.push({
+                id: Date.now() + '_' + Math.random().toString(36).slice(2),
+                obra: o.nombre || o.descripcion || '',
+                mes: pf.mes || '',
+                fase: pf.fase || '',
+                operarios: pf.operarios || 0,
+                importe: parseFloat(pf.importe) || 0
+              });
+            }
+          });
+        }
+      });
+      if (migrated.length) {
+        _planFacManual = migrated;
+        savePlanFacManual();
+        var _prevB = document.getElementById('prevfac-body');
+        if (_prevB && _prevB.style.display !== 'none') renderPrevisionFac();
+      }
+    }
     check();
   });
   callAPI('getPrevisiones', function(err, data) {
