@@ -9165,18 +9165,20 @@ function renderResumenMensual(){
     var prev=parseFloat(prevision[i])||0;
     var prevgi=parseFloat(prevGI[i])||0;
     var pct=prev>0?Math.round(m.facturado/prev*100):null;
-    // Bug fix 1: esFuturo aplica también a años futuros completos
+    // esFuturo: meses posteriores al actual; esActual: mes en curso
     var esFuturo=(ano>hoy.getFullYear())||(ano===hoy.getFullYear()&&i>mesActual);
     var esActual=(ano===hoy.getFullYear()&&i===mesActual);
+    // Usar previsión si es mes futuro O si es el mes actual con previsión introducida
+    var usarPrev = esFuturo || (esActual && prev > 0);
 
-    // Gastos internos futuros: usar el mayor entre el real ya registrado y la previsión (evita doble conteo)
-    var giEfectivo = esFuturo ? Math.max(m.gastoInt, prevgi) : m.gastoInt;
-    // Total gastos efectivos para meses futuros = prov. reales + GI efectivo
-    var gasEfectivo = esFuturo ? (m.gastoProv + giEfectivo) : gasTotal;
+    // Gastos internos: usar el mayor entre el real ya registrado y la previsión (evita doble conteo)
+    var giEfectivo = usarPrev ? Math.max(m.gastoInt, prevgi) : m.gastoInt;
+    // Total gastos efectivos
+    var gasEfectivo = usarPrev ? (m.gastoProv + giEfectivo) : gasTotal;
 
-    // Resultado previsto para meses futuros = prev.facturación − gastos efectivos
+    // Resultado: si hay previsión → prev.facturación − gastos efectivos; si no → real
     var resultadoPrev = prev - gasEfectivo;
-    if(esFuturo) totPrevRes+=resultadoPrev; else totPrevRes+=resultado;
+    if(usarPrev) totPrevRes+=resultadoPrev; else totPrevRes+=resultado;
 
     // Estilo fila
     var rowStyle=esFuturo
@@ -9186,7 +9188,7 @@ function renderResumenMensual(){
         :'border-left:3px solid transparent';
 
     // Celda resultado
-    var celdaRes=esFuturo
+    var celdaRes=usarPrev
       ?'<span style="font-weight:800;font-size:13px;'+colorRes(resultadoPrev)+'">'+fmtR(resultadoPrev)+'</span>'+
         '<div style="font-size:10px;color:#6b7280;margin-top:1px">≈ previsto</div>'
       :'<span style="font-weight:800;font-size:13px;'+colorRes(resultado)+'">'+fmtR(resultado)+'</span>';
