@@ -9125,20 +9125,19 @@ function renderResumenMensual(){
   function fmtR(v){return(v<0?'-':'')+Math.abs(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
   function colorRes(v){return v>=0?'color:#1a7c3e':'color:#c0392b';}
 
-  // Cargar previsiones — primero desde Sheets (_previsiones), fallback a localStorage
+  // Cargar previsiones — servidor (_previsiones) + localStorage por mes (no excluyentes)
   var prevision = Array(12).fill(0);
   var prevGI    = Array(12).fill(0);
   var anoData   = (_previsiones && _previsiones[ano]) || {};
+  // Cargar localStorage primero como base
+  try { var _ls=JSON.parse(localStorage.getItem('sf_prevision_'+ano)||'[]');   if(_ls.length)  for(var _x=0;_x<12;_x++) prevision[_x]=parseFloat(_ls[_x])||0;   } catch(e){}
+  try { var _lsgi=JSON.parse(localStorage.getItem('sf_prevision_gi_'+ano)||'[]'); if(_lsgi.length) for(var _y=0;_y<12;_y++) prevGI[_y]=parseFloat(_lsgi[_y])||0; } catch(e){}
+  // Sobreescribir con datos del servidor para los meses que sí están en Sheets (tienen prioridad)
   for (var _m = 0; _m < 12; _m++) {
     if (anoData[_m]) {
       prevision[_m] = parseFloat(anoData[_m].prevFac) || 0;
       prevGI[_m]    = parseFloat(anoData[_m].prevGI)  || 0;
     }
-  }
-  // Fallback localStorage (por compatibilidad o si Sheets aún no cargó)
-  if (!Object.keys(anoData).length) {
-    try { var _ls=JSON.parse(localStorage.getItem('sf_prevision_'+ano)||'[]'); if(_ls.length)prevision=_ls; } catch(e){}
-    try { var _lsgi=JSON.parse(localStorage.getItem('sf_prevision_gi_'+ano)||'[]'); if(_lsgi.length)prevGI=_lsgi; } catch(e){}
   }
 
   var totPrev=prevision.reduce(function(a,v){return a+(parseFloat(v)||0);},0);
@@ -9241,8 +9240,15 @@ function renderResumenMensual(){
 
 function guardarPrevisionGI(ano,mes,valor){
   var v = parseFloat(valor)||0;
-  // Actualizar caché local inmediatamente
+  // Asegurar que _previsiones tiene todos los meses del año (merge con localStorage)
   if (!_previsiones[ano]) _previsiones[ano] = {};
+  try {
+    var _lsF=JSON.parse(localStorage.getItem('sf_prevision_'+ano)||'[]');
+    var _lsG=JSON.parse(localStorage.getItem('sf_prevision_gi_'+ano)||'[]');
+    for(var _mi=0;_mi<12;_mi++){
+      if(!_previsiones[ano][_mi]) _previsiones[ano][_mi]={prevFac:parseFloat(_lsF[_mi])||0, prevGI:parseFloat(_lsG[_mi])||0};
+    }
+  } catch(e){}
   if (!_previsiones[ano][mes]) _previsiones[ano][mes] = {prevFac:0, prevGI:0};
   _previsiones[ano][mes].prevGI = v;
   // Compatibilidad localStorage por si hay error de red
@@ -9254,8 +9260,15 @@ function guardarPrevisionGI(ano,mes,valor){
 
 function guardarPrevision(ano,mes,valor){
   var v = parseFloat(valor)||0;
-  // Actualizar caché local inmediatamente
+  // Asegurar que _previsiones tiene todos los meses del año (merge con localStorage)
   if (!_previsiones[ano]) _previsiones[ano] = {};
+  try {
+    var _lsF=JSON.parse(localStorage.getItem('sf_prevision_'+ano)||'[]');
+    var _lsG=JSON.parse(localStorage.getItem('sf_prevision_gi_'+ano)||'[]');
+    for(var _mi=0;_mi<12;_mi++){
+      if(!_previsiones[ano][_mi]) _previsiones[ano][_mi]={prevFac:parseFloat(_lsF[_mi])||0, prevGI:parseFloat(_lsG[_mi])||0};
+    }
+  } catch(e){}
   if (!_previsiones[ano][mes]) _previsiones[ano][mes] = {prevFac:0, prevGI:0};
   _previsiones[ano][mes].prevFac = v;
   // Compatibilidad localStorage por si hay error de red
