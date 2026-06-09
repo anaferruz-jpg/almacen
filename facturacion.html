@@ -1380,6 +1380,43 @@ td{padding:8px 10px;color:var(--text);vertical-align:middle}
   </div>
 </div>
 
+<!-- ══ MODAL PREVISIÓN FACTURACIÓN MANUAL ══ -->
+<div class="modal-overlay" id="modal-prevfac" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-title" id="modal-prevfac-titulo">➕ Nueva previsión</div>
+    <div class="modal-sub">Añade una línea de previsión de facturación para una obra.</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Obra *</label>
+        <select id="pf-obra" onchange="var t=document.getElementById('pf-obra-text');if(t&&this.value)t.value=this.value;" style="margin-bottom:4px">
+          <option value="">— Selecciona o escribe abajo —</option>
+        </select>
+        <input type="text" id="pf-obra-text" placeholder="O escribe el nombre de la obra..." style="margin-top:4px">
+      </div>
+      <div class="form-group">
+        <label>Mes / Certificación</label>
+        <input type="text" id="pf-mes" placeholder="Ej: Enero 2026, Cert. 3...">
+      </div>
+      <div class="form-group">
+        <label>Fase / Descripción</label>
+        <input type="text" id="pf-fase" placeholder="Ej: Estructura, Instalación...">
+      </div>
+      <div class="form-group">
+        <label>Operarios</label>
+        <input type="number" id="pf-operarios" placeholder="0" min="0" step="1">
+      </div>
+      <div class="form-group">
+        <label>Importe previsto (€) *</label>
+        <input type="number" id="pf-importe" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" onclick="cerrarModalPrevFac()">Cancelar</button>
+      <button class="btn primary" onclick="guardarPrevFacManual()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL CLIENTE ══ -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal-box">
@@ -1577,6 +1614,8 @@ var _scanFileGasto = null;   // archivo adjunto gasto proveedor
 var _editGastoIdx  = -1;     // índice del gasto en edición (-1 = nuevo)
 var _scanFileFac = null;     // archivo adjunto factura emitida
 var _scanFileGI = null;      // archivo adjunto gasto interno
+var _planFacManual = [];     // previsión facturación manual { id, obra, mes, fase, operarios, importe }
+var _prevFacIdx = -1;        // índice entrada prevFac en edición
 
 // ══════════════════════════════════════════════
 // INIT
@@ -1772,9 +1811,11 @@ function fmtDate(d) { if (!d) return '—'; var s=String(d).split('T')[0]; var p
 function loadLocal() {
   try { facturas = JSON.parse(localStorage.getItem('sf_facturas') || '[]'); } catch(e) { facturas = []; }
   try { gastos = JSON.parse(localStorage.getItem('sf_gastos') || '[]'); } catch(e) { gastos = []; }
+  try { _planFacManual = JSON.parse(localStorage.getItem('sf_planfac_manual') || '[]'); } catch(e) { _planFacManual = []; }
 }
 function saveFacturas() { try { localStorage.setItem('sf_facturas', JSON.stringify(facturas)); } catch(e) {} }
 function saveGastos() { try { localStorage.setItem('sf_gastos', JSON.stringify(gastos)); } catch(e) {} }
+function savePlanFacManual() { try { localStorage.setItem('sf_planfac_manual', JSON.stringify(_planFacManual)); } catch(e) {} }
 
 // Generar número de factura
 function nextNumFac() {
@@ -2191,7 +2232,7 @@ function badgeClass(estado) {
 }
 
 // ══════════════════════════════════════════════
-// PREVISIÓN FACTURACIÓN (planFac de obras)
+// PREVISIÓN FACTURACIÓN MANUAL (localStorage)
 // ══════════════════════════════════════════════
 function togglePrevFac(){
   var body=document.getElementById('prevfac-body');
@@ -2210,44 +2251,57 @@ function togglePrevFac(){
 function renderPrevisionFac(){
   var cont=document.getElementById('prevfac-body');
   if(!cont)return;
-  var obrasConPlan=(OBRAS||[]).filter(function(o){
-    return o.planFac&&o.planFac.length&&o.estado!=='finalizada'&&o.estado!=='cerrada';
-  });
-  if(!obrasConPlan.length){
-    cont.innerHTML='<div class="empty" style="padding:16px">No hay obras con previsión de facturación. Configúrala en Almacén → obra → 📊 Contrato.</div>';
+  // Cabecera con botón añadir
+  var headerHtml='<div style="display:flex;justify-content:flex-end;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border)">'
+    +'<button class="btn primary" style="font-size:11px;padding:4px 12px" onclick="abrirModalPrevFac(-1)">➕ Añadir previsión</button>'
+    +'</div>';
+  if(!_planFacManual.length){
+    cont.innerHTML=headerHtml+'<div class="empty" style="padding:16px">No hay previsiones de facturación. Pulsa «Añadir previsión» para crear una.</div>';
     return;
   }
-  var html='';
-  obrasConPlan.forEach(function(o){
-    var totalPrev=o.planFac.reduce(function(s,pf){return s+(pf.importe||0);},0);
-    var facturasObra=(facturas||[]).filter(function(f){return f.obra===o.nombre;});
-    var totalFac=facturasObra.reduce(function(s,f){return s+(f.base||0);},0);
+  // Agrupar por obra
+  var porObra={};
+  _planFacManual.forEach(function(pf,idx){
+    var k=pf.obra||'Sin obra';
+    if(!porObra[k])porObra[k]=[];
+    porObra[k].push({pf:pf,idx:idx});
+  });
+  var html=headerHtml;
+  Object.keys(porObra).forEach(function(obraNombre){
+    var entradas=porObra[obraNombre];
+    var totalPrev=entradas.reduce(function(s,e){return s+(parseFloat(e.pf.importe)||0);},0);
+    var facturasObra=(facturas||[]).filter(function(f){return f.obra===obraNombre;});
+    var totalFac=facturasObra.reduce(function(s,f){return s+(parseFloat(f.base)||0);},0);
     var pct=totalPrev>0?Math.round(totalFac/totalPrev*100):0;
     var colorPct=pct>=100?'#27ae60':pct>0?'#2980b9':'#95a5a6';
     html+='<div style="border-bottom:1px solid var(--border)">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--bg);flex-wrap:wrap;gap:6px">';
-    html+='<span style="font-size:12px;font-weight:700;color:var(--brand2)">'+o.nombre+'</span>';
+    html+='<span style="font-size:12px;font-weight:700;color:var(--brand2)">'+obraNombre+'</span>';
     html+='<span style="font-size:11px;color:var(--text2)">Previsto: <b>'+Number(totalPrev).toLocaleString('es')+'€</b> · Facturado: <b>'+Number(totalFac).toLocaleString('es')+'€</b> · <span style="color:'+colorPct+';font-weight:700">'+pct+'%</span></span>';
     html+='</div>';
     html+='<div class="tbl-wrap" style="margin:0"><table style="font-size:12px"><thead><tr>';
-    html+='<th>Mes</th><th>Fase</th><th style="text-align:center">Op.</th><th style="text-align:right">Previsto (€)</th><th style="text-align:center">Estado</th><th></th>';
+    html+='<th>Mes / Certificación</th><th>Fase</th><th style="text-align:center">Op.</th><th style="text-align:right">Previsto (€)</th><th style="text-align:center">Estado</th><th></th>';
     html+='</tr></thead><tbody>';
-    o.planFac.forEach(function(pf,idx){
-      if(!pf.importe&&!pf.mes)return;
+    entradas.forEach(function(e){
+      var pf=e.pf; var idx=e.idx;
       var mesLow=(pf.mes||'').toLowerCase();
       var facMes=mesLow?facturasObra.find(function(f){
-        return(f.concepto||'').toLowerCase().indexOf(mesLow)!==-1;
+        return(f.concepto||f.numero||'').toLowerCase().indexOf(mesLow)!==-1;
       }):null;
       var estadoHTML=facMes
         ?(facMes.estado==='cobrada'?'<span style="color:#27ae60;font-weight:600">✅ Cobrada</span>':'<span style="color:#2980b9;font-weight:600">📄 Facturada</span>')
         :'<span style="color:#e67e22;font-weight:600">⏳ Pendiente</span>';
       html+='<tr>';
-      html+='<td style="font-weight:600;white-space:nowrap">'+(pf.mes||('Mes '+(idx+1)))+'</td>';
+      html+='<td style="font-weight:600;white-space:nowrap">'+(pf.mes||'—')+'</td>';
       html+='<td style="color:var(--text2)">'+(pf.fase||'—')+'</td>';
-      html+='<td style="text-align:center">'+(pf.operarios||0)+'</td>';
+      html+='<td style="text-align:center">'+(pf.operarios||'—')+'</td>';
       html+='<td style="text-align:right;font-weight:700">'+Number(pf.importe||0).toLocaleString('es')+' €</td>';
       html+='<td style="text-align:center">'+estadoHTML+'</td>';
-      html+='<td><button class="btn" style="font-size:11px;padding:3px 9px;white-space:nowrap" onclick="facturarDesdePrevision(\''+o.nombre.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\',' +idx+')">📄 Facturar</button></td>';
+      html+='<td><div style="display:flex;gap:4px;flex-wrap:nowrap">'
+        +'<button class="btn" style="font-size:11px;padding:3px 8px" onclick="facturarDesdePrevisionManual('+idx+')">📄 Facturar</button>'
+        +'<button class="btn" style="font-size:11px;padding:3px 8px" onclick="abrirModalPrevFac('+idx+')">✏️</button>'
+        +'<button class="btn danger" style="font-size:11px;padding:3px 8px" onclick="eliminarPrevFacEntry('+idx+')">🗑️</button>'
+        +'</div></td>';
       html+='</tr>';
     });
     html+='</tbody></table></div></div>';
@@ -2255,24 +2309,74 @@ function renderPrevisionFac(){
   cont.innerHTML=html;
 }
 
-function facturarDesdePrevision(obraNombre,pfIdx){
-  var o=(OBRAS||[]).find(function(x){return x.nombre===obraNombre;});
-  if(!o||!o.planFac)return;
-  var pf=o.planFac[pfIdx];
-  if(!pf)return;
-  // Abrir modal (resetea lineas y añade 1 vacía)
-  abrirModalFactura();
-  // Pre-rellenar obra
-  var obraEl=document.getElementById('fac-obra');
-  if(obraEl){obraEl.value=obraNombre;autoFillObraFac(obraNombre);}
-  // Cliente = constructora si existe
-  if(o.constructora){
-    var cEl=document.getElementById('fac-cliente');
-    if(cEl&&!cEl.value){cEl.value=o.constructora;autoFillCliente(o.constructora);}
+function abrirModalPrevFac(idx){
+  _prevFacIdx=idx;
+  var m=document.getElementById('modal-prevfac');
+  if(!m)return;
+  var titulo=document.getElementById('modal-prevfac-titulo');
+  if(titulo)titulo.textContent=idx===-1?'➕ Nueva previsión':'✏️ Editar previsión';
+  var pf=idx>=0?(_planFacManual[idx]||{}):{};
+  // Rellenar selectores de obra con obras conocidas
+  var obrasSel=document.getElementById('pf-obra');
+  if(obrasSel){
+    var opts='<option value="">— Escribe el nombre de obra —</option>';
+    var nombresObras=[...new Set([].concat(
+      (OBRAS||[]).map(function(o){return o.nombre||o.descripcion||'';}),
+      _planFacManual.map(function(p){return p.obra||'';})
+    ).filter(Boolean))].sort();
+    nombresObras.forEach(function(n){opts+='<option value="'+n+'">'+n+'</option>';});
+    obrasSel.innerHTML=opts;
+    obrasSel.value=pf.obra||'';
   }
-  // Concepto = "Certificación Mes — Fase"
+  var obraText=document.getElementById('pf-obra-text');
+  if(obraText)obraText.value=pf.obra||'';
+  document.getElementById('pf-mes').value=pf.mes||'';
+  document.getElementById('pf-fase').value=pf.fase||'';
+  document.getElementById('pf-operarios').value=pf.operarios||'';
+  document.getElementById('pf-importe').value=pf.importe||'';
+  m.style.display='flex';
+}
+function cerrarModalPrevFac(){
+  var m=document.getElementById('modal-prevfac');
+  if(m)m.style.display='none';
+}
+function guardarPrevFacManual(){
+  var obraEl=document.getElementById('pf-obra');
+  var obraTextEl=document.getElementById('pf-obra-text');
+  var obra=(obraTextEl&&obraTextEl.value.trim())||(obraEl&&obraEl.value)||'';
+  if(!obra){alert('Escribe el nombre de la obra.');return;}
+  var importe=parseFloat(document.getElementById('pf-importe').value)||0;
+  if(!importe){alert('Introduce un importe.');return;}
+  var entry={
+    id:(_prevFacIdx>=0&&_planFacManual[_prevFacIdx])?_planFacManual[_prevFacIdx].id:(Date.now()+'_'+Math.random().toString(36).slice(2)),
+    obra:obra,
+    mes:document.getElementById('pf-mes').value.trim(),
+    fase:document.getElementById('pf-fase').value.trim(),
+    operarios:parseInt(document.getElementById('pf-operarios').value)||0,
+    importe:importe
+  };
+  if(_prevFacIdx>=0&&_planFacManual[_prevFacIdx]){
+    _planFacManual[_prevFacIdx]=entry;
+  }else{
+    _planFacManual.push(entry);
+  }
+  savePlanFacManual();
+  cerrarModalPrevFac();
+  renderPrevisionFac();
+}
+function eliminarPrevFacEntry(idx){
+  if(!confirm('¿Eliminar esta previsión?'))return;
+  _planFacManual.splice(idx,1);
+  savePlanFacManual();
+  renderPrevisionFac();
+}
+function facturarDesdePrevisionManual(idx){
+  var pf=_planFacManual[idx];
+  if(!pf)return;
+  abrirModalFactura();
+  var obraEl=document.getElementById('fac-obra');
+  if(obraEl&&pf.obra){obraEl.value=pf.obra;autoFillObraFac(pf.obra);}
   var concepto='Certificación'+(pf.mes?' '+pf.mes:'')+(pf.fase?' — '+pf.fase:'');
-  // Rellenar línea 0
   setLinea(0,'desc',concepto);
   setLinea(0,'precio',pf.importe||0);
   var tr0=document.getElementById('linea-0');
@@ -2283,6 +2387,7 @@ function facturarDesdePrevision(obraNombre,pfIdx){
   }
   recalcTotales();
 }
+
 
 // ══════════════════════════════════════════════
 // FACTURAS
