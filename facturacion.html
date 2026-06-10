@@ -1722,7 +1722,7 @@ function subirArchivoDrive(file, carpeta, nombreBase, fecha, callback) {
   var month = MESES_DRIVE[d.getMonth()];
   var carpetaFinal = carpeta.concat([year, month]);
   var ext = file.name.split('.').pop();
-  var nombreLimpio = (nombreBase || 'doc').replace(/[\/\\?%*:|"<>]/g, '_');
+  var nombreLimpio = (nombreBase || 'doc').replace(/[\/\\?%*:|"<>]/g, '_').trim().substring(0, 50).trim() || 'doc';
   var fileName = nombreLimpio + '_' + (fecha || year) + '.' + ext;
   fileToBase64(file).then(function(base64) {
     postAPI({ action: 'saveFileToDrive', base64: base64, mimeType: file.type, fileName: fileName, carpeta: carpetaFinal }, function(err, res) {
@@ -4562,10 +4562,10 @@ function parsearTextoGasto(texto) {
     return parseFloat(s);
   }
 
-  // Proveedor: primera línea no vacía que no sea solo números
+  // Proveedor: primera línea no vacía, de longitud razonable, que no sea solo números
   for (var i = 0; i < Math.min(lineas.length, 8); i++) {
     var l = lineas[i].trim();
-    if (l.length > 3 && !/^\d[\d\s.,-]*$/.test(l) && !/^(factura|fecha|nif|cif|iva)/i.test(l)) {
+    if (l.length > 3 && l.length <= 60 && !/^\d[\d\s.,-]*$/.test(l) && !/^(factura|fecha|nif|cif|iva)/i.test(l)) {
       d.proveedor = l; break;
     }
   }
