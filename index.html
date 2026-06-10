@@ -6580,7 +6580,10 @@ function renderListaReposicion(){
     '</tr></thead><tbody>'+
     reposicionItems.map(function(item,i){
       var urgente=item.stockActual===0;
-      var provSel=getProvsList().map(function(p){return '<option'+(p===item.prov?' selected':'')+'>'+p+'</option>';}).join('');
+      var provSel=getProvsList().map(function(p){
+        var pe=String(p).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return '<option value="'+pe+'"'+(p===item.prov?' selected':'')+'>'+pe+'</option>';
+      }).join('');
       return '<tr style="border-bottom:0.5px solid var(--border);'+(urgente?'background:#fce8e6;':'')+'">'+
         '<td style="padding:5px 4px;text-align:center"><input type="checkbox" '+(item.sel?'checked':'')+' onchange="toggleRepItem('+i+',this.checked)"></td>'+
         '<td style="padding:5px 4px;font-size:11px">'+(urgente?'🔴 ':'🟡 ')+item.nombre+'</td>'+
