@@ -7502,7 +7502,7 @@ var PRES_DEF_ALQUILER = [
    detalle:'Material recuperable de marquesina de protecci\u00f3n. Precio y d\u00edas a definir.'}
 ];
 var PRES_DEF_MO = [
-  {desc:'OPERARIO PROTECCIONES MES',  precio:3950, meses:0, operarios:0},
+  {desc:'OPERARIO PROTECCIONES MES',  precio:4150, meses:0, operarios:0},
   {desc:'OPERARIO D\u00cdA',           precio:245,  meses:0, operarios:0},
   {desc:'HORA EXTRA ENTRE SEMANA',    precio:28,   meses:0, operarios:0},
   {desc:'HORA EXTRA FIN DE SEMANA',   precio:35,   meses:0, operarios:0},
@@ -7948,8 +7948,8 @@ function presRenderMO(items) {
         '<td><input type="text" id="pm-desc-'+i+'" value="'+_escAttr(it.desc)+'" style="'+_inpDesc+'" onfocus="this.style.border=\'1px solid var(--border)\'" onblur="this.style.border=\'1px solid transparent\'"></td>'+
         '<td style="text-align:right"><input type="number" id="pm-prc-'+i+'" value="'+(it.precio||0)+'" min="0" step="0.01" oninput="presCalcTotales()"></td>'+
         '<td style="text-align:right"><input type="number" id="pm-mes-'+i+'" value="'+(it.meses||0)+'" min="0" step="0.5" oninput="presCalcTotales()"></td>'+
-        '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||1)+'" min="1" step="1" oninput="presCalcTotales()"></td>'+
-        '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">'+presFmtN((it.precio||0)*(it.meses||0)*(it.operarios||1))+'</td>'+
+        '<td style="text-align:right"><input type="number" id="pm-ops-'+i+'" value="'+(it.operarios||0)+'" min="0" step="1" oninput="presCalcTotales()"></td>'+
+        '<td style="text-align:right;font-weight:600;white-space:nowrap" id="pm-tot-'+i+'">'+presFmtN((it.precio||0)*(it.meses||0)*(it.operarios||0))+'</td>'+
         '<td><button class="btn sm" style="padding:2px 6px;color:var(--danger)" onclick="presDelPartida(\'mo\','+i+')">✕</button></td></tr>';
     }
   });
