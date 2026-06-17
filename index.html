@@ -3474,70 +3474,120 @@ function fopTab(tab, btn){
 
 function renderFopStats(f){
   var anoActual = new Date().getFullYear();
-  // Horas este año desde OBRAS
-  var horasAnio = 0;
+  // Jornadas este año desde OBRAS (un día = 1 jornada aunque tenga varios registros)
+  var diasSet = {};
   OBRAS.forEach(function(o){
     (o.personal||[]).forEach(function(r){
-      if(r.nombre===f.nombre && r.fecha && r.fecha.substring(0,4)==String(anoActual))
-        horasAnio += (r.horas||0);
+      if(r.nombre===f.nombre && r.fecha && r.fecha.substring(0,4)===String(anoActual))
+        diasSet[r.fecha] = true;
     });
   });
-  // Ausencias este año
+  var jornadasAnio = Object.keys(diasSet).length;
+  var extrasAnio = (f.extras||[]).filter(function(e){ return e.fecha && e.fecha.substring(0,4)===String(anoActual); })
+    .reduce(function(s,e){ return s+(parseFloat(e.horas)||0); }, 0);
   var ausencias = f.ausencias||[];
-  var diasAusAnio = ausencias.filter(function(a){ return a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
-    .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
   var diasVac = ausencias.filter(function(a){ return a.tipo==='vacaciones' && a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
     .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
   var diasBaja = ausencias.filter(function(a){ return a.tipo==='baja' && a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
     .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
   document.getElementById('fop-stats').innerHTML =
-    '<div class="stat"><div class="stat-label">Horas '+anoActual+'</div><div class="stat-val">'+horasAnio+'h</div></div>'+
-    '<div class="stat"><div class="stat-label">Aus. totales '+anoActual+'</div><div class="stat-val">'+diasAusAnio+' días</div></div>'+
+    '<div class="stat"><div class="stat-label">Jornadas '+anoActual+'</div><div class="stat-val">'+jornadasAnio+' días</div></div>'+
+    '<div class="stat"><div class="stat-label">Horas extras '+anoActual+'</div><div class="stat-val" style="color:var(--accent)">'+(extrasAnio>0?'+'+extrasAnio+'h':'0h')+'</div></div>'+
     '<div class="stat"><div class="stat-label">Vacaciones</div><div class="stat-val">'+diasVac+' días</div></div>'+
     '<div class="stat"><div class="stat-label">Baja médica</div><div class="stat-val danger">'+diasBaja+' días</div></div>';
 }
 
 function renderFopHoras(f){
   var cont = document.getElementById('fop-horas-content');
-  // Agregar registros de todas las obras
-  var registros = [];
+  // Recopilar registros por fecha
+  var porFecha = {};
   OBRAS.forEach(function(o){
     (o.personal||[]).forEach(function(r){
-      if(r.nombre===f.nombre) registros.push({fecha:r.fecha,horas:r.horas||0,coste:r.coste||0,obra:o.nombre});
+      if(r.nombre===f.nombre && r.fecha){
+        if(!porFecha[r.fecha]) porFecha[r.fecha]={obras:[],horas:0};
+        if(porFecha[r.fecha].obras.indexOf(o.nombre)<0) porFecha[r.fecha].obras.push(o.nombre);
+        porFecha[r.fecha].horas += (r.horas||0);
+      }
     });
   });
-  if(!registros.length){ cont.innerHTML='<div class="empty">Sin registros de asistencia en obras</div>'; return; }
-  // Agrupar por mes YYYY-MM
-  var meses = {};
-  registros.forEach(function(r){
-    var m = (r.fecha||'').substring(0,7); if(!m) return;
-    if(!meses[m]) meses[m]={horas:0,coste:0,obras:{},dias:0};
-    meses[m].horas += r.horas;
-    meses[m].coste += r.horas*r.coste;
-    meses[m].dias++;
-    meses[m].obras[r.obra] = (meses[m].obras[r.obra]||0)+r.horas;
-  });
-  var keys = Object.keys(meses).sort().reverse();
+  if(!Object.keys(porFecha).length){ cont.innerHTML='<div class="empty">Sin registros de asistencia en obras</div>'; return; }
+  // Extras indexados por fecha
+  var extrasMap = {};
+  (f.extras||[]).forEach(function(e){ extrasMap[e.fecha] = parseFloat(e.horas)||0; });
+  // Agrupar por mes
+  var mesesSet = {};
+  Object.keys(porFecha).forEach(function(fecha){ mesesSet[fecha.substring(0,7)]=true; });
+  var mesKeys = Object.keys(mesesSet).sort().reverse();
+  var DIAS_ES = ['L','M','X','J','V','S','D'];
   var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  cont.innerHTML = keys.map(function(k){
-    var m = meses[k];
-    var partes = k.split('-');
-    var label = MESES_ES[parseInt(partes[1],10)-1]+' '+partes[0];
-    var obrasHtml = Object.keys(m.obras).map(function(ob){
-      return '<span style="display:inline-block;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;margin:1px">'+ob.substring(0,30)+(ob.length>30?'...':'')+'&nbsp;<b>'+m.obras[ob]+'h</b></span>';
-    }).join(' ');
-    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">'+
-      '<div>'+
-        '<div style="font-size:13px;font-weight:700;color:var(--text)">'+label+'</div>'+
-        '<div style="margin-top:4px">'+obrasHtml+'</div>'+
-      '</div>'+
-      '<div style="text-align:right;min-width:120px">'+
-        '<div style="font-size:14px;font-weight:700;color:var(--accent)">'+m.horas+'h</div>'+
-        '<div style="font-size:11px;color:var(--text2)">'+m.dias+' jornadas'+(m.coste>0?' · '+m.coste.toFixed(2)+'€':'')+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  cont.innerHTML = mesKeys.map(function(mk){
+    var pp = mk.split('-'); var anio=parseInt(pp[0]), mes=parseInt(pp[1])-1;
+    var label = MESES_ES[mes]+' '+anio;
+    var diasMes = new Date(anio,mes+1,0).getDate();
+    var primerDow = (new Date(anio,mes,1).getDay()+6)%7; // 0=Lun
+    var jornadas = Object.keys(porFecha).filter(function(f){ return f.substring(0,7)===mk; }).length;
+    var extrasTotal = Object.keys(extrasMap).filter(function(f){ return f.substring(0,7)===mk; })
+      .reduce(function(s,f){ return s+extrasMap[f]; },0);
+    // Header
+    var headerHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      '<div style="font-size:14px;font-weight:700;color:var(--text)">'+label+'</div>'+
+      '<div style="font-size:12px;color:var(--text2)"><b style="color:var(--accent)">'+jornadas+' jornadas</b>'+(extrasTotal>0?' · <b style="color:#e07b00">+'+extrasTotal+'h extras</b>':'')+
+      '</div></div>';
+    // Calendario
+    var rows = '<tr>';
+    for(var pre=0;pre<primerDow;pre++) rows+='<td></td>';
+    for(var d=1;d<=diasMes;d++){
+      var fecha=anio+'-'+('0'+(mes+1)).slice(-2)+'-'+('0'+d).slice(-2);
+      var dow=(primerDow+d-1)%7;
+      var isWE=dow>=5;
+      var reg=porFecha[fecha];
+      var ext=extrasMap[fecha]||0;
+      var tooltip = reg ? reg.obras.map(function(o){return o.substring(0,25);}).join('\n') : '';
+      var cell='<div style="font-size:10px;color:'+(isWE?'#aaa':'#666')+';text-align:center;line-height:1.2">'+d+'</div>';
+      if(reg){
+        var bgColor = ext>0 ? '#e07b00' : '#4a6cf7';
+        cell+='<div onclick="fopEditExtra(\''+fecha+'\')" title="'+tooltip+'" style="width:26px;height:26px;background:'+bgColor+';border-radius:5px;margin:1px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column">'+
+          (ext>0?'<span style="font-size:8px;color:#fff;font-weight:700;line-height:1">+'+ext+'h</span>':'<span style="font-size:11px;color:#fff">✓</span>')+
+        '</div>';
+      } else {
+        cell+='<div style="width:26px;height:26px;margin:1px auto"></div>';
+      }
+      rows+='<td style="padding:2px;'+(isWE?'background:#f8f8f8;':'')+'">'+cell+'</td>';
+      if(dow===6 && d<diasMes) rows+='</tr><tr>';
+    }
+    rows+='</tr>';
+    var tableHtml='<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:100%"><thead><tr>'+
+      DIAS_ES.map(function(d,i){return '<th style="font-size:10px;text-align:center;padding:3px 2px;color:'+(i>=5?'#aaa':'var(--text2)')+';font-weight:600;min-width:32px">'+d+'</th>';}).join('')+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    // Leyenda obras
+    var obrasDelMes={};
+    Object.keys(porFecha).forEach(function(fecha){
+      if(fecha.substring(0,7)===mk) porFecha[fecha].obras.forEach(function(ob){ obrasDelMes[ob]=(obrasDelMes[ob]||0)+1; });
+    });
+    var leyenda='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">'+
+      Object.keys(obrasDelMes).map(function(ob){
+        return '<span style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px">'+ob.substring(0,28)+(ob.length>28?'...':'')+' <b>'+obrasDelMes[ob]+' jorn.</b></span>';
+      }).join('')+'</div>';
+    return '<div style="margin-bottom:18px">'+headerHtml+tableHtml+leyenda+'</div>';
+  }).join('<hr style="margin:4px 0 14px;border:none;border-top:1px solid var(--border)">');
+}
+
+var _fopExtraFecha = null;
+function fopEditExtra(fecha){
+  if(_fopIdx<0) return;
+  var f = fichasTrabajadores[_fopIdx]; if(!f) return;
+  if(!f.extras) f.extras=[];
+  var actual = (f.extras.find(function(e){return e.fecha===fecha;})||{}).horas||0;
+  var val = prompt('Horas extras el '+fecha+'\n(0 para eliminar):', actual);
+  if(val===null) return;
+  var horas = parseFloat(val)||0;
+  var idx = f.extras.findIndex(function(e){return e.fecha===fecha;});
+  if(horas>0){ if(idx>=0) f.extras[idx].horas=horas; else f.extras.push({fecha:fecha,horas:horas}); }
+  else { if(idx>=0) f.extras.splice(idx,1); }
+  saveFichas();
+  postAPI({action:'saveOperario',operario:f},function(){});
+  renderFopHoras(f);
+  renderFopStats(f);
 }
 
 var AUS_LABELS = {vacaciones:'🌴 Vacaciones',baja:'🏥 Baja médica',fiesta_local:'🎉 Fiesta local',permiso:'📋 Permiso',otros:'📌 Otros'};
