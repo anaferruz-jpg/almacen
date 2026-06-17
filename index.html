@@ -3609,7 +3609,16 @@ function renderFopHoras(f){
       Object.keys(obrasDelMes).map(function(ob){
         return '<span style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px">'+ob.substring(0,28)+(ob.length>28?'...':'')+' <b>'+obrasDelMes[ob]+' jorn.</b></span>';
       }).join('')+'</div>' : '';
-    return '<div style="margin-bottom:18px">'+headerHtml+tableHtml+leyenda+'</div>';
+    // Detalle horas extras del mes
+    var extrasDelMes = Object.keys(extrasMap).filter(function(f){ return f.substring(0,7)===mk; })
+      .sort().map(function(f){
+        var d = parseInt(f.substring(8,10),10);
+        return '<span style="background:#fff3e0;border:1px solid #e07b00;border-radius:4px;padding:1px 7px;font-size:10px;color:#b35a00">'+d+' — <b>+'+extrasMap[f]+'h</b></span>';
+      });
+    var extrasHtml = extrasDelMes.length ? '<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">'+
+      '<span style="font-size:10px;color:#b35a00;font-weight:600">⏱️ Extras:</span>'+extrasDelMes.join('')+
+      '<span style="font-size:10px;color:#b35a00;font-weight:700;margin-left:4px">Total: +'+extrasTotal+'h</span></div>' : '';
+    return '<div style="margin-bottom:18px">'+headerHtml+tableHtml+leyenda+extrasHtml+'</div>';
   }).join('<hr style="margin:4px 0 14px;border:none;border-top:1px solid var(--border)">');
 }
 
