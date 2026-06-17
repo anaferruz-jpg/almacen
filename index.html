@@ -3497,6 +3497,24 @@ function renderFopStats(f){
     '<div class="stat"><div class="stat-label">Baja médica</div><div class="stat-val danger">'+diasBaja+' días</div></div>';
 }
 
+var AUS_COLORS = {vacaciones:'#27ae60',baja:'#e74c3c',fiesta_local:'#8e44ad',permiso:'#f39c12',otros:'#7f8c8d'};
+var AUS_ICONS  = {vacaciones:'🌴',baja:'🏥',fiesta_local:'🎉',permiso:'📋',otros:'📌'};
+
+function expandirAusencias(ausencias){
+  var map = {};
+  (ausencias||[]).forEach(function(a){
+    if(!a.fechaInicio) return;
+    var cur = new Date(a.fechaInicio+'T00:00:00');
+    var fin = new Date((a.fechaFin||a.fechaInicio)+'T00:00:00');
+    while(cur <= fin){
+      var key = cur.getFullYear()+'-'+('0'+(cur.getMonth()+1)).slice(-2)+'-'+('0'+cur.getDate()).slice(-2);
+      map[key] = a.tipo;
+      cur.setDate(cur.getDate()+1);
+    }
+  });
+  return map;
+}
+
 function renderFopHoras(f){
   var cont = document.getElementById('fop-horas-content');
   // Recopilar registros por fecha
@@ -3510,29 +3528,44 @@ function renderFopHoras(f){
       }
     });
   });
-  if(!Object.keys(porFecha).length){ cont.innerHTML='<div class="empty">Sin registros de asistencia en obras</div>'; return; }
+  // Ausencias expandidas por fecha
+  var ausMap = expandirAusencias(f.ausencias);
   // Extras indexados por fecha
   var extrasMap = {};
   (f.extras||[]).forEach(function(e){ extrasMap[e.fecha] = parseFloat(e.horas)||0; });
-  // Agrupar por mes
+  // Meses: unión de meses con trabajo + meses con ausencias
   var mesesSet = {};
   Object.keys(porFecha).forEach(function(fecha){ mesesSet[fecha.substring(0,7)]=true; });
+  Object.keys(ausMap).forEach(function(fecha){ mesesSet[fecha.substring(0,7)]=true; });
+  if(!Object.keys(mesesSet).length){ cont.innerHTML='<div class="empty">Sin registros de asistencia ni ausencias</div>'; return; }
   var mesKeys = Object.keys(mesesSet).sort().reverse();
   var DIAS_ES = ['L','M','X','J','V','S','D'];
   var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  cont.innerHTML = mesKeys.map(function(mk){
+  // Leyenda global ausencias
+  var leyendaAus = Object.keys(AUS_COLORS).filter(function(t){ return Object.keys(ausMap).some(function(f){ return ausMap[f]===t; }); });
+  var leyendaHtml = leyendaAus.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:8px 10px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)">'+
+    leyendaAus.map(function(t){
+      return '<span style="display:flex;align-items:center;gap:4px;font-size:11px">'+
+        '<span style="width:14px;height:14px;background:'+AUS_COLORS[t]+';border-radius:3px;display:inline-block"></span>'+
+        AUS_ICONS[t]+' '+(AUS_LABELS[t]||t)+'</span>';
+    }).join('')+'</div>' : '';
+  cont.innerHTML = leyendaHtml + mesKeys.map(function(mk){
     var pp = mk.split('-'); var anio=parseInt(pp[0]), mes=parseInt(pp[1])-1;
     var label = MESES_ES[mes]+' '+anio;
     var diasMes = new Date(anio,mes+1,0).getDate();
-    var primerDow = (new Date(anio,mes,1).getDay()+6)%7; // 0=Lun
+    var primerDow = (new Date(anio,mes,1).getDay()+6)%7;
     var jornadas = Object.keys(porFecha).filter(function(f){ return f.substring(0,7)===mk; }).length;
     var extrasTotal = Object.keys(extrasMap).filter(function(f){ return f.substring(0,7)===mk; })
       .reduce(function(s,f){ return s+extrasMap[f]; },0);
+    var ausenciasDelMes = Object.keys(ausMap).filter(function(f){ return f.substring(0,7)===mk; }).length;
     // Header
+    var headerParts = [];
+    if(jornadas>0) headerParts.push('<b style="color:var(--accent)">'+jornadas+' jornadas</b>');
+    if(extrasTotal>0) headerParts.push('<b style="color:#e07b00">+'+extrasTotal+'h extras</b>');
+    if(ausenciasDelMes>0) headerParts.push('<b style="color:#888">'+ausenciasDelMes+' días ausencia</b>');
     var headerHtml = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
       '<div style="font-size:14px;font-weight:700;color:var(--text)">'+label+'</div>'+
-      '<div style="font-size:12px;color:var(--text2)"><b style="color:var(--accent)">'+jornadas+' jornadas</b>'+(extrasTotal>0?' · <b style="color:#e07b00">+'+extrasTotal+'h extras</b>':'')+
-      '</div></div>';
+      '<div style="font-size:12px;color:var(--text2)">'+headerParts.join(' · ')+'</div></div>';
     // Calendario
     var rows = '<tr>';
     for(var pre=0;pre<primerDow;pre++) rows+='<td></td>';
@@ -3541,14 +3574,22 @@ function renderFopHoras(f){
       var dow=(primerDow+d-1)%7;
       var isWE=dow>=5;
       var reg=porFecha[fecha];
+      var ausTipo=ausMap[fecha];
       var ext=extrasMap[fecha]||0;
-      var tooltip = reg ? reg.obras.map(function(o){return o.substring(0,25);}).join('\n') : '';
-      var cell='<div style="font-size:10px;color:'+(isWE?'#aaa':'#666')+';text-align:center;line-height:1.2">'+d+'</div>';
+      var numColor = isWE?'#aaa':'#666';
+      var cell='<div style="font-size:10px;color:'+numColor+';text-align:center;line-height:1.2">'+d+'</div>';
       if(reg){
         var bgColor = ext>0 ? '#e07b00' : '#4a6cf7';
-        cell+='<div onclick="fopEditExtra(\''+fecha+'\')" title="'+tooltip+'" style="width:26px;height:26px;background:'+bgColor+';border-radius:5px;margin:1px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column">'+
-          (ext>0?'<span style="font-size:8px;color:#fff;font-weight:700;line-height:1">+'+ext+'h</span>':'<span style="font-size:11px;color:#fff">✓</span>')+
-        '</div>';
+        var tooltip = reg.obras.map(function(o){return o.substring(0,25);}).join(', ');
+        cell+='<div onclick="fopEditExtra(\''+fecha+'\')" title="'+tooltip+'" style="width:26px;height:26px;background:'+bgColor+';border-radius:5px;margin:1px auto;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative">'+
+          (ext>0?'<span style="font-size:8px;color:#fff;font-weight:700">+'+ext+'h</span>':'<span style="font-size:11px;color:#fff">✓</span>')+
+          // Si además hay ausencia, puntito en esquina
+          (ausTipo?'<span style="position:absolute;top:1px;right:1px;width:6px;height:6px;background:'+AUS_COLORS[ausTipo]+';border-radius:50%;border:1px solid #fff"></span>':'')+'</div>';
+      } else if(ausTipo){
+        var ausColor = AUS_COLORS[ausTipo];
+        var ausIcon  = AUS_ICONS[ausTipo];
+        cell+='<div title="'+(AUS_LABELS[ausTipo]||ausTipo)+'" style="width:26px;height:26px;background:'+ausColor+';border-radius:5px;margin:1px auto;display:flex;align-items:center;justify-content:center;opacity:0.85">'+
+          '<span style="font-size:11px">'+ausIcon+'</span></div>';
       } else {
         cell+='<div style="width:26px;height:26px;margin:1px auto"></div>';
       }
@@ -3564,10 +3605,10 @@ function renderFopHoras(f){
     Object.keys(porFecha).forEach(function(fecha){
       if(fecha.substring(0,7)===mk) porFecha[fecha].obras.forEach(function(ob){ obrasDelMes[ob]=(obrasDelMes[ob]||0)+1; });
     });
-    var leyenda='<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">'+
+    var leyenda = Object.keys(obrasDelMes).length ? '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">'+
       Object.keys(obrasDelMes).map(function(ob){
         return '<span style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px">'+ob.substring(0,28)+(ob.length>28?'...':'')+' <b>'+obrasDelMes[ob]+' jorn.</b></span>';
-      }).join('')+'</div>';
+      }).join('')+'</div>' : '';
     return '<div style="margin-bottom:18px">'+headerHtml+tableHtml+leyenda+'</div>';
   }).join('<hr style="margin:4px 0 14px;border:none;border-top:1px solid var(--border)">');
 }
@@ -3639,6 +3680,7 @@ function guardarAusencia(){
   document.getElementById('aus-dias').value='1';
   document.getElementById('aus-obs').value='';
   renderFopAusencias(f);
+  renderFopHoras(f);
   renderFopStats(f);
 }
 
@@ -3650,6 +3692,7 @@ function eliminarAusencia(idx){
   saveFichas();
   postAPI({action:'saveOperario',operario:f},function(){});
   renderFopAusencias(f);
+  renderFopHoras(f);
   renderFopStats(f);
 }
 
