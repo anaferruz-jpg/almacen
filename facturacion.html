@@ -1609,6 +1609,8 @@ var COSTES_MAT = {}; // { obraKey: { coste, unidades } } — desde almacén
 var facturas = [];   // guardadas en localStorage
 var gastos = [];     // guardadas en localStorage
 var _facIdx = -1;    // índice factura en edición
+// Normaliza cualquier valor de fecha a YYYY-MM-DD (maneja ISO datetime strings de Sheets)
+function normFecha(v) { if (!v) return ''; var s = String(v); return s.length > 10 ? s.substring(0, 10) : s; }
 var lineas = [];     // líneas de la factura actual
 var _scanFileGasto = null;   // archivo adjunto gasto proveedor
 var _editGastoIdx  = -1;     // índice del gasto en edición (-1 = nuevo)
@@ -2631,8 +2633,8 @@ function editarFactura(idx) {
   document.getElementById('fac-cif-cliente').value = f.cifCliente || '';
   document.getElementById('fac-dir-cliente').value = f.dirCliente || '';
   document.getElementById('fac-obra').value = f.obra || '';
-  document.getElementById('fac-fecha').value = f.fecha || today;
-  document.getElementById('fac-vencimiento').value = f.vencimiento || '';
+  document.getElementById('fac-fecha').value = normFecha(f.fecha) || today;
+  document.getElementById('fac-vencimiento').value = normFecha(f.vencimiento);
   document.getElementById('fac-condiciones').value = f.condiciones || '30 días fecha factura';
   document.getElementById('fac-obs').value = f.obs || '';
   var tbody = document.getElementById('lineas-body');
@@ -2997,8 +2999,8 @@ function editarGasto(idx) {
   document.getElementById('gas-numfac').value = g.numFac || '';
   document.getElementById('gas-obra').value = g.obra || '';
   document.getElementById('gas-concepto').value = g.concepto || '';
-  document.getElementById('gas-fecha').value = g.fecha || today;
-  document.getElementById('gas-vencimiento').value = g.vencimiento || '';
+  document.getElementById('gas-fecha').value = normFecha(g.fecha) || today;
+  document.getElementById('gas-vencimiento').value = normFecha(g.vencimiento);
   document.getElementById('gas-base').value = g.base || '';
   document.getElementById('gas-iva').value = g.pctIva !== undefined ? g.pctIva : '21';
   document.getElementById('gas-estado').value = g.estado || 'pendiente';
@@ -3655,10 +3657,10 @@ function abrirModalGastoInterno(idx) {
   document.getElementById('gi-categoria').value = g.categoria || 'oficina';
   document.getElementById('gi-concepto').value = g.concepto || '';
   document.getElementById('gi-proveedor').value = g.proveedor || '';
-  document.getElementById('gi-fecha').value = g.fecha || today;
+  document.getElementById('gi-fecha').value = normFecha(g.fecha) || today;
   // Vencimiento: si es nuevo, 30 días; si es edición, el guardado
   if (_giIdx >= 0) {
-    document.getElementById('gi-vencimiento').value = g.vencimiento || '';
+    document.getElementById('gi-vencimiento').value = normFecha(g.vencimiento);
   } else {
     var vGI = new Date(); vGI.setDate(vGI.getDate() + 30);
     document.getElementById('gi-vencimiento').value = vGI.toISOString().split('T')[0];
