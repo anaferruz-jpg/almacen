@@ -1311,6 +1311,68 @@ td{padding:7px 8px;color:var(--text);vertical-align:middle}
 
 <div class="toast" id="toast"></div>
 
+<!-- ══ MODAL FICHA OPERARIO (HORAS + AUSENCIAS) ══ -->
+<div class="modal-overlay" id="modal-ficha-operario" style="z-index:3100;align-items:flex-start;padding-top:20px">
+  <div class="modal-full-box" style="max-width:720px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)" id="fop-titulo">👷 Ficha operario</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="fop-subtitulo"></div>
+      </div>
+      <button class="btn" onclick="cerrarFichaOperario()" style="font-size:18px;padding:2px 10px;line-height:1">×</button>
+    </div>
+    <!-- Stats resumen -->
+    <div class="stats" id="fop-stats" style="margin-bottom:14px"></div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+      <button class="btn primary" id="fop-tab-horas" onclick="fopTab('horas',this)" style="font-size:11px;padding:4px 12px">⏱️ Horas trabajadas</button>
+      <button class="btn" id="fop-tab-ausencias" onclick="fopTab('ausencias',this)" style="font-size:11px;padding:4px 12px">📅 Ausencias</button>
+    </div>
+    <!-- Tab horas -->
+    <div id="fop-body-horas">
+      <div id="fop-horas-content"><div class="empty">Cargando...</div></div>
+    </div>
+    <!-- Tab ausencias -->
+    <div id="fop-body-ausencias" style="display:none">
+      <div class="card" style="margin-bottom:12px;border:1.5px solid var(--accent)">
+        <div class="card-title" style="color:var(--accent);margin-bottom:8px">➕ Registrar ausencia</div>
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="aus-tipo">
+              <option value="vacaciones">Vacaciones</option>
+              <option value="baja">Baja médica</option>
+              <option value="fiesta_local">Fiesta local</option>
+              <option value="permiso">Permiso</option>
+              <option value="otros">Otros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Fecha inicio</label>
+            <input type="date" id="aus-fecha-inicio">
+          </div>
+          <div class="form-group">
+            <label>Fecha fin</label>
+            <input type="date" id="aus-fecha-fin">
+          </div>
+          <div class="form-group">
+            <label>Días</label>
+            <input type="number" id="aus-dias" placeholder="1" min="0.5" step="0.5" value="1">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Observaciones</label>
+            <input type="text" id="aus-obs" placeholder="Opcional...">
+          </div>
+        </div>
+        <div style="text-align:right">
+          <button class="btn primary" onclick="guardarAusencia()">✅ Guardar ausencia</button>
+        </div>
+      </div>
+      <div id="fop-ausencias-content"><div class="empty">Sin ausencias registradas</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL DOCS PERSONAL ══ -->
 <div class="modal-overlay" id="modal-docs-personal" style="z-index:3000;align-items:center">
   <div class="modal-full-box" style="max-width:600px">
@@ -3360,6 +3422,7 @@ function renderOperarios(){
       '</td>'+
       '<td>'+
         '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
+          '<button class="btn" style="font-size:10px;padding:3px 7px;background:#4a6cf7;color:#fff" onclick="abrirFichaOperario('+realIdx+')" title="Ver horas y ausencias">📊 Ficha</button>'+
           '<button class="btn" style="font-size:10px;padding:3px 7px;background:var(--accent);color:#fff" onclick="abrirDocsPersonal(\''+f.nombre.replace(/'/g,"\\'")+'\')" title="Documentos">📁 Docs</button>'+
           '<button class="btn" style="font-size:10px;padding:3px 7px" onclick="abrirFormOperario('+realIdx+')">✏️</button>'+
           '<button class="btn" style="font-size:10px;padding:3px 7px;background:var(--warn-light);color:var(--warn);border-color:var(--warn)" onclick="darDeBajaOperario('+realIdx+')" title="'+(activo?'Dar de baja':'Reactivar')+'">'+
@@ -3371,6 +3434,173 @@ function renderOperarios(){
     '</tr>';
   }).join('');
   }); // fin loadFichas
+}
+
+/* ── FICHA OPERARIO: HORAS + AUSENCIAS ── */
+var _fopIdx = -1;
+
+function abrirFichaOperario(idx){
+  loadFichas(function(){
+    var f = fichasTrabajadores[idx]; if(!f) return;
+    _fopIdx = idx;
+    var CATS = {encargado:'Encargado',oficial1:'Oficial 1ª',oficial2:'Oficial 2ª',peon_esp:'Peón especialista',peon:'Peón',otro:'Otro'};
+    document.getElementById('fop-titulo').textContent = '👷 ' + f.nombre;
+    document.getElementById('fop-subtitulo').textContent = (CATS[f.categoria]||f.categoria||'') + (f.dni?' · DNI: '+f.dni:'') + (f.tel?' · '+f.tel:'');
+    // Fechas por defecto en el form ausencias
+    document.getElementById('aus-fecha-inicio').value = today;
+    document.getElementById('aus-fecha-fin').value = today;
+    document.getElementById('aus-dias').value = '1';
+    document.getElementById('aus-obs').value = '';
+    fopTab('horas', document.getElementById('fop-tab-horas'));
+    document.getElementById('modal-ficha-operario').classList.add('open');
+    renderFopHoras(f);
+    renderFopAusencias(f);
+    renderFopStats(f);
+  });
+}
+
+function cerrarFichaOperario(){
+  document.getElementById('modal-ficha-operario').classList.remove('open');
+  _fopIdx = -1;
+}
+
+function fopTab(tab, btn){
+  ['horas','ausencias'].forEach(function(t){
+    document.getElementById('fop-body-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('fop-tab-'+t).className = t===tab ? 'btn primary' : 'btn';
+  });
+  if(btn) btn.style.fontSize = '11px', btn.style.padding = '4px 12px';
+}
+
+function renderFopStats(f){
+  var anoActual = new Date().getFullYear();
+  // Horas este año desde OBRAS
+  var horasAnio = 0;
+  OBRAS.forEach(function(o){
+    (o.personal||[]).forEach(function(r){
+      if(r.nombre===f.nombre && r.fecha && r.fecha.substring(0,4)==String(anoActual))
+        horasAnio += (r.horas||0);
+    });
+  });
+  // Ausencias este año
+  var ausencias = f.ausencias||[];
+  var diasAusAnio = ausencias.filter(function(a){ return a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
+    .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
+  var diasVac = ausencias.filter(function(a){ return a.tipo==='vacaciones' && a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
+    .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
+  var diasBaja = ausencias.filter(function(a){ return a.tipo==='baja' && a.fechaInicio && a.fechaInicio.substring(0,4)===String(anoActual); })
+    .reduce(function(s,a){ return s+(parseFloat(a.dias)||0); }, 0);
+  document.getElementById('fop-stats').innerHTML =
+    '<div class="stat"><div class="stat-label">Horas '+anoActual+'</div><div class="stat-val">'+horasAnio+'h</div></div>'+
+    '<div class="stat"><div class="stat-label">Aus. totales '+anoActual+'</div><div class="stat-val">'+diasAusAnio+' días</div></div>'+
+    '<div class="stat"><div class="stat-label">Vacaciones</div><div class="stat-val">'+diasVac+' días</div></div>'+
+    '<div class="stat"><div class="stat-label">Baja médica</div><div class="stat-val danger">'+diasBaja+' días</div></div>';
+}
+
+function renderFopHoras(f){
+  var cont = document.getElementById('fop-horas-content');
+  // Agregar registros de todas las obras
+  var registros = [];
+  OBRAS.forEach(function(o){
+    (o.personal||[]).forEach(function(r){
+      if(r.nombre===f.nombre) registros.push({fecha:r.fecha,horas:r.horas||0,coste:r.coste||0,obra:o.nombre});
+    });
+  });
+  if(!registros.length){ cont.innerHTML='<div class="empty">Sin registros de asistencia en obras</div>'; return; }
+  // Agrupar por mes YYYY-MM
+  var meses = {};
+  registros.forEach(function(r){
+    var m = (r.fecha||'').substring(0,7); if(!m) return;
+    if(!meses[m]) meses[m]={horas:0,coste:0,obras:{},dias:0};
+    meses[m].horas += r.horas;
+    meses[m].coste += r.horas*r.coste;
+    meses[m].dias++;
+    meses[m].obras[r.obra] = (meses[m].obras[r.obra]||0)+r.horas;
+  });
+  var keys = Object.keys(meses).sort().reverse();
+  var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  cont.innerHTML = keys.map(function(k){
+    var m = meses[k];
+    var partes = k.split('-');
+    var label = MESES_ES[parseInt(partes[1],10)-1]+' '+partes[0];
+    var obrasHtml = Object.keys(m.obras).map(function(ob){
+      return '<span style="display:inline-block;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px;margin:1px">'+ob.substring(0,30)+(ob.length>30?'...':'')+'&nbsp;<b>'+m.obras[ob]+'h</b></span>';
+    }).join(' ');
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">'+
+      '<div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--text)">'+label+'</div>'+
+        '<div style="margin-top:4px">'+obrasHtml+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;min-width:120px">'+
+        '<div style="font-size:14px;font-weight:700;color:var(--accent)">'+m.horas+'h</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+m.dias+' jornadas'+(m.coste>0?' · '+m.coste.toFixed(2)+'€':'')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+var AUS_LABELS = {vacaciones:'🌴 Vacaciones',baja:'🏥 Baja médica',fiesta_local:'🎉 Fiesta local',permiso:'📋 Permiso',otros:'📌 Otros'};
+
+function renderFopAusencias(f){
+  var cont = document.getElementById('fop-ausencias-content');
+  var ausencias = (f.ausencias||[]).slice().reverse();
+  if(!ausencias.length){ cont.innerHTML='<div class="empty">Sin ausencias registradas</div>'; return; }
+  // Totales por tipo
+  var totales = {};
+  (f.ausencias||[]).forEach(function(a){ totales[a.tipo]=(totales[a.tipo]||0)+(parseFloat(a.dias)||0); });
+  var resumenHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+
+    Object.keys(totales).map(function(t){
+      return '<span style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px">'+(AUS_LABELS[t]||t)+' <b>'+totales[t]+' días</b></span>';
+    }).join('')+'</div>';
+  cont.innerHTML = resumenHtml + ausencias.map(function(a, iRev){
+    var realIdx = ausencias.length-1-iRev;
+    var fechaLabel = a.fechaInicio + (a.fechaFin && a.fechaFin!==a.fechaInicio ? ' → '+a.fechaFin : '');
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">'+
+      '<div>'+
+        '<span style="font-size:12px;font-weight:600">'+(AUS_LABELS[a.tipo]||a.tipo)+'</span>'+
+        '<span style="font-size:11px;color:var(--text2);margin-left:8px">'+fechaLabel+'</span>'+
+        (a.obs?'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+a.obs+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:13px;font-weight:700;color:var(--accent)">'+a.dias+' día'+(a.dias!==1?'s':'')+'</span>'+
+        '<button class="btn danger" style="font-size:10px;padding:2px 6px" onclick="eliminarAusencia('+realIdx+')">🗑️</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function guardarAusencia(){
+  if(_fopIdx<0) return;
+  var f = fichasTrabajadores[_fopIdx]; if(!f) return;
+  var tipo = document.getElementById('aus-tipo').value;
+  var fechaInicio = document.getElementById('aus-fecha-inicio').value;
+  var fechaFin = document.getElementById('aus-fecha-fin').value;
+  var dias = parseFloat(document.getElementById('aus-dias').value)||1;
+  var obs = document.getElementById('aus-obs').value.trim();
+  if(!fechaInicio){toast('La fecha es obligatoria',true);return;}
+  if(!f.ausencias) f.ausencias=[];
+  f.ausencias.push({tipo:tipo,fechaInicio:fechaInicio,fechaFin:fechaFin||fechaInicio,dias:dias,obs:obs});
+  saveFichas();
+  postAPI({action:'saveOperario',operario:f},function(err,res){
+    if(err||!res||!res.ok) toast('⚠️ Error al guardar en servidor',true);
+    else toast('✅ Ausencia registrada');
+  });
+  document.getElementById('aus-dias').value='1';
+  document.getElementById('aus-obs').value='';
+  renderFopAusencias(f);
+  renderFopStats(f);
+}
+
+function eliminarAusencia(idx){
+  if(_fopIdx<0) return;
+  var f = fichasTrabajadores[_fopIdx]; if(!f||!f.ausencias) return;
+  if(!confirm('¿Eliminar esta ausencia?')) return;
+  f.ausencias.splice(idx,1);
+  saveFichas();
+  postAPI({action:'saveOperario',operario:f},function(){});
+  renderFopAusencias(f);
+  renderFopStats(f);
 }
 
 /* ── PREVISIÓN PERSONAL EN OBRA ── */
