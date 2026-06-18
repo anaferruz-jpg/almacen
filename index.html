@@ -1533,12 +1533,18 @@ function recargarTodo(){
   callAPI('getProveedores',function(err,data){
     if(!err&&Array.isArray(data)&&data.length){
       try{localStorage.setItem('sf_proveedores_alm',JSON.stringify(data));}catch(e){}
+      proveedoresData=data.filter(function(p){return p.nombre;});
       cargarProveedoresSelect(data);
+      actualizarSelectProveedores();
     } else {
       // Fallback: usar caché local si Sheets no responde
       try{
         var cached=JSON.parse(localStorage.getItem('sf_proveedores_alm')||'[]');
-        if(cached.length) cargarProveedoresSelect(cached);
+        if(cached.length){
+          proveedoresData=cached.filter(function(p){return p.nombre;});
+          cargarProveedoresSelect(cached);
+          actualizarSelectProveedores();
+        }
       }catch(e){}
     }
   });
@@ -6878,12 +6884,22 @@ function cargarListaReposicion(){
 var proveedoresData=[];
 
 function actualizarSelectProveedores(){
-  var sel=document.getElementById('rep-filtro-prov');
-  if(!sel)return;
-  sel.innerHTML='<option value="">-- Proveedor --</option>'+
-    proveedoresData.map(function(p){
-      return '<option value="'+p.nombre+'"'+(p.email?' data-email="'+p.email+'"':'')+'>'+p.nombre+(p.email?' ✉':'')+'</option>';
-    }).join('');
+  var optsBase = proveedoresData.map(function(p){
+    var pe = p.nombre.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<option value="'+pe+'">'+p.nombre+'</option>';
+  }).join('');
+  // Filtro lista de reposición
+  var sel = document.getElementById('rep-filtro-prov');
+  if(sel) sel.innerHTML = '<option value="">-- Proveedor --</option>' + optsBase;
+  // Entrada almacén
+  var entProv = document.getElementById('ent-prov');
+  if(entProv){ var cur=entProv.value; entProv.innerHTML='<option value="">Seleccionar proveedor...</option>'+optsBase; entProv.value=cur; }
+  // Modal editar pedido
+  var epProv = document.getElementById('ep-prov');
+  if(epProv){ var cur2=epProv.value; epProv.innerHTML='<option value="">Sin especificar</option>'+optsBase; epProv.value=cur2; }
+  // Modal pedir (lista reposición)
+  var mpProv = document.getElementById('mp-prov');
+  if(mpProv){ var cur3=mpProv.value; mpProv.innerHTML='<option value="">Sin especificar</option>'+optsBase; mpProv.value=cur3; }
 }
 
 function getEmailProveedor(nombre){
