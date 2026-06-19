@@ -79,6 +79,7 @@ function doPost(e) {
   if (data.action === 'savePresupuesto')         return json(savePresupuesto(data));
   if (data.action === 'deletePresupuesto')       return json(deletePresupuesto(data));
   if (data.action === 'saveFileToFolder')        return json(saveFileToFolder(data));
+  if (data.action === 'contacto_web')            return json(saveContactoWeb(data));
   return json({error: 'accion no valida'});
 }
 
@@ -1711,4 +1712,34 @@ function getCostesMateriales() {
     });
   }
   return result;
+}
+
+// ── CONTACTO WEB ──
+function saveContactoWeb(data) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('ContactosWeb');
+  if (!sheet) {
+    sheet = ss.insertSheet('ContactosWeb');
+    sheet.appendRow(['Fecha', 'Nombre', 'Empresa', 'Telefono', 'Email', 'Tipo Obra', 'Descripcion']);
+  }
+  sheet.appendRow([
+    data.fecha || new Date().toLocaleString('es-ES'),
+    data.nombre || '',
+    data.empresa || '',
+    data.telefono || '',
+    data.email || '',
+    data.tipo || '',
+    data.descripcion || ''
+  ]);
+  // Notificación por email
+  try {
+    MailApp.sendEmail({
+      to: 'ana.ferruz@segufija.com',
+      subject: 'Nueva solicitud web de ' + (data.nombre || 'desconocido'),
+      body: 'Nombre: ' + data.nombre + '\nEmpresa: ' + data.empresa +
+            '\nTelefono: ' + data.telefono + '\nEmail: ' + data.email +
+            '\nTipo: ' + data.tipo + '\nDescripcion: ' + data.descripcion
+    });
+  } catch(e) {}
+  return { ok: true };
 }
