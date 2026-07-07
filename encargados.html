@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SEGUFIJA — Operario</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#222;min-height:100vh}
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* PIN */
+#s-pin{background:#8B1A1A;align-items:center;justify-content:center;padding:32px 24px}
+.pin-logo{color:#fff;font-size:26px;font-weight:700;letter-spacing:1px;margin-bottom:8px}
+.pin-sub{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:40px}
+.pin-display{background:rgba(255,255,255,.15);border-radius:12px;padding:14px 24px;font-size:28px;font-weight:700;color:#fff;letter-spacing:8px;min-width:160px;text-align:center;margin-bottom:24px;min-height:58px}
+.pin-grid{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center}
+.pin-btn{background:rgba(255,255,255,.18);border:none;border-radius:12px;color:#fff;font-size:22px;font-weight:600;height:64px;width:72px;cursor:pointer;transition:background .15s}
+.pin-btn:active{background:rgba(255,255,255,.35)}
+.pin-btn.del{font-size:18px}
+.pin-btn.ok{background:#fff;color:#8B1A1A;font-size:15px;font-weight:700}
+.pin-err{color:#ffcdd2;font-size:13px;margin-top:16px;min-height:20px;text-align:center}
+
+/* HEADER */
+.header{background:#8B1A1A;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header-back{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px;line-height:1}
+.header-title{font-size:17px;font-weight:700;flex:1}
+.header-user{font-size:12px;opacity:.7}
+
+/* MENU */
+#s-menu{background:#f0f2f5}
+.menu-grid{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.menu-card{background:#fff;border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;border:none;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .1s,box-shadow .1s}
+.menu-card:active{transform:scale(.97);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.menu-icon{font-size:36px;margin-bottom:10px}
+.menu-label{font-size:14px;font-weight:700;color:#333}
+.menu-desc{font-size:11px;color:#888;margin-top:4px}
+
+/* FORMS */
+.form-body{flex:1;overflow-y:auto;padding:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:700;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field select,.field input,.field textarea{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fff;color:#222;outline:none;appearance:none}
+.field select:focus,.field input:focus{border-color:#8B1A1A}
+.field textarea{min-height:80px;resize:vertical}
+.qty-row{display:flex;align-items:center;gap:8px}
+.qty-btn{background:#f0f2f5;border:none;border-radius:8px;font-size:22px;width:44px;height:44px;cursor:pointer;color:#333;flex-shrink:0}
+.qty-btn:active{background:#e0e0e0}
+.qty-input{flex:1;text-align:center;font-size:18px;font-weight:700}
+.btn-main{background:#8B1A1A;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:700;width:100%;cursor:pointer;margin-top:8px}
+.btn-main:active{background:#6d1414}
+.btn-main:disabled{background:#bbb}
+.badge{background:#8B1A1A;color:#fff;border-radius:6px;font-size:11px;padding:2px 7px;margin-left:6px;font-weight:700}
+
+/* STOCK LIST */
+.search-bar{padding:12px 16px;position:sticky;top:64px;background:#f0f2f5;z-index:5}
+.search-bar input{width:100%;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fff;outline:none}
+.list{flex:1;overflow-y:auto;padding:0 16px 16px}
+.list-item{background:#fff;border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.list-item-name{font-size:14px;font-weight:600;color:#222}
+.list-item-sub{font-size:12px;color:#888;margin-top:2px}
+.list-item-qty{font-size:20px;font-weight:700;color:#8B1A1A;white-space:nowrap;margin-left:8px}
+.list-item-unit{font-size:11px;color:#888;font-weight:400}
+.empty{text-align:center;color:#bbb;padding:40px 16px;font-size:14px}
+
+/* ALBARÁN MODAL */
+#albaran-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:flex-end;justify-content:center}
+#albaran-modal.open{display:flex}
+.albaran-sheet{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px}
+.albaran-title{font-size:18px;font-weight:700;color:#8B1A1A;margin-bottom:4px}
+.albaran-num{font-size:12px;color:#888;margin-bottom:16px}
+.albaran-body{background:#f8f8f8;border-radius:10px;padding:14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;margin-bottom:20px;max-height:260px;overflow-y:auto}
+.albaran-actions{display:flex;flex-direction:column;gap:10px}
+.btn-wa{background:#25D366;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-email{background:#f0f2f5;color:#333;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+.btn-close-alb{background:none;border:none;color:#888;font-size:13px;margin-top:4px;cursor:pointer;width:100%;text-align:center}
+
+/* PRESUPUESTO */
+.pres-obra-sel{padding:12px 16px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:64px;z-index:5}
+.pres-obra-sel select{width:100%;padding:10px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fff}
+.partida-item{background:#fff;border-radius:10px;padding:14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.partida-mat{font-size:14px;font-weight:700;color:#222}
+.partida-bar-wrap{background:#f0f2f5;border-radius:6px;height:8px;margin:8px 0}
+.partida-bar{background:#8B1A1A;border-radius:6px;height:8px;transition:width .3s}
+.partida-nums{display:flex;justify-content:space-between;font-size:11px;color:#888}
+.partida-pct{font-weight:700;color:#8B1A1A}
+
+/* LOADING */
+.loader{text-align:center;padding:40px;color:#aaa;font-size:14px}
+
+/* TOAST */
+#toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="s-pin" class="screen active">
+  <div class="pin-logo">SEGUFIJA</div>
+  <div class="pin-sub">Acceso operarios</div>
+  <div class="pin-display" id="pin-dots"></div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <button class="pin-btn ok" onclick="pinOK()">OK</button>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+</div>
+
+<!-- MENÚ PRINCIPAL -->
+<div id="s-menu" class="screen">
+  <div class="header">
+    <div class="header-title">Operario · SEGUFIJA</div>
+    <div class="header-user" id="hdr-user"></div>
+  </div>
+  <div class="menu-grid">
+    <button class="menu-card" onclick="go('salida')">
+      <div class="menu-icon">📦</div>
+      <div class="menu-label">Salida</div>
+      <div class="menu-desc">Material a obra</div>
+    </button>
+    <button class="menu-card" onclick="go('devolucion')">
+      <div class="menu-icon">↩️</div>
+      <div class="menu-label">Devolución</div>
+      <div class="menu-desc">Devolver al almacén</div>
+    </button>
+    <button class="menu-card" onclick="go('traspaso')">
+      <div class="menu-icon">🔄</div>
+      <div class="menu-label">Traspaso</div>
+      <div class="menu-desc">Entre obras</div>
+    </button>
+    <button class="menu-card" onclick="go('stock')">
+      <div class="menu-icon">🏭</div>
+      <div class="menu-label">Stock</div>
+      <div class="menu-desc">Almacén</div>
+    </button>
+    <button class="menu-card" onclick="go('presupuesto')" style="grid-column:span 2">
+      <div class="menu-icon">📋</div>
+      <div class="menu-label">Presupuesto obra</div>
+      <div class="menu-desc">Material por partidas</div>
+    </button>
+  </div>
+</div>
+
+<!-- SALIDA -->
+<div id="s-salida" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="go('menu')">‹</button>
+    <div class="header-title">Salida de material</div>
+  </div>
+  <div class="form-body">
+    <div class="field"><label>Obra</label>
+      <select id="sal-obra"><option value="">Cargando...</option></select></div>
+    <div class="field"><label>Material</label>
+      <select id="sal-mat"><option value="">Selecciona obra primero</option></select></div>
+    <div class="field"><label>Cantidad</label>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="adjQty('sal-qty',-1)">−</button>
+        <input class="qty-input" id="sal-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="qty-btn" onclick="adjQty('sal-qty',1)">+</button>
+      </div>
+    </div>
+    <div class="field"><label>Operario</label>
+      <input id="sal-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field"><label>Notas (opcional)</label>
+      <textarea id="sal-notas" placeholder="Observaciones..."></textarea></div>
+    <button class="btn-main" onclick="registrar('Salida')">Registrar salida</button>
+  </div>
+</div>
+
+<!-- DEVOLUCIÓN -->
+<div id="s-devolucion" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="go('menu')">‹</button>
+    <div class="header-title">Devolución al almacén</div>
+  </div>
+  <div class="form-body">
+    <div class="field"><label>Obra</label>
+      <select id="dev-obra"><option value="">Cargando...</option></select></div>
+    <div class="field"><label>Material</label>
+      <select id="dev-mat"><option value="">Selecciona obra</option></select></div>
+    <div class="field"><label>Cantidad</label>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="adjQty('dev-qty',-1)">−</button>
+        <input class="qty-input" id="dev-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="qty-btn" onclick="adjQty('dev-qty',1)">+</button>
+      </div>
+    </div>
+    <div class="field"><label>Operario</label>
+      <input id="dev-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field"><label>Notas (opcional)</label>
+      <textarea id="dev-notas" placeholder="Observaciones..."></textarea></div>
+    <button class="btn-main" onclick="registrar('Devolucion')">Registrar devolución</button>
+  </div>
+</div>
+
+<!-- TRASPASO -->
+<div id="s-traspaso" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="go('menu')">‹</button>
+    <div class="header-title">Traspaso entre obras</div>
+  </div>
+  <div class="form-body">
+    <div class="field"><label>Obra origen</label>
+      <select id="tra-origen"><option value="">Cargando...</option></select></div>
+    <div class="field"><label>Obra destino</label>
+      <select id="tra-destino"><option value="">Selecciona origen</option></select></div>
+    <div class="field"><label>Material</label>
+      <select id="tra-mat"><option value="">Selecciona obras</option></select></div>
+    <div class="field"><label>Cantidad</label>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="adjQty('tra-qty',-1)">−</button>
+        <input class="qty-input" id="tra-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="qty-btn" onclick="adjQty('tra-qty',1)">+</button>
+      </div>
+    </div>
+    <div class="field"><label>Operario</label>
+      <input id="tra-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field"><label>Notas (opcional)</label>
+      <textarea id="tra-notas" placeholder="Observaciones..."></textarea></div>
+    <button class="btn-main" onclick="registrar('Traspaso')">Registrar traspaso</button>
+  </div>
+</div>
+
+<!-- STOCK -->
+<div id="s-stock" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="go('menu')">‹</button>
+    <div class="header-title">Stock almacén</div>
+  </div>
+  <div class="search-bar">
+    <input id="stock-q" type="search" placeholder="Buscar material..." oninput="renderStock()">
+  </div>
+  <div class="list" id="stock-list"><div class="loader">Cargando...</div></div>
+</div>
+
+<!-- PRESUPUESTO -->
+<div id="s-presupuesto" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="go('menu')">‹</button>
+    <div class="header-title">Presupuesto obra</div>
+  </div>
+  <div class="pres-obra-sel">
+    <select id="pres-obra" onchange="renderPresupuesto()">
+      <option value="">Selecciona obra...</option>
+    </select>
+  </div>
+  <div class="list" id="pres-list"><div class="empty">Selecciona una obra</div></div>
+</div>
+
+<!-- ALBARÁN MODAL -->
+<div id="albaran-modal">
+  <div class="albaran-sheet">
+    <div class="albaran-title">📄 Albarán generado</div>
+    <div class="albaran-num" id="alb-num"></div>
+    <div class="albaran-body" id="alb-body"></div>
+    <div class="albaran-actions">
+      <button class="btn-wa" onclick="compartirWA()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Enviar por WhatsApp
+      </button>
+      <button class="btn-email" onclick="enviarEmail()">✉️ Enviar por email</button>
+      <button class="btn-close-alb" onclick="cerrarAlbaran()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbz7K6wXLFrWGo8Yiko3MIW_8CFTaPPT0U_33CyICt58kgtdVJsQhKSf_ytwbZk3Ez1C/exec';
+var PIN_CORRECTO = '1234';
+var EMAIL_ENCARGADO = '';
+
+var OBRAS = [];
+var INVENTARIO = [];
+var HISTORIAL = [];
+var pinVal = '';
+var albaranTexto = '';
+var albaranEmail = '';
+
+// ─── PIN ───────────────────────────────────────────────
+function pinKey(k) {
+  if (pinVal.length >= 6) return;
+  pinVal += k;
+  renderPin();
+}
+function pinDel() { pinVal = pinVal.slice(0,-1); renderPin(); }
+function renderPin() {
+  document.getElementById('pin-dots').textContent = '●'.repeat(pinVal.length) || '';
+  document.getElementById('pin-err').textContent = '';
+}
+function pinOK() {
+  if (pinVal === PIN_CORRECTO) {
+    go('menu');
+    cargarDatos();
+  } else {
+    document.getElementById('pin-err').textContent = 'PIN incorrecto. Inténtalo de nuevo.';
+    pinVal = '';
+    renderPin();
+  }
+}
+
+// ─── NAVEGACIÓN ────────────────────────────────────────
+function go(sec) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('s-'+sec).classList.add('active');
+  if (sec === 'stock') renderStock();
+  if (sec === 'presupuesto') { fillObrasSelect('pres-obra', false); renderPresupuesto(); }
+}
+
+// ─── DATOS ─────────────────────────────────────────────
+function callAPI(action, cb) {
+  fetch(API + '?action=' + action)
+    .then(function(r){ return r.json(); })
+    .then(cb)
+    .catch(function(){ toast('Error de conexión'); });
+}
+
+function postAPI(data, cb) {
+  fetch(API, {method:'POST', body: JSON.stringify(data)})
+    .then(function(r){ return r.json(); })
+    .then(cb)
+    .catch(function(){ toast('Error de conexión'); });
+}
+
+function cargarDatos() {
+  callAPI('getObras', function(d) {
+    OBRAS = Array.isArray(d) ? d : (d.obras || []);
+    fillObrasSelect('sal-obra', true);
+    fillObrasSelect('dev-obra', true);
+    fillObrasSelect('tra-origen', true);
+    fillObrasSelect('pres-obra', false);
+    document.getElementById('sal-obra').addEventListener('change', function(){ fillMatSelect('sal-obra','sal-mat'); });
+    document.getElementById('dev-obra').addEventListener('change', function(){ fillMatSelect('dev-obra','dev-mat'); });
+    document.getElementById('tra-origen').addEventListener('change', function(){
+      fillTraDestinoSelect();
+      fillMatSelect('tra-origen','tra-mat');
+    });
+  });
+  callAPI('getInventario', function(d) {
+    INVENTARIO = Array.isArray(d) ? d : (d.articulos || []);
+    renderStock();
+  });
+  callAPI('getHistorial', function(d) {
+    HISTORIAL = Array.isArray(d) ? d : (d.historial || []);
+  });
+}
+
+function fillObrasSelect(id, withAlmacen) {
+  var sel = document.getElementById(id);
+  sel.innerHTML = '<option value="">— Obra —</option>';
+  OBRAS.forEach(function(o) {
+    if (!withAlmacen && (o.nombre||'').toLowerCase().includes('almacén')) return;
+    var opt = document.createElement('option');
+    opt.value = o.nombre;
+    opt.textContent = o.nombre;
+    sel.appendChild(opt);
+  });
+}
+
+function fillTraDestinoSelect() {
+  var origen = document.getElementById('tra-origen').value;
+  var sel = document.getElementById('tra-destino');
+  sel.innerHTML = '<option value="">— Obra destino —</option>';
+  OBRAS.forEach(function(o) {
+    if (o.nombre === origen) return;
+    var opt = document.createElement('option');
+    opt.value = o.nombre;
+    opt.textContent = o.nombre;
+    sel.appendChild(opt);
+  });
+}
+
+function fillMatSelect(obraSelId, matSelId) {
+  var obraNombre = document.getElementById(obraSelId).value;
+  var sel = document.getElementById(matSelId);
+  sel.innerHTML = '<option value="">— Material —</option>';
+  INVENTARIO.forEach(function(art) {
+    if ((art.stock || 0) <= 0) return;
+    var opt = document.createElement('option');
+    opt.value = art.nombre;
+    opt.textContent = art.nombre + ' (' + (art.stock||0) + ' ' + (art.unidad||'ud') + ')';
+    sel.appendChild(opt);
+  });
+}
+
+// ─── STOCK ─────────────────────────────────────────────
+function renderStock() {
+  var q = (document.getElementById('stock-q')||{}).value || '';
+  var list = document.getElementById('stock-list');
+  if (!INVENTARIO.length) { list.innerHTML = '<div class="loader">Cargando...</div>'; return; }
+  var items = INVENTARIO.filter(function(a){ return !q || a.nombre.toLowerCase().includes(q.toLowerCase()); });
+  if (!items.length) { list.innerHTML = '<div class="empty">Sin resultados</div>'; return; }
+  list.innerHTML = items.map(function(a) {
+    return '<div class="list-item"><div><div class="list-item-name">'+esc(a.nombre)+'</div>'
+      +'<div class="list-item-sub">'+(a.categoria||'')+(a.ubicacion?' · '+a.ubicacion:'')+'</div></div>'
+      +'<div><div class="list-item-qty">'+(a.stock||0)+' <span class="list-item-unit">'+(a.unidad||'ud')+'</span></div></div></div>';
+  }).join('');
+}
+
+// ─── PRESUPUESTO ────────────────────────────────────────
+function renderPresupuesto() {
+  var obraNombre = document.getElementById('pres-obra').value;
+  var list = document.getElementById('pres-list');
+  if (!obraNombre) { list.innerHTML = '<div class="empty">Selecciona una obra</div>'; return; }
+  var obra = OBRAS.find(function(o){ return o.nombre === obraNombre; });
+  if (!obra || !obra.partidas || !obra.partidas.length) {
+    list.innerHTML = '<div class="empty">Sin partidas en esta obra</div>'; return;
+  }
+  list.innerHTML = obra.partidas.map(function(p) {
+    var ppto = Number(p.contratado||0);
+    var usa = Number(p.suministrado||0);
+    var pct = ppto > 0 ? Math.min(100, Math.round(usa/ppto*100)) : 0;
+    var color = pct > 90 ? '#c62828' : pct > 70 ? '#e65100' : '#8B1A1A';
+    return '<div class="partida-item">'
+      +'<div class="partida-mat">'+esc(p.material||p.partida||'')+'</div>'
+      +'<div class="partida-bar-wrap"><div class="partida-bar" style="width:'+pct+'%;background:'+color+'"></div></div>'
+      +'<div class="partida-nums"><span>'+usa+' / '+ppto+' '+(p.ud||'ud')+'</span><span class="partida-pct">'+pct+'%</span></div>'
+      +'</div>';
+  }).join('');
+}
+
+// ─── REGISTRAR MOVIMIENTO ──────────────────────────────
+function adjQty(id, delta) {
+  var inp = document.getElementById(id);
+  var v = parseFloat(inp.value)||1;
+  inp.value = Math.max(0.1, Math.round((v+delta)*10)/10);
+}
+
+function registrar(tipo) {
+  var ora, mat, qty, oper, notas, oraD;
+  if (tipo === 'Salida') {
+    ora = document.getElementById('sal-obra').value;
+    mat = document.getElementById('sal-mat').value;
+    qty = parseFloat(document.getElementById('sal-qty').value);
+    oper = document.getElementById('sal-oper').value;
+    notas = document.getElementById('sal-notas').value;
+  } else if (tipo === 'Devolucion') {
+    ora = document.getElementById('dev-obra').value;
+    mat = document.getElementById('dev-mat').value;
+    qty = parseFloat(document.getElementById('dev-qty').value);
+    oper = document.getElementById('dev-oper').value;
+    notas = document.getElementById('dev-notas').value;
+    tipo = 'Devolución';
+  } else if (tipo === 'Traspaso') {
+    ora = document.getElementById('tra-origen').value;
+    oraD = document.getElementById('tra-destino').value;
+    mat = document.getElementById('tra-mat').value;
+    qty = parseFloat(document.getElementById('tra-qty').value);
+    oper = document.getElementById('tra-oper').value;
+    notas = document.getElementById('tra-notas').value;
+  }
+
+  if (!ora || !mat || !qty || qty <= 0) { toast('Completa todos los campos'); return; }
+  if (tipo === 'Traspaso' && !oraD) { toast('Selecciona obra destino'); return; }
+
+  var btn = document.querySelector('#s-' + tipo.toLowerCase().replace('ó','o').replace('ción','cion') + ' .btn-main, .screen.active .btn-main');
+  if (btn) btn.disabled = true;
+
+  var ahora = new Date();
+  var fecha = ahora.toLocaleDateString('es-ES');
+  var hora = ahora.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
+
+  var invent = INVENTARIO.find(function(a){ return a.nombre === mat; });
+  var unidad = invent ? (invent.unidad||'ud') : 'ud';
+
+  postAPI({
+    action: 'addHistorial',
+    tipo: tipo,
+    obra: ora,
+    obraDestino: oraD || '',
+    resp: oper || 'Operario',
+    obs: notas || '',
+    fecha: fecha,
+    items: [{nombre: mat, cantidad: qty, unidad: unidad}]
+  }, function(res) {
+    if (btn) btn.disabled = false;
+    if (res && res.ok) {
+      callAPI('getInventario', function(d){ INVENTARIO = Array.isArray(d) ? d : (d.articulos||[]); });
+      callAPI('getHistorial', function(d){ HISTORIAL = Array.isArray(d) ? d : (d.historial||[]); });
+      var num = 'ALB-' + ahora.getFullYear() + ('0'+(ahora.getMonth()+1)).slice(-2) + ('0'+ahora.getDate()).slice(-2) + '-' + Math.floor(Math.random()*9000+1000);
+      albaranTexto = generarAlbaran(num, tipo, ora, oraD, mat, qty, unidad, oper, fecha, hora, notas);
+      document.getElementById('alb-num').textContent = num;
+      document.getElementById('alb-body').textContent = albaranTexto;
+      document.getElementById('albaran-modal').classList.add('open');
+    } else {
+      toast('Error al registrar. Inténtalo de nuevo.');
+    }
+  });
+}
+
+function generarAlbaran(num, tipo, obra, obraD, mat, qty, unidad, oper, fecha, hora, notas) {
+  var lines = [
+    '📦 ALBARÁN SEGUFIJA',
+    '━━━━━━━━━━━━━━━━━━━',
+    'Nº: ' + num,
+    'Fecha: ' + fecha + ' ' + hora,
+    '',
+    'Tipo: ' + tipo,
+    'Obra: ' + obra,
+  ];
+  if (obraD) lines.push('Destino: ' + obraD);
+  lines = lines.concat([
+    '',
+    'Material: ' + mat,
+    'Cantidad: ' + qty + ' ' + unidad,
+    '',
+    'Operario: ' + (oper||'—'),
+  ]);
+  if (notas) lines.push('Notas: ' + notas);
+  lines.push('━━━━━━━━━━━━━━━━━━━');
+  lines.push('SEGUFIJA · Gestión de obras');
+  return lines.join('\n');
+}
+
+function compartirWA() {
+  window.open('https://wa.me/?text=' + encodeURIComponent(albaranTexto), '_blank');
+}
+
+function enviarEmail() {
+  postAPI({
+    action: 'sendEmailAlbaran',
+    texto: albaranTexto
+  }, function(res){
+    if (res && res.ok) toast('Email enviado');
+    else toast('Error al enviar email');
+  });
+}
+
+function cerrarAlbaran() {
+  document.getElementById('albaran-modal').classList.remove('open');
+}
+
+// ─── UTILS ─────────────────────────────────────────────
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+// PIN desde URL (opcional: segufija.com/operario.html?pin=1234)
+(function(){
+  var params = new URLSearchParams(location.search);
+  if(params.get('pin') === PIN_CORRECTO){ go('menu'); cargarDatos(); }
+})();
+</script>
+</body>
+</html>
