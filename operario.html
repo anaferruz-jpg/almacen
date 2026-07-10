@@ -86,6 +86,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .partida-nums{display:flex;justify-content:space-between;font-size:11px;color:#888}
 .partida-pct{font-weight:700;color:#8B1A1A}
 
+/* ITEMS MULTI */
+.items-list{margin-bottom:8px}
+.item-chip{display:flex;align-items:center;background:#fff3f3;border:1px solid #f5c6c6;border-radius:8px;padding:8px 10px;margin-bottom:6px;gap:8px}
+.item-chip-name{flex:1;font-size:13px;font-weight:600;color:#333}
+.item-chip-qty{font-size:13px;color:#8B1A1A;font-weight:700;white-space:nowrap}
+.item-chip-del{background:none;border:none;color:#bbb;font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
+.add-item-row{display:flex;gap:8px;align-items:center}
+.add-item-row select{flex:1;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;background:#fff;color:#222;appearance:none}
+.add-item-qty{width:72px;padding:10px 8px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;text-align:center;background:#fff}
+.btn-add-item{background:#8B1A1A;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:22px;cursor:pointer;flex-shrink:0;line-height:1}
+.items-empty{font-size:12px;color:#bbb;padding:6px 0;text-align:center}
+
 /* LOADING */
 .loader{text-align:center;padding:40px;color:#aaa;font-size:14px}
 
@@ -162,17 +174,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="form-body">
     <div class="field"><label>Obra</label>
       <select id="sal-obra"><option value="">Cargando...</option></select></div>
-    <div class="field"><label>Material</label>
-      <select id="sal-mat"><option value="">Selecciona obra primero</option></select></div>
-    <div class="field"><label>Cantidad</label>
-      <div class="qty-row">
-        <button class="qty-btn" onclick="adjQty('sal-qty',-1)">−</button>
-        <input class="qty-input" id="sal-qty" type="number" value="1" min="0.1" step="0.1">
-        <button class="qty-btn" onclick="adjQty('sal-qty',1)">+</button>
-      </div>
-    </div>
     <div class="field"><label>Operario</label>
       <input id="sal-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field">
+      <label>Materiales</label>
+      <div id="sal-items-list" class="items-list"><div class="items-empty">Sin materiales añadidos</div></div>
+      <div class="add-item-row">
+        <select id="sal-mat"><option value="">— Material —</option></select>
+        <input id="sal-qty" class="add-item-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="btn-add-item" onclick="addItem('sal')">+</button>
+      </div>
+    </div>
     <div class="field"><label>Notas (opcional)</label>
       <textarea id="sal-notas" placeholder="Observaciones..."></textarea></div>
     <button class="btn-main" onclick="registrar('Salida')">Registrar salida</button>
@@ -188,17 +200,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="form-body">
     <div class="field"><label>Obra</label>
       <select id="dev-obra"><option value="">Cargando...</option></select></div>
-    <div class="field"><label>Material</label>
-      <select id="dev-mat"><option value="">Selecciona obra</option></select></div>
-    <div class="field"><label>Cantidad</label>
-      <div class="qty-row">
-        <button class="qty-btn" onclick="adjQty('dev-qty',-1)">−</button>
-        <input class="qty-input" id="dev-qty" type="number" value="1" min="0.1" step="0.1">
-        <button class="qty-btn" onclick="adjQty('dev-qty',1)">+</button>
-      </div>
-    </div>
     <div class="field"><label>Operario</label>
       <input id="dev-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field">
+      <label>Materiales</label>
+      <div id="dev-items-list" class="items-list"><div class="items-empty">Sin materiales añadidos</div></div>
+      <div class="add-item-row">
+        <select id="dev-mat"><option value="">— Material —</option></select>
+        <input id="dev-qty" class="add-item-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="btn-add-item" onclick="addItem('dev')">+</button>
+      </div>
+    </div>
     <div class="field"><label>Notas (opcional)</label>
       <textarea id="dev-notas" placeholder="Observaciones..."></textarea></div>
     <button class="btn-main" onclick="registrar('Devolucion')">Registrar devolución</button>
@@ -216,17 +228,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <select id="tra-origen"><option value="">Cargando...</option></select></div>
     <div class="field"><label>Obra destino</label>
       <select id="tra-destino"><option value="">Selecciona origen</option></select></div>
-    <div class="field"><label>Material</label>
-      <select id="tra-mat"><option value="">Selecciona obras</option></select></div>
-    <div class="field"><label>Cantidad</label>
-      <div class="qty-row">
-        <button class="qty-btn" onclick="adjQty('tra-qty',-1)">−</button>
-        <input class="qty-input" id="tra-qty" type="number" value="1" min="0.1" step="0.1">
-        <button class="qty-btn" onclick="adjQty('tra-qty',1)">+</button>
-      </div>
-    </div>
     <div class="field"><label>Operario</label>
       <input id="tra-oper" type="text" placeholder="Nombre del operario"></div>
+    <div class="field">
+      <label>Materiales</label>
+      <div id="tra-items-list" class="items-list"><div class="items-empty">Sin materiales añadidos</div></div>
+      <div class="add-item-row">
+        <select id="tra-mat"><option value="">— Material —</option></select>
+        <input id="tra-qty" class="add-item-qty" type="number" value="1" min="0.1" step="0.1">
+        <button class="btn-add-item" onclick="addItem('tra')">+</button>
+      </div>
+    </div>
     <div class="field"><label>Notas (opcional)</label>
       <textarea id="tra-notas" placeholder="Observaciones..."></textarea></div>
     <button class="btn-main" onclick="registrar('Traspaso')">Registrar traspaso</button>
@@ -280,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbz7K6wXLFrWGo8Yiko3MIW_8CFTaPPT0U_33CyICt58kgtdVJsQhKSf_ytwbZk3Ez1C/exec';
-var PIN_CORRECTO = '1234';
+var PIN_CORRECTO = '1590';
 var EMAIL_ENCARGADO = '';
 
 var OBRAS = [];
@@ -289,6 +301,7 @@ var HISTORIAL = [];
 var pinVal = '';
 var albaranTexto = '';
 var albaranEmail = '';
+var ITEMS = { sal: [], dev: [], tra: [] };
 
 // ─── PIN ───────────────────────────────────────────────
 function pinKey(k) {
@@ -318,6 +331,9 @@ function go(sec) {
   document.getElementById('s-'+sec).classList.add('active');
   if (sec === 'stock') renderStock();
   if (sec === 'presupuesto') { fillObrasSelect('pres-obra', false); renderPresupuesto(); }
+  if (sec === 'salida') { ITEMS.sal = []; renderItems('sal'); }
+  if (sec === 'devolucion') { ITEMS.dev = []; renderItems('dev'); }
+  if (sec === 'traspaso') { ITEMS.tra = []; renderItems('tra'); }
 }
 
 // ─── DATOS ─────────────────────────────────────────────
@@ -419,72 +435,87 @@ function renderPresupuesto() {
   if (!obra || !obra.partidas || !obra.partidas.length) {
     list.innerHTML = '<div class="empty">Sin partidas en esta obra</div>'; return;
   }
-  var hist = HISTORIAL.filter(function(h){ return h.obra === obraNombre && (h.tipo === 'Salida' || h.tipo === 'salida'); });
-  var usado = {};
-  hist.forEach(function(h){
-    var items = h.items || [];
-    if (items.length) {
-      items.forEach(function(it){ usado[it.nombre] = (usado[it.nombre]||0) + Number(it.cantidad||0); });
-    } else if (h.material) {
-      usado[h.material] = (usado[h.material]||0) + Number(h.cantidad||0);
-    }
-  });
   list.innerHTML = obra.partidas.map(function(p) {
-    var ppto = Number(p.cantidad||0);
-    var usa = usado[p.material] || 0;
+    var ppto = Number(p.contratado||0);
+    var usa = Number(p.suministrado||0);
     var pct = ppto > 0 ? Math.min(100, Math.round(usa/ppto*100)) : 0;
     var color = pct > 90 ? '#c62828' : pct > 70 ? '#e65100' : '#8B1A1A';
     return '<div class="partida-item">'
-      +'<div class="partida-mat">'+esc(p.material||p.nombre||'')+'</div>'
+      +'<div class="partida-mat">'+esc(p.material||p.partida||'')+'</div>'
       +'<div class="partida-bar-wrap"><div class="partida-bar" style="width:'+pct+'%;background:'+color+'"></div></div>'
-      +'<div class="partida-nums"><span>'+usa+' / '+ppto+' '+(p.unidad||'ud')+'</span><span class="partida-pct">'+pct+'%</span></div>'
+      +'<div class="partida-nums"><span>'+usa+' / '+ppto+' '+(p.ud||'ud')+'</span><span class="partida-pct">'+pct+'%</span></div>'
+      +'</div>';
+  }).join('');
+}
+
+// ─── MULTI-ITEM ────────────────────────────────────────
+function addItem(pfx) {
+  var mat = document.getElementById(pfx+'-mat').value;
+  var qty = parseFloat(document.getElementById(pfx+'-qty').value);
+  if (!mat) { toast('Selecciona un material'); return; }
+  if (!qty || qty <= 0) { toast('Cantidad no válida'); return; }
+  var invent = INVENTARIO.find(function(a){ return a.nombre === mat; });
+  var unidad = invent ? (invent.unidad||'ud') : 'ud';
+  ITEMS[pfx].push({nombre: mat, cantidad: qty, unidad: unidad});
+  document.getElementById(pfx+'-mat').value = '';
+  document.getElementById(pfx+'-qty').value = '1';
+  renderItems(pfx);
+}
+
+function removeItem(pfx, idx) {
+  ITEMS[pfx].splice(idx, 1);
+  renderItems(pfx);
+}
+
+function renderItems(pfx) {
+  var list = document.getElementById(pfx+'-items-list');
+  if (!list) return;
+  if (!ITEMS[pfx].length) {
+    list.innerHTML = '<div class="items-empty">Sin materiales añadidos</div>';
+    return;
+  }
+  list.innerHTML = ITEMS[pfx].map(function(it, i) {
+    return '<div class="item-chip">'
+      +'<span class="item-chip-name">'+esc(it.nombre)+'</span>'
+      +'<span class="item-chip-qty">'+it.cantidad+' '+it.unidad+'</span>'
+      +'<button class="item-chip-del" onclick="removeItem(\''+pfx+'\','+i+')">×</button>'
       +'</div>';
   }).join('');
 }
 
 // ─── REGISTRAR MOVIMIENTO ──────────────────────────────
-function adjQty(id, delta) {
-  var inp = document.getElementById(id);
-  var v = parseFloat(inp.value)||1;
-  inp.value = Math.max(0.1, Math.round((v+delta)*10)/10);
-}
-
 function registrar(tipo) {
-  var ora, mat, qty, oper, notas, oraD;
+  var ora, oper, notas, oraD, pfx, items;
   if (tipo === 'Salida') {
+    pfx = 'sal';
     ora = document.getElementById('sal-obra').value;
-    mat = document.getElementById('sal-mat').value;
-    qty = parseFloat(document.getElementById('sal-qty').value);
     oper = document.getElementById('sal-oper').value;
     notas = document.getElementById('sal-notas').value;
   } else if (tipo === 'Devolucion') {
+    pfx = 'dev';
     ora = document.getElementById('dev-obra').value;
-    mat = document.getElementById('dev-mat').value;
-    qty = parseFloat(document.getElementById('dev-qty').value);
     oper = document.getElementById('dev-oper').value;
     notas = document.getElementById('dev-notas').value;
     tipo = 'Devolución';
   } else if (tipo === 'Traspaso') {
+    pfx = 'tra';
     ora = document.getElementById('tra-origen').value;
     oraD = document.getElementById('tra-destino').value;
-    mat = document.getElementById('tra-mat').value;
-    qty = parseFloat(document.getElementById('tra-qty').value);
     oper = document.getElementById('tra-oper').value;
     notas = document.getElementById('tra-notas').value;
   }
 
-  if (!ora || !mat || !qty || qty <= 0) { toast('Completa todos los campos'); return; }
+  items = ITEMS[pfx] || [];
+  if (!ora) { toast('Selecciona una obra'); return; }
+  if (!items.length) { toast('Añade al menos un material'); return; }
   if (tipo === 'Traspaso' && !oraD) { toast('Selecciona obra destino'); return; }
 
-  var btn = document.querySelector('#s-' + tipo.toLowerCase().replace('ó','o').replace('ción','cion') + ' .btn-main, .screen.active .btn-main');
+  var btn = document.querySelector('.screen.active .btn-main');
   if (btn) btn.disabled = true;
 
   var ahora = new Date();
   var fecha = ahora.toLocaleDateString('es-ES');
   var hora = ahora.toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'});
-
-  var invent = INVENTARIO.find(function(a){ return a.nombre === mat; });
-  var unidad = invent ? (invent.unidad||'ud') : 'ud';
 
   postAPI({
     action: 'addHistorial',
@@ -494,24 +525,30 @@ function registrar(tipo) {
     resp: oper || 'Operario',
     obs: notas || '',
     fecha: fecha,
-    items: [{nombre: mat, cantidad: qty, unidad: unidad}]
+    items: items
   }, function(res) {
     if (btn) btn.disabled = false;
     if (res && res.ok) {
-      callAPI('getInventario', function(d){ INVENTARIO = Array.isArray(d) ? d : (d.articulos||[]); });
+      if (tipo === 'Salida' || tipo === 'Devolución') {
+        var deltaSign = tipo === 'Salida' ? -1 : 1;
+        postAPI({action:'updateStock', items: items.map(function(it){ return {nombre:it.nombre, delta: deltaSign * it.cantidad}; })}, function(){});
+      }
+      callAPI('getInventario', function(d){ INVENTARIO = Array.isArray(d) ? d : (d.articulos||[]); renderStock(); });
       callAPI('getHistorial', function(d){ HISTORIAL = Array.isArray(d) ? d : (d.historial||[]); });
       var num = 'ALB-' + ahora.getFullYear() + ('0'+(ahora.getMonth()+1)).slice(-2) + ('0'+ahora.getDate()).slice(-2) + '-' + Math.floor(Math.random()*9000+1000);
-      albaranTexto = generarAlbaran(num, tipo, ora, oraD, mat, qty, unidad, oper, fecha, hora, notas);
+      albaranTexto = generarAlbaran(num, tipo, ora, oraD, items, oper, fecha, hora, notas);
       document.getElementById('alb-num').textContent = num;
       document.getElementById('alb-body').textContent = albaranTexto;
       document.getElementById('albaran-modal').classList.add('open');
+      ITEMS[pfx] = [];
+      renderItems(pfx);
     } else {
       toast('Error al registrar. Inténtalo de nuevo.');
     }
   });
 }
 
-function generarAlbaran(num, tipo, obra, obraD, mat, qty, unidad, oper, fecha, hora, notas) {
+function generarAlbaran(num, tipo, obra, obraD, items, oper, fecha, hora, notas) {
   var lines = [
     '📦 ALBARÁN SEGUFIJA',
     '━━━━━━━━━━━━━━━━━━━',
@@ -522,13 +559,12 @@ function generarAlbaran(num, tipo, obra, obraD, mat, qty, unidad, oper, fecha, h
     'Obra: ' + obra,
   ];
   if (obraD) lines.push('Destino: ' + obraD);
-  lines = lines.concat([
-    '',
-    'Material: ' + mat,
-    'Cantidad: ' + qty + ' ' + unidad,
-    '',
-    'Operario: ' + (oper||'—'),
-  ]);
+  lines.push('');
+  items.forEach(function(it) {
+    lines.push('· ' + it.nombre + ': ' + it.cantidad + ' ' + it.unidad);
+  });
+  lines.push('');
+  lines.push('Operario: ' + (oper||'—'));
   if (notas) lines.push('Notas: ' + notas);
   lines.push('━━━━━━━━━━━━━━━━━━━');
   lines.push('SEGUFIJA · Gestión de obras');
